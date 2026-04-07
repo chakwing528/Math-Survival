@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Math Survival - Boss Alarm & Ammo Box V24</title>
+    <title>Math Survival - Boss Alarm & Ammo Box V25</title>
     <style>
         body {
             margin: 0;
@@ -43,7 +43,6 @@
     // ==========================================
     // 🌐 Google Apps Script (GAS) 後台設定區
     // ==========================================
-    // 修正: 移除了錯誤的 Markdown 連結格式，確保只包含純網址字串
     const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyhAYaMKRTbD_VyHDe-MZZ5OBZVdsvY2l9qcKWq8TuliBKptbhLpQsHbc4wdyKmX24Cvg/exec"; 
     
     const canvas = document.getElementById('gameCanvas');
@@ -91,6 +90,10 @@
     let TOTAL_MONSTERS = 19; 
     let monstersLeft = [0, 0, 0, 0, 0, 0]; // 記錄 1-5 級怪物剩餘數量
     
+    // 動態空投生成間距 (轉為 frames，預設 8秒和3秒)
+    let lootBoxSpawnInterval = 480; 
+    let ammoBoxSpawnInterval = 180; 
+
     // --- 怪物與武器基礎設定 ---
     let MONSTER_BASE = [
         {tier: 1, name: "一級怪物", count: 5, hp: 8, speed: 0.5, size: 22, color: '#ef4444'},
@@ -293,7 +296,7 @@
         floatingTexts.push({ text, x, y, color, size, life: 1.0, dy: -1.5 });
     }
 
-    // 金色武器箱 (8秒降落)
+    // 金色武器箱 (時間由Google Sheet控制)
     function spawnLootBox() {
         lootBoxes.push({
             x: Math.random() * (canvas.width - 200) + 100, y: Math.random() * (canvas.height - 200) + 100,
@@ -302,7 +305,7 @@
         addFloatingText("武器升級箱降落！", canvas.width/2, 150, '#eab308', 30);
     }
 
-    // 藍色彈藥包 (每3秒出現)
+    // 藍色彈藥包 (時間由Google Sheet控制)
     function spawnAmmoBox() {
         if (ammoBoxes.length < 3) {
             ammoBoxes.push({
@@ -357,6 +360,11 @@
                 player.hp = Math.min(player.maxHp, player.hp + 50); 
                 createParticles(player.x, player.y, '#4ade80', 60, 10); 
                 closeMathUI(true, "✅ 武器系統進化成功！");
+                
+                // 補充子彈後立即停止射擊音樂
+                let sSfx = document.getElementById('shootSfx');
+                if (sSfx && !sSfx.paused) { sSfx.pause(); sSfx.currentTime = 0; }
+                
             } else if (currentMath.type === 'AMMO') {
                 // 彈藥包補充子彈 (根據Google Sheet)
                 let ammoToAdd = WEAPONS[player.weaponLevel].ammoBoxRefill || 30;
@@ -364,6 +372,10 @@
                 addFloatingText(`+${ammoToAdd} 總彈藥`, canvas.width/2, canvas.height/4 + 40, '#38bdf8', 25);
                 createParticles(player.x, player.y, '#38bdf8', 50, 10); 
                 closeMathUI(true, "✅ 彈藥補給成功！");
+                
+                // 補充子彈後立即停止射擊音樂
+                let sSfx = document.getElementById('shootSfx');
+                if (sSfx && !sSfx.paused) { sSfx.pause(); sSfx.currentTime = 0; }
             }
             
             // 答對不顯示聲音
@@ -455,9 +467,9 @@
             }
         }
 
-        // 定時生成邏輯
-        if (globalTime % 180 === 0) spawnAmmoBox(); // 每 3 秒空投彈藥包
-        if (globalTime % 480 === 0) spawnLootBox(); // 每 8 秒固定空投武器升級箱
+        // 定時生成邏輯 (使用 Google Sheet 載入嘅變數)
+        if (globalTime % ammoBoxSpawnInterval === 0) spawnAmmoBox(); 
+        if (globalTime % lootBoxSpawnInterval === 0) spawnLootBox(); 
         
         if (monsterQueue.length > 0) { 
             if (enemies.length < 4 || globalTime % 180 === 0) spawnEnemy(); 
@@ -507,12 +519,19 @@
                     player.recoilOffset = weapon.recoil; player.lastFireTime = globalTime;
                 } else if (player.currentMagazine <= 0 && player.totalAmmo > 0 && !player.isReloading) {
                     startReload(); 
+                    
+                    // 換彈時強制停止射擊音樂
+                    let sSfx = document.getElementById('shootSfx');
+                    if (sSfx && !sSfx.paused) { sSfx.pause(); sSfx.currentTime = 0; }
                 } else if (player.currentMagazine <= 0 && player.totalAmmo <= 0 && !player.isReloading) {
                     if (globalTime % 30 === 0) {
                         addFloatingText("彈藥耗盡！尋找補給箱！", player.x, player.y - 40, '#ef4444');
                         let emptySfx = document.getElementById('emptyAmmoSfx');
                         if (emptySfx) { emptySfx.currentTime = 0; emptySfx.play().catch(e=>{}); }
                     }
+                    // 無子彈時強制停止射擊音樂
+                    let sSfx = document.getElementById('shootSfx');
+                    if (sSfx && !sSfx.paused) { sSfx.pause(); sSfx.currentTime = 0; }
                 }
             }
         } else {
@@ -815,10 +834,14 @@
                 for (let btn of numpadButtons) {
                     ctx.fillStyle = '#334155'; ctx.beginPath(); ctx.roundRect(btn.x, btn.y, btn.w, btn.h, 10); ctx.fill();
                     ctx.strokeStyle = '#64748b'; ctx.lineWidth = 2; ctx.stroke();
+                    if (!('ontouchstart' in window) && mouseX >= btn.x && mouseX <= btn.x + btn.w && mouseY >= btn.y && mouseY <= btn.y + btn.h) {
+                        ctx.fillStyle = 'rgba(255, 255, 255, 0.2)'; ctx.fill();
+                    }
                     ctx.fillStyle = 'white'; ctx.font = 'bold 28px Arial'; ctx.textAlign = 'center'; ctx.fillText(btn.label, btn.x + btn.w/2, btn.y + btn.h/2);
                 }
             }
-            ctx.fillStyle = currentMath.messageColor; ctx.font = '20px Arial'; ctx.textAlign = 'center'; ctx.fillText(currentMath.message, canvas.width/2, canvas.height/2 + 350);
+            ctx.fillStyle = currentMath.messageColor; ctx.font = '22px Arial'; ctx.textAlign = 'center'; ctx.fillText(currentMath.message, canvas.width/2, canvas.height/2 + 350);
+            ctx.fillStyle = '#cbd5e1'; ctx.font = '18px Arial'; ctx.fillText('用實體鍵盤或虛擬按鍵作答', canvas.width/2, canvas.height/2 + 390);
         }
 
         if (gameState === 'GAME_OVER' || gameState === 'VICTORY') {
@@ -828,25 +851,43 @@
                 ctx.fillStyle = '#fbbf24'; ctx.font = 'bold 60px Arial'; ctx.shadowBlur = 30; ctx.shadowColor = '#eab308';
                 ctx.fillText('MISSION ACCOMPLISHED!', canvas.width/2, canvas.height/2 - 40);
                 ctx.fillStyle = 'white'; ctx.font = 'bold 24px Arial'; ctx.shadowBlur = 0;
-                ctx.fillText(`成功擊殺終極 Boss！ 最終武器: ${WEAPONS[player.weaponLevel].name}`, canvas.width/2, canvas.height/2 + 30);
+                ctx.fillText(`成功擊殺 ${TOTAL_MONSTERS} 隻魔物！ 最終武器: ${WEAPONS[player.weaponLevel].name}`, canvas.width/2, canvas.height/2 + 30);
             } else {
                 ctx.fillStyle = '#ef4444'; ctx.font = 'bold 80px Arial'; ctx.shadowBlur = 30; ctx.shadowColor = '#dc2626';
                 ctx.fillText('YOU DIED', canvas.width/2, canvas.height/2 - 40);
                 ctx.fillStyle = 'white'; ctx.font = 'bold 28px Arial'; ctx.shadowBlur = 0;
-                ctx.fillText(`擊殺數: ${enemiesKilled} / 20`, canvas.width/2, canvas.height/2 + 30);
+                ctx.fillText(`擊殺數: ${enemiesKilled} / ${TOTAL_MONSTERS}`, canvas.width/2, canvas.height/2 + 30);
             }
             ctx.globalAlpha = (globalTime % 60 < 30) ? 1 : 0.5; ctx.fillStyle = '#94a3b8'; ctx.font = '24px Arial';
-            ctx.fillText('>> 點擊螢幕任何位置重新開始 <<', canvas.width/2, canvas.height/2 + 100); ctx.globalAlpha = 1.0;
+            ctx.fillText('>> 點擊畫面或按 Enter 重新挑戰 <<', canvas.width/2, canvas.height/2 + 130); ctx.globalAlpha = 1.0;
         }
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.5)'; ctx.font = 'bold 20px Arial'; ctx.textAlign = 'left'; ctx.fillText('V24', 20, canvas.height - 20);
+
+        // --- 版本號標記 V25 ---
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+        ctx.font = 'bold 20px Arial';
+        ctx.textAlign = 'left';
+        ctx.fillText('V25', 20, canvas.height - 20);
     }
 
+    // --- Google Sheets 載入資料系統 ---
     async function loadGameData() {
         if (GAS_WEB_APP_URL) {
             try {
-                let res = await fetch(GAS_WEB_APP_URL); let data = await res.json();
+                let res = await fetch(GAS_WEB_APP_URL);
+                let data = await res.json();
+                
                 if (data.weapons && data.weapons.length > 1) {
                     let rows = data.weapons;
+                    // 讀取生成時間 (假設放在第一行武器數據後面的第 10 和第 11 欄)
+                    if (rows[1].length > 9 && rows[1][9]) {
+                        let val = parseFloat(rows[1][9]);
+                        if (!isNaN(val) && val > 0) lootBoxSpawnInterval = Math.floor(val * 60);
+                    }
+                    if (rows[1].length > 10 && rows[1][10]) {
+                        let val = parseFloat(rows[1][10]);
+                        if (!isNaN(val) && val > 0) ammoBoxSpawnInterval = Math.floor(val * 60);
+                    }
+
                     for(let i=1; i<rows.length; i++) {
                         if (rows[i].length >= 7 && WEAPONS[i-1]) {
                             WEAPONS[i-1].name = String(rows[i][1]).trim() || WEAPONS[i-1].name;
@@ -876,6 +917,7 @@
         document.getElementById('loading-screen').style.display = 'none';
         resetGame(); gameLoop();
     }
+    
     function gameLoop() { update(); draw(); requestAnimationFrame(gameLoop); }
     loadGameData();
 </script>
