@@ -651,7 +651,11 @@
         // --- 射擊邏輯 ---
         if (isShooting || rightJoy.active) {
             if (player.weaponLevel === -1) {
-                if (globalTime % 60 === 0) addFloatingText("請先拾取升級箱獲取武器！", player.x, player.y - 40, '#ef4444');
+                if (globalTime % 30 === 0) {
+                    addFloatingText("請先拾取升級箱獲取武器！", player.x, player.y - 40, '#ef4444');
+                    let emptySfx = document.getElementById('emptyAmmoSfx'); 
+                    if (emptySfx) { emptySfx.currentTime = 0; emptySfx.play().catch(e=>{}); }
+                }
                 let sSfx = document.getElementById('shootSfx'); if (sSfx && !sSfx.paused) { sSfx.pause(); sSfx.currentTime = 0; }
             } else {
                 const weapon = WEAPONS[player.weaponLevel];
@@ -677,6 +681,7 @@
                         let sSfx = document.getElementById('shootSfx'); if (sSfx && !sSfx.paused) { sSfx.pause(); sSfx.currentTime = 0; }
                     } else if (player.currentMagazine <= 0 && player.totalAmmo <= 0 && !player.isReloading) {
                         if (globalTime % 30 === 0) {
+                            addFloatingText("彈藥耗盡！尋找補給箱！", player.x, player.y - 40, '#ef4444');
                             let emptySfx = document.getElementById('emptyAmmoSfx'); if (emptySfx) { emptySfx.currentTime = 0; emptySfx.play().catch(e=>{}); }
                         }
                         let sSfx = document.getElementById('shootSfx'); if (sSfx && !sSfx.paused) { sSfx.pause(); sSfx.currentTime = 0; }
@@ -753,7 +758,7 @@
         }
     }
 
-    // --- 渲染系統 ---
+    // --- 渲染系統 (偽 2.5D 美術) ---
     function draw() {
         ctx.fillStyle = '#d2b48c'; 
         ctx.fillRect(0, 0, canvas.width, canvas.height);
