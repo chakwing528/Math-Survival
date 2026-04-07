@@ -3,98 +3,159 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Math Survival - Boss Alarm & Ammo Box V25</title>
+    <title>Math Survival - Leaderboard V28</title>
     <style>
         body {
-            margin: 0;
-            padding: 0;
-            overflow: hidden;
-            background-color: #0f172a; 
-            color: white;
+            margin: 0; padding: 0; overflow: hidden;
+            background-color: #0f172a; color: white;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            user-select: none;
-            -webkit-user-select: none;
-            touch-action: none; /* 鎖定螢幕，防止滑動同縮放 */
+            user-select: none; -webkit-user-select: none; touch-action: none;
         }
-        canvas {
-            display: block;
-            width: 100vw;
-            height: 100vh;
-        }
+        /* 修正: 只針對遊戲主畫布放大，避免 HUD 小圖示被強行放大 */
+        #gameCanvas { display: block; width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; z-index: 1; }
+        
         #loading-screen {
             position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
             background-color: #1e293b; display: flex; justify-content: center; align-items: center;
             color: #fbbf24; font-size: 32px; font-weight: bold; z-index: 1000;
         }
+
+        /* --- 左側專屬 UI 容器 (半透明不干擾遊戲) --- */
+        #ui-container {
+            position: absolute; top: 15px; left: 15px; bottom: 15px; width: 260px;
+            display: flex; flex-direction: column; gap: 15px; z-index: 10; pointer-events: none;
+        }
+        .ui-box {
+            background: rgba(241, 245, 249, 0.4); /* 半透明底色 */
+            border: 3px solid rgba(148, 163, 184, 0.5); border-radius: 8px;
+            padding: 10px; pointer-events: auto; /* 允許點擊及滑動 */
+        }
+        
+        /* 玩家資訊欄 */
+        .player-info-wrapper { display: flex; align-items: center; gap: 10px; }
+        #hp-bar-bg { width: 100%; height: 14px; background: #cbd5e1; border: 2px solid #475569; margin-bottom: 5px; }
+        #ui-hp-fill { height: 100%; background: #22c55e; width: 100%; }
+        .black-text { color: #000000; font-weight: bold; font-size: 14px; line-height: 1.4; }
+        
+        /* 怪物計數欄 */
+        .monster-row { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+        .monster-count { color: #000000; font-weight: bold; font-size: 16px; }
+        
+        /* 排行榜區域 */
+        #leaderboard-box { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+        #leaderboard-box h3 { margin: 0 0 10px 0; color: #000; text-align: center; font-size: 16px; }
+        #leaderboard-list { margin: 0; padding-left: 20px; color: #000; font-weight: bold; font-size: 14px; overflow-y: auto; max-height: 350px; }
+        #leaderboard-list li { margin-bottom: 6px; padding: 3px 5px; }
+
+        /* 提交表單 */
+        #submit-form { display: none; flex-direction: column; align-items: center; gap: 8px; margin-top: 10px; }
+        #submit-form input { width: 90%; padding: 6px; border-radius: 4px; border: 1px solid #ccc; text-align: center; }
+        #submit-form button { background: #3b82f6; color: white; border: none; padding: 8px; border-radius: 4px; cursor: pointer; width: 90%; font-weight: bold; }
     </style>
 </head>
 <body>
 
-    <!-- 音效設定：請在此處填入你 GitHub 的聲音連結 -->
     <audio id="bgm" src="bgm.mp3" loop></audio>
     <audio id="shootSfx" src="shootSfx.m4a"></audio>
     <audio id="reloadSfx" src="reloadSfx.m4a"></audio>
     <audio id="emptyAmmoSfx" src="emptyAmmoSfx.m4a"></audio>
 
     <div id="loading-screen">連接伺服器並載入數據中...</div>
+    
     <canvas id="gameCanvas"></canvas>
+
+    <!-- 專屬左側 UI 面板 -->
+    <div id="ui-container">
+        <!-- 玩家資訊 -->
+        <div class="ui-box">
+            <div class="player-info-wrapper">
+                <canvas id="player-icon" width="60" height="60"></canvas>
+                <div style="flex:1;">
+                    <div id="hp-bar-bg"><div id="ui-hp-fill"></div></div>
+                    <div class="black-text" id="ui-hp-text">HP: 100</div>
+                    <div class="black-text" id="ui-wep-name">武裝: Lv.1 基礎手槍</div>
+                    <div class="black-text" id="ui-ammo-text">彈藥: 30 / 30</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 魔物目標 -->
+        <div class="ui-box">
+            <div style="text-align:center; color:#000; font-weight:bold; margin-bottom:5px;">剩餘魔物目標</div>
+            <div class="monster-row"><canvas id="m-icon-1" width="30" height="30"></canvas><span class="monster-count" id="m-count-1">x 0</span></div>
+            <div class="monster-row"><canvas id="m-icon-2" width="30" height="30"></canvas><span class="monster-count" id="m-count-2">x 0</span></div>
+            <div class="monster-row"><canvas id="m-icon-3" width="30" height="30"></canvas><span class="monster-count" id="m-count-3">x 0</span></div>
+            <div class="monster-row"><canvas id="m-icon-4" width="30" height="30"></canvas><span class="monster-count" id="m-count-4">x 0</span></div>
+            <div class="monster-row"><canvas id="m-icon-5" width="30" height="30"></canvas><span class="monster-count" id="m-count-5">x 0</span></div>
+        </div>
+
+        <!-- 即時排行榜 -->
+        <div class="ui-box" id="leaderboard-box">
+            <h3>🏆 總排行榜 (全體排名) 🏆</h3>
+            <ol id="leaderboard-list">
+                <li>載入排行榜中...</li>
+            </ol>
+            <div id="submit-form">
+                <input type="text" id="lb-class" placeholder="班別 (例: 1A)">
+                <input type="text" id="lb-sid" placeholder="學號 (例: 01)">
+                <input type="text" id="lb-name" placeholder="名字">
+                <button onclick="submitScore()">上傳成績並查看排行榜</button>
+            </div>
+        </div>
+    </div>
 
 <script>
     // ==========================================
-    // 🌐 Google Apps Script (GAS) 後台設定區
+    // 🌐 API 後台設定區
     // ==========================================
     const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyhAYaMKRTbD_VyHDe-MZZ5OBZVdsvY2l9qcKWq8TuliBKptbhLpQsHbc4wdyKmX24Cvg/exec"; 
+    // 請填入剛才發佈的 Leaderboard Apps Script 網址
+    const GAS_LEADERBOARD_URL = "https://script.google.com/macros/s/AKfycbz_XXXXXXXXX_YOUR_NEW_LINK_HERE_XXXXXXXXX/exec"; 
     
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
     
-    // --- 聲音初始化機制 ---
     let audioInitialized = false;
     function initAudio() {
         if (!audioInitialized) {
             let bgm = document.getElementById('bgm');
-            bgm.volume = 0.4;
-            bgm.play().catch(e => console.log("BGM 自動播放被阻擋，需等待互動"));
+            bgm.volume = 0.4; bgm.play().catch(e=>{});
             audioInitialized = true;
         }
     }
 
+    // --- 設定遊戲邊界 (將左側 280px 劃為 UI 專屬區域) ---
+    const UI_BOUND = 280; 
+
     // --- 控制系統變數 ---
-    let leftJoyBase = { x: 120, y: 120 }; 
+    let leftJoyBase = { x: UI_BOUND + 80, y: 120 }; 
     let leftJoy = { active: false, id: null, stick: {x:0, y:0}, dir: {x:0, y:0} };
     let rightJoy = { active: false, id: null, base: {x:0,y:0}, stick: {x:0,y:0}, dir: {x:0,y:0}, angle: 0 };
-    const joyRadius = 55;
+    const joyRadius = 50;
 
     const keys = { w: false, a: false, s: false, d: false };
-    let mouseX = window.innerWidth / 2;
-    let mouseY = window.innerHeight / 2;
+    let mouseX = canvas.width / 2; let mouseY = canvas.height / 2;
     let isShooting = false;
 
     function resizeCanvas() {
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
-        leftJoyBase = { x: 120, y: canvas.height - 120 };
+        // 左搖桿避開 UI 區
+        leftJoyBase = { x: UI_BOUND + 80, y: canvas.height - 120 };
         leftJoy.stick = { x: leftJoyBase.x, y: leftJoyBase.y };
         setupNumpad();
     }
     window.addEventListener('resize', resizeCanvas);
 
     let gameState = 'PLAYING';
-    let globalTime = 0;
-    let shakeTime = 0;
-    let bossAlarmTimer = 0; // Boss 警報計時器
+    let globalTime = 0; let shakeTime = 0; let bossAlarmTimer = 0;
     
-    // --- 遊戲進程與生成系統 ---
-    let enemiesKilled = 0;
-    let totalMonstersSpawned = 0;
-    let TOTAL_MONSTERS = 19; 
-    let monstersLeft = [0, 0, 0, 0, 0, 0]; // 記錄 1-5 級怪物剩餘數量
+    let enemiesKilled = 0; let totalMonstersSpawned = 0; let TOTAL_MONSTERS = 19; 
+    let monstersLeft = [0, 0, 0, 0, 0, 0]; 
+    let currentWave = 1;
     
-    // 動態空投生成間距 (轉為 frames，預設 8秒和3秒)
-    let lootBoxSpawnInterval = 480; 
-    let ammoBoxSpawnInterval = 180; 
+    let lootBoxSpawnInterval = 480; let ammoBoxSpawnInterval = 180; 
 
-    // --- 怪物與武器基礎設定 ---
     let MONSTER_BASE = [
         {tier: 1, name: "一級怪物", count: 5, hp: 8, speed: 0.5, size: 22, color: '#ef4444'},
         {tier: 2, name: "二級怪物", count: 5, hp: 25, speed: 0.8, size: 28, color: '#f97316'},
@@ -117,49 +178,125 @@
 
     let monsterQueue = [];
     function initMonsterQueue() {
-        monsterQueue = [];
-        TOTAL_MONSTERS = 0;
-        monstersLeft = [0, 0, 0, 0, 0, 0];
+        monsterQueue = []; TOTAL_MONSTERS = 0; monstersLeft = [0, 0, 0, 0, 0, 0];
         for (let m of MONSTER_BASE) {
-            for(let i=0; i<m.count; i++) {
-                monsterQueue.push({...m});
-            }
-            TOTAL_MONSTERS += m.count;
-            monstersLeft[m.tier] += m.count; // 記錄數量
+            for(let i=0; i<m.count; i++) monsterQueue.push({...m});
+            TOTAL_MONSTERS += m.count; monstersLeft[m.tier] += m.count; 
         }
     }
 
-    // --- 玩家狀態 ---
     let player = {
-        x: 0, y: 0, radius: 20, color: '#3b82f6', speed: 4, hp: 100, maxHp: 100,
-        weaponLevel: 0, 
-        currentMagazine: 30, 
-        totalAmmo: 30,       
-        isReloading: false, reloadTimer: 0,
-        angle: 0, recoilOffset: 0, lastFireTime: 0, isMoving: false
+        x: UI_BOUND + 100, y: 0, radius: 20, color: '#3b82f6', speed: 4, hp: 100, maxHp: 100,
+        weaponLevel: 0, currentMagazine: 30, totalAmmo: 30,       
+        isReloading: false, reloadTimer: 0, angle: 0, recoilOffset: 0, lastFireTime: 0, isMoving: false
     };
 
     let bullets = []; let enemies = []; let lootBoxes = []; let ammoBoxes = []; let particles = []; let floatingTexts = [];
     let currentMath = { question: '', answer: 0, userInput: '', message: '', messageColor: 'white', scale: 0, type: 'UPGRADE' };
     let mathTimer = 0;
+    let scoreSubmitted = false;
 
     let numpadButtons = [];
     function setupNumpad() {
         numpadButtons = [];
-        const bw = window.innerWidth > 600 ? 80 : 65; 
-        const bh = window.innerWidth > 600 ? 60 : 50;
-        const gap = 10;
-        const startX = canvas.width/2 - (bw*3 + gap*2)/2;
+        const bw = window.innerWidth > 600 ? 80 : 65; const bh = window.innerWidth > 600 ? 60 : 50; const gap = 10;
+        // 將鍵盤置中於「遊戲區域」而非全螢幕
+        const gameCenterX = UI_BOUND + (canvas.width - UI_BOUND) / 2;
+        const startX = gameCenterX - (bw*3 + gap*2)/2;
         const startY = canvas.height/2 + 20;
 
         const keys = [['7','8','9'], ['4','5','6'], ['1','2','3'], ['Del','0','Enter']];
         for(let r=0; r<4; r++) {
-            for(let c=0; c<3; c++) {
-                numpadButtons.push({ label: keys[r][c], x: startX + c * (bw + gap), y: startY + r * (bh + gap), w: bw, h: bh });
-            }
+            for(let c=0; c<3; c++) numpadButtons.push({ label: keys[r][c], x: startX + c * (bw + gap), y: startY + r * (bh + gap), w: bw, h: bh });
         }
     }
     resizeCanvas();
+
+    // --- 繪製側邊欄靜態圖示 (迷你 Canvas) ---
+    function drawHUDIcons() {
+        // Player
+        let pC = document.getElementById('player-icon'); let pCtx = pC.getContext('2d');
+        pCtx.translate(30, 35);
+        pCtx.fillStyle = '#dc2626'; pCtx.beginPath(); pCtx.moveTo(-9, -7); pCtx.lineTo(-15, 15); pCtx.lineTo(15, 15); pCtx.lineTo(9, -7); pCtx.fill();
+        pCtx.fillStyle = '#1d4ed8'; pCtx.fillRect(-9, -11, 18, 22); 
+        pCtx.fillStyle = '#94a3b8'; pCtx.fillRect(-10, -11, 20, 12); 
+        pCtx.fillStyle = '#fcd34d'; pCtx.beginPath(); pCtx.arc(0, -18, 12, 0, Math.PI*2); pCtx.fill();
+        pCtx.fillStyle = '#cbd5e1'; pCtx.beginPath(); pCtx.arc(0, -21, 13, Math.PI, 0); pCtx.fill(); pCtx.fillRect(-13, -21, 26, 4); 
+        pCtx.fillStyle = '#b91c1c'; pCtx.fillRect(-2, -36, 4, 9);
+        pCtx.fillStyle = '#1e293b'; pCtx.beginPath(); pCtx.arc(-4, -17, 2, 0, Math.PI*2); pCtx.fill(); pCtx.beginPath(); pCtx.arc(4, -17, 2, 0, Math.PI*2); pCtx.fill();
+
+        // Monsters
+        let mTypes = [{ tier: 1, color: '#ef4444' }, { tier: 2, color: '#f97316' }, { tier: 3, color: '#eab308' }, { tier: 4, color: '#84cc16' }, { tier: 5, color: '#a855f7' }];
+        for (let i=0; i<5; i++) {
+            let mC = document.getElementById(`m-icon-${i+1}`); let mCtx = mC.getContext('2d');
+            mCtx.translate(15, 18);
+            let eSize = 14; 
+            mCtx.fillStyle = mTypes[i].color; mCtx.beginPath(); mCtx.arc(0, -eSize*0.4, eSize*0.45, Math.PI, 0); mCtx.lineTo(eSize*0.45, eSize*0.1); mCtx.lineTo(-eSize*0.45, eSize*0.1); mCtx.fill();
+            if (mTypes[i].tier === 5) {
+                mCtx.fillStyle = '#334155'; mCtx.beginPath(); mCtx.moveTo(-eSize*0.2, -eSize*0.4); mCtx.lineTo(-eSize*0.5, -eSize*0.7); mCtx.lineTo(-eSize*0.3, -eSize*0.3); mCtx.fill(); mCtx.beginPath(); mCtx.moveTo(eSize*0.2, -eSize*0.4); mCtx.lineTo(eSize*0.5, -eSize*0.7); mCtx.lineTo(eSize*0.3, -eSize*0.3); mCtx.fill();
+                mCtx.fillStyle = '#fbbf24'; mCtx.beginPath(); mCtx.moveTo(-8, -eSize*0.4); mCtx.lineTo(-10, -eSize*0.6); mCtx.lineTo(0, -eSize*0.5); mCtx.lineTo(10, -eSize*0.6); mCtx.lineTo(8, -eSize*0.4); mCtx.fill();
+            } else { mCtx.fillStyle = '#fca5a5'; mCtx.beginPath(); mCtx.arc(0, -2, eSize*0.2, 0, Math.PI * 2); mCtx.fill(); }
+            mCtx.fillStyle = mTypes[i].tier >= 3 ? '#ef4444' : 'white'; mCtx.beginPath(); mCtx.arc(-2.5, -eSize*0.3, 1.5, 0, Math.PI*2); mCtx.fill(); mCtx.beginPath(); mCtx.arc(2.5, -eSize*0.3, 1.5, 0, Math.PI*2); mCtx.fill();
+            mCtx.fillStyle = 'black'; mCtx.beginPath(); mCtx.arc(-2.5, -eSize*0.3, 1, 0, Math.PI*2); mCtx.fill(); mCtx.beginPath(); mCtx.arc(2.5, -eSize*0.3, 1, 0, Math.PI*2); mCtx.fill();
+        }
+    }
+    setTimeout(drawHUDIcons, 100);
+
+    // --- 排行榜邏輯 (Optimistic UI) ---
+    function fetchLeaderboard() {
+        if (!GAS_LEADERBOARD_URL || GAS_LEADERBOARD_URL.includes("YOUR_NEW_LINK_HERE")) return;
+        fetch(`${GAS_LEADERBOARD_URL}?action=getLeaderboard`)
+            .then(res => res.json())
+            .then(data => renderLeaderboard(data))
+            .catch(e => console.log("LB 獲取失敗", e));
+    }
+
+    function renderLeaderboard(data) {
+        const list = document.getElementById('leaderboard-list');
+        list.innerHTML = "";
+        if (!data || data.length === 0) { list.innerHTML = "<li>暫無數據</li>"; return; }
+        
+        data.forEach(item => {
+            let li = document.createElement('li');
+            li.textContent = `${item.cls} ${item.name} - ${item.score}分 (${item.diff})`;
+            if (item.isMe) { li.style.backgroundColor = "rgba(46, 204, 113, 0.4)"; li.style.borderRadius = "4px"; }
+            list.appendChild(li);
+        });
+    }
+
+    async function submitScore() {
+        const cls = document.getElementById('lb-class').value.trim();
+        const sid = document.getElementById('lb-sid').value.trim();
+        const name = document.getElementById('lb-name').value.trim();
+        if (!cls || !sid || !name) { alert("請填寫班別、學號及名字！"); return; }
+
+        scoreSubmitted = true;
+        document.getElementById('submit-form').style.display = 'none';
+        document.getElementById('leaderboard-list').innerHTML = "<li>上傳中並更新排行榜...</li>";
+
+        const now = new Date();
+        const dateStr = now.toLocaleDateString('zh-HK');
+        const timeStr = now.toLocaleTimeString('zh-HK');
+        const diff = `Wave ${currentWave}`;
+        const score = enemiesKilled;
+
+        // 1. 非同步背景上傳
+        const addUrl = `${GAS_LEADERBOARD_URL}?action=addScore&date=${encodeURIComponent(dateStr)}&time=${encodeURIComponent(timeStr)}&diff=${encodeURIComponent(diff)}&cls=${encodeURIComponent(cls)}&sid=${encodeURIComponent(sid)}&name=${encodeURIComponent(name)}&score=${score}`;
+        fetch(addUrl).catch(e => console.log("LB 上傳延遲", e));
+
+        // 2. 即時獲取舊數據並加入新分數 (樂觀更新)
+        try {
+            let res = await fetch(`${GAS_LEADERBOARD_URL}?action=getLeaderboard`);
+            let data = await res.json();
+            data.push({ diff: diff, cls: cls, name: name, score: score, isMe: true });
+            data.sort((a, b) => b.score - a.score);
+            renderLeaderboard(data);
+        } catch(e) {
+            // 若失敗則單獨顯示自己
+            renderLeaderboard([{ diff: diff, cls: cls, name: name, score: score, isMe: true }]);
+        }
+    }
+
 
     // --- 事件處理 ---
     canvas.addEventListener('touchstart', handleTouchStart, {passive: false});
@@ -168,33 +305,34 @@
     canvas.addEventListener('touchcancel', handleTouchEnd, {passive: false});
 
     function handleTouchStart(e) {
-        e.preventDefault();
-        initAudio();
+        if(e.target !== canvas) return; // 避免攔截 UI 點擊
+        e.preventDefault(); initAudio();
         const touches = e.changedTouches;
 
         for (let i = 0; i < touches.length; i++) {
             let t = touches[i];
+            let tx = t.clientX; let ty = t.clientY;
             
             if (gameState === 'MATH_TIME') {
                 for (let btn of numpadButtons) {
-                    if (t.clientX >= btn.x && t.clientX <= btn.x + btn.w && t.clientY >= btn.y && t.clientY <= btn.y + btn.h) {
-                        handleNumpadInput(btn.label); break;
-                    }
-                }
-                continue;
+                    if (tx >= btn.x && tx <= btn.x + btn.w && ty >= btn.y && ty <= btn.y + btn.h) { handleNumpadInput(btn.label); break; }
+                } continue;
             }
 
-            if (gameState === 'GAME_OVER' || gameState === 'VICTORY') { resetGame(); return; }
+            if (gameState === 'GAME_OVER' || gameState === 'VICTORY') { 
+                if (scoreSubmitted || document.getElementById('submit-form').style.display === 'none') resetGame(); 
+                return; 
+            }
 
             if (gameState === 'PLAYING') {
-                if (t.clientX < canvas.width / 2 && !leftJoy.active) {
+                // 如果點擊喺左邊且大過 UI_BOUND，先視為左搖桿
+                if (tx > UI_BOUND && tx < canvas.width / 2 && !leftJoy.active) {
                     leftJoy.active = true; leftJoy.id = t.identifier;
-                    updateFixedJoystick(leftJoy, t.clientX, t.clientY);
+                    updateFixedJoystick(leftJoy, tx, ty);
                 } 
-                else if (t.clientX >= canvas.width / 2 && !rightJoy.active) {
+                else if (tx >= canvas.width / 2 && !rightJoy.active) {
                     rightJoy.active = true; rightJoy.id = t.identifier;
-                    rightJoy.base = {x: t.clientX, y: t.clientY};
-                    rightJoy.stick = {x: t.clientX, y: t.clientY};
+                    rightJoy.base = {x: tx, y: ty}; rightJoy.stick = {x: tx, y: ty};
                     player.angle = Math.atan2(0, 1);
                 }
             }
@@ -202,21 +340,18 @@
     }
 
     function handleTouchMove(e) {
-        e.preventDefault();
-        const touches = e.changedTouches;
+        e.preventDefault(); const touches = e.changedTouches;
         for (let i = 0; i < touches.length; i++) {
-            let t = touches[i];
-            if (leftJoy.active && t.identifier === leftJoy.id) updateFixedJoystick(leftJoy, t.clientX, t.clientY);
+            let t = touches[i]; let tx = t.clientX; let ty = t.clientY;
+            if (leftJoy.active && t.identifier === leftJoy.id) updateFixedJoystick(leftJoy, Math.max(UI_BOUND, tx), ty); // 防止搖桿拉入 UI
             if (rightJoy.active && t.identifier === rightJoy.id) {
-                let dx = t.clientX - rightJoy.base.x; let dy = t.clientY - rightJoy.base.y;
-                let dist = Math.sqrt(dx*dx + dy*dy); rightJoy.angle = Math.atan2(dy, dx);
+                let dx = tx - rightJoy.base.x; let dy = ty - rightJoy.base.y; let dist = Math.sqrt(dx*dx + dy*dy);
+                rightJoy.angle = Math.atan2(dy, dx);
                 if (dist > joyRadius) {
-                    rightJoy.stick.x = rightJoy.base.x + Math.cos(rightJoy.angle) * joyRadius;
-                    rightJoy.stick.y = rightJoy.base.y + Math.sin(rightJoy.angle) * joyRadius;
+                    rightJoy.stick.x = rightJoy.base.x + Math.cos(rightJoy.angle) * joyRadius; rightJoy.stick.y = rightJoy.base.y + Math.sin(rightJoy.angle) * joyRadius;
                     rightJoy.dir.x = Math.cos(rightJoy.angle); rightJoy.dir.y = Math.sin(rightJoy.angle);
                 } else {
-                    rightJoy.stick.x = t.clientX; rightJoy.stick.y = t.clientY;
-                    rightJoy.dir.x = dx / joyRadius; rightJoy.dir.y = dy / joyRadius;
+                    rightJoy.stick.x = tx; rightJoy.stick.y = ty; rightJoy.dir.x = dx / joyRadius; rightJoy.dir.y = dy / joyRadius;
                 }
                 player.angle = rightJoy.angle;
             }
@@ -224,8 +359,7 @@
     }
 
     function handleTouchEnd(e) {
-        e.preventDefault();
-        const touches = e.changedTouches;
+        e.preventDefault(); const touches = e.changedTouches;
         for (let i = 0; i < touches.length; i++) {
             let t = touches[i];
             if (leftJoy.active && t.identifier === leftJoy.id) { leftJoy.active = false; leftJoy.dir = {x:0, y:0}; leftJoy.stick = {x: leftJoyBase.x, y: leftJoyBase.y}; }
@@ -234,8 +368,7 @@
     }
 
     function updateFixedJoystick(joy, tx, ty) {
-        let dx = tx - leftJoyBase.x; let dy = ty - leftJoyBase.y;
-        let dist = Math.sqrt(dx*dx + dy*dy); let angle = Math.atan2(dy, dx);
+        let dx = tx - leftJoyBase.x; let dy = ty - leftJoyBase.y; let dist = Math.sqrt(dx*dx + dy*dy); let angle = Math.atan2(dy, dx);
         if (dist > joyRadius) {
             joy.stick.x = leftJoyBase.x + Math.cos(angle) * joyRadius; joy.stick.y = leftJoyBase.y + Math.sin(angle) * joyRadius; joy.dir.x = Math.cos(angle); joy.dir.y = Math.sin(angle);
         } else {
@@ -245,13 +378,15 @@
 
     window.addEventListener('mousemove', (e) => { mouseX = e.clientX; mouseY = e.clientY; });
     window.addEventListener('mousedown', (e) => {
+        if(e.target !== canvas) return;
         initAudio();
         if (gameState === 'MATH_TIME') {
             for (let btn of numpadButtons) {
                 if (e.clientX >= btn.x && e.clientX <= btn.x + btn.w && e.clientY >= btn.y && e.clientY <= btn.y + btn.h) { handleNumpadInput(btn.label); break; }
             }
-        } else if (gameState === 'GAME_OVER' || gameState === 'VICTORY') resetGame(); 
-        else if (gameState === 'PLAYING') isShooting = true;
+        } else if (gameState === 'GAME_OVER' || gameState === 'VICTORY') {
+            if (scoreSubmitted || document.getElementById('submit-form').style.display === 'none') resetGame(); 
+        } else if (gameState === 'PLAYING') isShooting = true;
     });
     window.addEventListener('mouseup', () => { isShooting = false; });
     window.addEventListener('keydown', (e) => {
@@ -261,7 +396,9 @@
             if (!isNaN(e.key) && e.key !== ' ') { if (currentMath.userInput.length < 5) currentMath.userInput += e.key; } 
             else if (e.key === 'Backspace') currentMath.userInput = currentMath.userInput.slice(0, -1); 
             else if (e.key === 'Enter' || e.key === 'NumpadEnter') checkMathAnswer();
-        } else if (gameState === 'GAME_OVER' || gameState === 'VICTORY') { if (e.key === 'Enter') resetGame(); }
+        } else if (gameState === 'GAME_OVER' || gameState === 'VICTORY') { 
+            if (e.key === 'Enter') { if (scoreSubmitted || document.getElementById('submit-form').style.display === 'none') resetGame(); }
+        }
     });
     window.addEventListener('keyup', (e) => { if (gameState === 'PLAYING') { let key = e.key.toLowerCase(); if (keys.hasOwnProperty(key)) keys[key] = false; }});
 
@@ -271,13 +408,11 @@
         else { if (currentMath.userInput.length < 5) currentMath.userInput += val; }
     }
 
-    // --- 遊戲邏輯函數 ---
+    // --- 遊戲邏輯 ---
     function fireBullet(angle, weapon, customSpeed) {
         bullets.push({
-            x: player.x + Math.cos(player.angle) * 30, 
-            y: player.y + Math.sin(player.angle) * 30, 
-            vx: Math.cos(angle) * customSpeed, 
-            vy: Math.sin(angle) * customSpeed,
+            x: player.x + Math.cos(player.angle) * 30, y: player.y + Math.sin(player.angle) * 30, 
+            vx: Math.cos(angle) * customSpeed, vy: Math.sin(angle) * customSpeed,
             radius: weapon.size || 4, color: weapon.color, glow: weapon.glow, damage: weapon.damage, penetrate: weapon.penetrate, hitEnemies: []
         });
     }
@@ -296,20 +431,18 @@
         floatingTexts.push({ text, x, y, color, size, life: 1.0, dy: -1.5 });
     }
 
-    // 金色武器箱 (時間由Google Sheet控制)
     function spawnLootBox() {
         lootBoxes.push({
-            x: Math.random() * (canvas.width - 200) + 100, y: Math.random() * (canvas.height - 200) + 100,
+            x: Math.random() * (canvas.width - UI_BOUND - 100) + UI_BOUND + 50, y: Math.random() * (canvas.height - 200) + 100,
             size: 35, pulse: 0, spawnTime: globalTime 
         });
         addFloatingText("武器升級箱降落！", canvas.width/2, 150, '#eab308', 30);
     }
 
-    // 藍色彈藥包 (時間由Google Sheet控制)
     function spawnAmmoBox() {
         if (ammoBoxes.length < 3) {
             ammoBoxes.push({
-                x: Math.random() * (canvas.width - 200) + 100, y: Math.random() * (canvas.height - 200) + 100,
+                x: Math.random() * (canvas.width - UI_BOUND - 100) + UI_BOUND + 50, y: Math.random() * (canvas.height - 200) + 100,
                 size: 28, pulse: 0, spawnTime: globalTime 
             });
             addFloatingText("彈藥補給包降落！", canvas.width/2, 120, '#38bdf8', 26);
@@ -319,9 +452,10 @@
     function spawnEnemy() {
         if (gameState !== 'PLAYING' || monsterQueue.length === 0) return;
         let mData = monsterQueue.shift(); totalMonstersSpawned++;
-        let x, y;
-        if (Math.random() < 0.5) { x = Math.random() < 0.5 ? -100 : canvas.width + 100; y = Math.random() * canvas.height; } 
-        else { x = Math.random() * canvas.width; y = Math.random() < 0.5 ? -100 : canvas.height + 100; }
+        
+        // 敵人必定喺 UI_BOUND 之外生成
+        let x = Math.random() < 0.5 ? UI_BOUND + 10 : canvas.width + 50;
+        let y = Math.random() * canvas.height;
 
         enemies.push({ 
             x: x, y: y, size: mData.size, color: mData.color, speed: mData.speed, 
@@ -331,7 +465,6 @@
         if (mData.tier === 5) {
             bossAlarmTimer = 120;
             addFloatingText("⚠️ 萬血首領來襲！ ⚠️", canvas.width/2, 100, '#ef4444', 50);
-            createParticles(canvas.width/2, 100, '#ef4444', 50, 10);
         }
     }
 
@@ -351,38 +484,22 @@
             if (currentMath.type === 'UPGRADE') {
                 if (player.weaponLevel < WEAPONS.length - 1) {
                     player.weaponLevel++;
-                    addFloatingText(`解鎖: ${WEAPONS[player.weaponLevel].name}!`, canvas.width/2, canvas.height/4, '#fbbf24', 35);
                     player.speed = WEAPONS[player.weaponLevel].playerSpeed;
                 }
                 let ammoToAdd = WEAPONS[player.weaponLevel].reloadAmmo || 30;
                 player.totalAmmo += ammoToAdd;
-                addFloatingText(`+${ammoToAdd} 總彈藥`, canvas.width/2, canvas.height/4 + 40, '#000000', 25);
                 player.hp = Math.min(player.maxHp, player.hp + 50); 
-                createParticles(player.x, player.y, '#4ade80', 60, 10); 
                 closeMathUI(true, "✅ 武器系統進化成功！");
-                
-                // 補充子彈後立即停止射擊音樂
-                let sSfx = document.getElementById('shootSfx');
-                if (sSfx && !sSfx.paused) { sSfx.pause(); sSfx.currentTime = 0; }
-                
+                let sSfx = document.getElementById('shootSfx'); if (sSfx && !sSfx.paused) { sSfx.pause(); sSfx.currentTime = 0; }
             } else if (currentMath.type === 'AMMO') {
-                // 彈藥包補充子彈 (根據Google Sheet)
                 let ammoToAdd = WEAPONS[player.weaponLevel].ammoBoxRefill || 30;
                 player.totalAmmo += ammoToAdd;
-                addFloatingText(`+${ammoToAdd} 總彈藥`, canvas.width/2, canvas.height/4 + 40, '#38bdf8', 25);
-                createParticles(player.x, player.y, '#38bdf8', 50, 10); 
                 closeMathUI(true, "✅ 彈藥補給成功！");
-                
-                // 補充子彈後立即停止射擊音樂
-                let sSfx = document.getElementById('shootSfx');
-                if (sSfx && !sSfx.paused) { sSfx.pause(); sSfx.currentTime = 0; }
+                let sSfx = document.getElementById('shootSfx'); if (sSfx && !sSfx.paused) { sSfx.pause(); sSfx.currentTime = 0; }
             }
-            
-            // 答對不顯示聲音
             shakeTime = 15;
             
         } else {
-            // 答錯亦不顯示聲音
             closeMathUI(false, `❌ 錯誤！正確答案係 ${currentMath.answer}`);
         }
     }
@@ -393,27 +510,31 @@
             gameState = 'PLAYING'; isShooting = false; 
             leftJoy.active = false; leftJoy.dir = {x:0, y:0}; leftJoy.stick = {x: leftJoyBase.x, y: leftJoyBase.y};
             rightJoy.active = false; rightJoy.dir = {x:0, y:0}; keys.w = keys.a = keys.s = keys.d = false; 
-            
-            // 停止射擊音效防殘留
-            let sSfx = document.getElementById('shootSfx');
-            if (sSfx && !sSfx.paused) { sSfx.pause(); sSfx.currentTime = 0; }
+            let sSfx = document.getElementById('shootSfx'); if (sSfx && !sSfx.paused) { sSfx.pause(); sSfx.currentTime = 0; }
         }, 1000);
+    }
+
+    function triggerGameOver(isVictory) {
+        gameState = isVictory ? 'VICTORY' : 'GAME_OVER';
+        document.getElementById('submit-form').style.display = 'flex';
+        scoreSubmitted = false;
     }
 
     function resetGame() {
         player.weaponLevel = 0; player.hp = player.maxHp; 
-        player.speed = WEAPONS[0].playerSpeed || 4; 
-        player.currentMagazine = WEAPONS[0].magCapacity || 30; 
-        player.totalAmmo = WEAPONS[0].reloadAmmo || 30; 
+        player.speed = WEAPONS[0].playerSpeed || 4; player.currentMagazine = WEAPONS[0].magCapacity || 30; player.totalAmmo = WEAPONS[0].reloadAmmo || 30; 
         player.isReloading = false; player.reloadTimer = 0;
         
         enemiesKilled = 0; totalMonstersSpawned = 0;
-        player.x = canvas.width / 2; player.y = canvas.height / 2;
+        player.x = UI_BOUND + (canvas.width - UI_BOUND)/2; player.y = canvas.height / 2;
         bullets = []; enemies = []; lootBoxes = []; ammoBoxes = []; particles = []; floatingTexts = [];
         isShooting = false; keys.w = keys.a = keys.s = keys.d = false;
         leftJoy.active = false; rightJoy.active = false;
-        player.lastFireTime = 0; globalTime = 0; bossAlarmTimer = 0;
-        initMonsterQueue(); gameState = 'PLAYING';
+        player.lastFireTime = 0; globalTime = 0; bossAlarmTimer = 0; currentWave = 1;
+        
+        document.getElementById('submit-form').style.display = 'none';
+        initMonsterQueue(); fetchLeaderboard();
+        gameState = 'PLAYING';
     }
 
     function checkCollision(obj1, obj2, dist) {
@@ -424,15 +545,31 @@
         let cap = WEAPONS[player.weaponLevel].magCapacity || 30;
         if (player.totalAmmo > 0 && player.currentMagazine < cap && !player.isReloading) {
             player.isReloading = true;
-            player.reloadTimer = 30; // 30 frames = 0.5 秒
+            player.reloadTimer = 30; 
             let rSfx = document.getElementById('reloadSfx');
             if (rSfx) { rSfx.currentTime = 0; rSfx.play().catch(e=>{}); }
+        }
+    }
+
+    // --- HTML UI 同步 ---
+    function updateHTMLHUD() {
+        document.getElementById('ui-hp-fill').style.width = (Math.max(0, player.hp) / player.maxHp * 100) + '%';
+        document.getElementById('ui-hp-text').textContent = `HP: ${Math.max(0, player.hp)}`;
+        document.getElementById('ui-wep-name').textContent = `武裝: ${WEAPONS[player.weaponLevel].name}`;
+        
+        if (player.isReloading) document.getElementById('ui-ammo-text').textContent = `換彈中...`;
+        else document.getElementById('ui-ammo-text').textContent = `彈藥: ${player.currentMagazine} / ${player.totalAmmo}`;
+
+        for(let i=1; i<=5; i++) {
+            let el = document.getElementById(`m-count-${i}`);
+            if(el) el.textContent = `x ${Math.max(0, monstersLeft[i])}`;
         }
     }
 
     // --- 遊戲主循環 ---
     function update() {
         globalTime++;
+        updateHTMLHUD();
 
         if (gameState === 'MATH_TIME') {
             if (currentMath.scale < 1) currentMath.scale += 0.15;
@@ -467,7 +604,6 @@
             }
         }
 
-        // 定時生成邏輯 (使用 Google Sheet 載入嘅變數)
         if (globalTime % ammoBoxSpawnInterval === 0) spawnAmmoBox(); 
         if (globalTime % lootBoxSpawnInterval === 0) spawnLootBox(); 
         
@@ -475,8 +611,7 @@
             if (enemies.length < 4 || globalTime % 180 === 0) spawnEnemy(); 
         }
 
-        let dx = 0, dy = 0;
-        let safeSpeed = player.speed || 4; 
+        let dx = 0, dy = 0; let safeSpeed = player.speed || 4; 
         
         if (leftJoy.active) { dx = leftJoy.dir.x * safeSpeed; dy = leftJoy.dir.y * safeSpeed; } 
         else {
@@ -486,12 +621,12 @@
         
         player.isMoving = (dx !== 0 || dy !== 0);
         if (dx !== 0 && dy !== 0 && !leftJoy.active) { 
-            let len = Math.sqrt(dx*dx + dy*dy); 
-            dx = (dx / len) * safeSpeed; dy = (dy / len) * safeSpeed; 
+            let len = Math.sqrt(dx*dx + dy*dy); dx = (dx / len) * safeSpeed; dy = (dy / len) * safeSpeed; 
         }
         
+        // 玩家 X 軸限制 (絕對不能進入 UI 區)
         if (!isNaN(dx) && !isNaN(dy)) { player.x += dx; player.y += dy; }
-        player.x = Math.max(player.radius, Math.min(canvas.width - player.radius, player.x));
+        player.x = Math.max(UI_BOUND + player.radius, Math.min(canvas.width - player.radius, player.x));
         player.y = Math.max(player.radius, Math.min(canvas.height - player.radius, player.y));
 
         if (rightJoy.active) { player.angle = rightJoy.angle; } 
@@ -519,28 +654,16 @@
                     player.recoilOffset = weapon.recoil; player.lastFireTime = globalTime;
                 } else if (player.currentMagazine <= 0 && player.totalAmmo > 0 && !player.isReloading) {
                     startReload(); 
-                    
-                    // 換彈時強制停止射擊音樂
-                    let sSfx = document.getElementById('shootSfx');
-                    if (sSfx && !sSfx.paused) { sSfx.pause(); sSfx.currentTime = 0; }
+                    let sSfx = document.getElementById('shootSfx'); if (sSfx && !sSfx.paused) { sSfx.pause(); sSfx.currentTime = 0; }
                 } else if (player.currentMagazine <= 0 && player.totalAmmo <= 0 && !player.isReloading) {
                     if (globalTime % 30 === 0) {
-                        addFloatingText("彈藥耗盡！尋找補給箱！", player.x, player.y - 40, '#ef4444');
-                        let emptySfx = document.getElementById('emptyAmmoSfx');
-                        if (emptySfx) { emptySfx.currentTime = 0; emptySfx.play().catch(e=>{}); }
+                        let emptySfx = document.getElementById('emptyAmmoSfx'); if (emptySfx) { emptySfx.currentTime = 0; emptySfx.play().catch(e=>{}); }
                     }
-                    // 無子彈時強制停止射擊音樂
-                    let sSfx = document.getElementById('shootSfx');
-                    if (sSfx && !sSfx.paused) { sSfx.pause(); sSfx.currentTime = 0; }
+                    let sSfx = document.getElementById('shootSfx'); if (sSfx && !sSfx.paused) { sSfx.pause(); sSfx.currentTime = 0; }
                 }
             }
         } else {
-            // 停止射擊時暫停射擊音效
-            let sSfx = document.getElementById('shootSfx');
-            if (sSfx && !sSfx.paused) {
-                sSfx.pause();
-                sSfx.currentTime = 0;
-            }
+            let sSfx = document.getElementById('shootSfx'); if (sSfx && !sSfx.paused) { sSfx.pause(); sSfx.currentTime = 0; }
         }
 
         for (let i = bullets.length - 1; i >= 0; i--) {
@@ -561,7 +684,7 @@
                 createParticles(player.x, player.y, '#ef4444', 30, 8); 
                 addFloatingText(`-${dmg}`, player.x, player.y - 50, '#ef4444', 24);
                 enemy.x -= Math.cos(angleToPlayer) * 40; enemy.y -= Math.sin(angleToPlayer) * 40;
-                if (player.hp <= 0) { gameState = 'GAME_OVER'; createParticles(player.x, player.y, '#ef4444', 100, 15); }
+                if (player.hp <= 0) { createParticles(player.x, player.y, '#ef4444', 100, 15); triggerGameOver(false); }
                 continue;
             }
 
@@ -579,7 +702,7 @@
                         createParticles(enemy.x, enemy.y, enemy.color, enemy.tier === 5 ? 100 : 40, 8); 
                         monstersLeft[enemy.tier]--; 
                         enemies.splice(i, 1); enemiesKilled++;
-                        if (enemiesKilled >= TOTAL_MONSTERS) gameState = 'VICTORY';
+                        if (enemiesKilled >= TOTAL_MONSTERS) triggerGameOver(true);
                         break; 
                     }
                 }
@@ -587,31 +710,23 @@
         }
 
         for (let i = lootBoxes.length - 1; i >= 0; i--) {
-            if (globalTime - lootBoxes[i].spawnTime > 600) {
-                createParticles(lootBoxes[i].x, lootBoxes[i].y, '#94a3b8', 25, 5);
-                lootBoxes.splice(i, 1); continue;
-            }
+            if (globalTime - lootBoxes[i].spawnTime > 600) { createParticles(lootBoxes[i].x, lootBoxes[i].y, '#94a3b8', 25, 5); lootBoxes.splice(i, 1); continue; }
             lootBoxes[i].pulse += 0.1;
             if (checkCollision(player, lootBoxes[i], player.radius + lootBoxes[i].size/2)) {
                 createParticles(lootBoxes[i].x, lootBoxes[i].y, '#eab308', 40, 8);
                 lootBoxes.splice(i, 1); gameState = 'MATH_TIME'; currentMath.type = 'UPGRADE'; generateMath(); isShooting = false; rightJoy.active = false; leftJoy.active = false; 
-                let sSfx = document.getElementById('shootSfx');
-                if (sSfx && !sSfx.paused) { sSfx.pause(); sSfx.currentTime = 0; }
+                let sSfx = document.getElementById('shootSfx'); if (sSfx && !sSfx.paused) { sSfx.pause(); sSfx.currentTime = 0; }
                 break;
             }
         }
 
         for (let i = ammoBoxes.length - 1; i >= 0; i--) {
-            if (globalTime - ammoBoxes[i].spawnTime > 600) {
-                createParticles(ammoBoxes[i].x, ammoBoxes[i].y, '#94a3b8', 25, 5);
-                ammoBoxes.splice(i, 1); continue;
-            }
+            if (globalTime - ammoBoxes[i].spawnTime > 600) { createParticles(ammoBoxes[i].x, ammoBoxes[i].y, '#94a3b8', 25, 5); ammoBoxes.splice(i, 1); continue; }
             ammoBoxes[i].pulse += 0.1;
             if (checkCollision(player, ammoBoxes[i], player.radius + ammoBoxes[i].size/2)) {
                 createParticles(ammoBoxes[i].x, ammoBoxes[i].y, '#38bdf8', 40, 8);
                 ammoBoxes.splice(i, 1); gameState = 'MATH_TIME'; currentMath.type = 'AMMO'; generateMath(); isShooting = false; rightJoy.active = false; leftJoy.active = false; 
-                let sSfx = document.getElementById('shootSfx');
-                if (sSfx && !sSfx.paused) { sSfx.pause(); sSfx.currentTime = 0; }
+                let sSfx = document.getElementById('shootSfx'); if (sSfx && !sSfx.paused) { sSfx.pause(); sSfx.currentTime = 0; }
                 break;
             }
         }
@@ -648,9 +763,7 @@
 
         for (let item of drawables) {
             if (item.type === 'box') {
-                let box = item.obj;
-                let glow = Math.abs(Math.sin(box.pulse)) * 8;
-                let timeLeft = 600 - (globalTime - box.spawnTime);
+                let box = item.obj; let glow = Math.abs(Math.sin(box.pulse)) * 8; let timeLeft = 600 - (globalTime - box.spawnTime);
                 if (timeLeft < 180 && globalTime % 20 < 10) ctx.globalAlpha = 0.4;
                 ctx.save(); ctx.translate(box.x, box.y);
                 ctx.fillStyle = 'rgba(0,0,0,0.4)'; ctx.beginPath(); ctx.ellipse(0, 0, 24, 12, 0, 0, Math.PI*2); ctx.fill();
@@ -659,14 +772,11 @@
                 ctx.fillStyle = '#f59e0b'; ctx.fillRect(-22, visualY - 23, 44, 15);
                 ctx.fillStyle = '#fbbf24'; ctx.fillRect(-5, visualY - 10, 10, 10);
                 ctx.fillStyle = 'white'; ctx.font = 'bold 16px Arial'; ctx.textAlign = 'center'; ctx.fillText('UP', 0, visualY - 30);
-                ctx.strokeStyle = 'white'; ctx.lineWidth = 3;
-                ctx.beginPath(); ctx.arc(0, visualY - 50, 10, -Math.PI/2, -Math.PI/2 + (timeLeft/600) * Math.PI*2); ctx.stroke();
+                ctx.strokeStyle = 'white'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(0, visualY - 50, 10, -Math.PI/2, -Math.PI/2 + (timeLeft/600) * Math.PI*2); ctx.stroke();
                 ctx.restore(); ctx.globalAlpha = 1.0;
             } 
             else if (item.type === 'ammoBox') {
-                let box = item.obj;
-                let glow = Math.abs(Math.sin(box.pulse)) * 8;
-                let timeLeft = 600 - (globalTime - box.spawnTime);
+                let box = item.obj; let glow = Math.abs(Math.sin(box.pulse)) * 8; let timeLeft = 600 - (globalTime - box.spawnTime);
                 if (timeLeft < 180 && globalTime % 20 < 10) ctx.globalAlpha = 0.4;
                 ctx.save(); ctx.translate(box.x, box.y);
                 ctx.fillStyle = 'rgba(0,0,0,0.4)'; ctx.beginPath(); ctx.ellipse(0, 0, 20, 10, 0, 0, Math.PI*2); ctx.fill();
@@ -675,14 +785,11 @@
                 ctx.fillStyle = '#3b82f6'; ctx.fillRect(-20, visualY - 20, 40, 12);
                 ctx.fillStyle = '#60a5fa'; ctx.fillRect(-5, visualY - 8, 10, 8);
                 ctx.fillStyle = 'white'; ctx.font = 'bold 12px Arial'; ctx.textAlign = 'center'; ctx.fillText('AMMO', 0, visualY - 25);
-                ctx.strokeStyle = 'white'; ctx.lineWidth = 3;
-                ctx.beginPath(); ctx.arc(0, visualY - 40, 8, -Math.PI/2, -Math.PI/2 + (timeLeft/600) * Math.PI*2); ctx.stroke();
+                ctx.strokeStyle = 'white'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(0, visualY - 40, 8, -Math.PI/2, -Math.PI/2 + (timeLeft/600) * Math.PI*2); ctx.stroke();
                 ctx.restore(); ctx.globalAlpha = 1.0;
             }
             else if (item.type === 'enemy') {
-                let e = item.obj;
-                let isFacingRight = player.x > e.x;
-                let bob = Math.abs(Math.sin(globalTime * 0.1 * e.speed + (e.x*0.01))) * (e.size * 0.15);
+                let e = item.obj; let isFacingRight = player.x > e.x; let bob = Math.abs(Math.sin(globalTime * 0.1 * e.speed + (e.x*0.01))) * (e.size * 0.15);
                 ctx.save(); ctx.translate(e.x, e.y); 
                 ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.beginPath(); ctx.ellipse(0, 0, e.size*0.5, e.size*0.2, 0, 0, Math.PI*2); ctx.fill();
                 let visualY = -10 - bob;
@@ -694,15 +801,13 @@
                     ctx.beginPath(); ctx.moveTo(-e.size*0.4, visualY - e.size*0.1); ctx.lineTo(e.size*0.4, visualY); ctx.stroke();
                     ctx.beginPath(); ctx.moveTo(-e.size*0.4, visualY - e.size*0.3); ctx.lineTo(e.size*0.4, visualY - e.size*0.2); ctx.stroke();
                 } else if (e.tier === 4) {
-                    ctx.fillStyle = '#bef264';
-                    ctx.beginPath(); ctx.arc(-e.size*0.2, visualY - e.size*0.1, e.size*0.1, 0, Math.PI*2); ctx.fill();
+                    ctx.fillStyle = '#bef264'; ctx.beginPath(); ctx.arc(-e.size*0.2, visualY - e.size*0.1, e.size*0.1, 0, Math.PI*2); ctx.fill();
                     ctx.beginPath(); ctx.arc(e.size*0.25, visualY - e.size*0.3, e.size*0.08, 0, Math.PI*2); ctx.fill();
                 } else if (e.tier === 5) {
                     ctx.fillStyle = '#334155';
                     ctx.beginPath(); ctx.moveTo(-e.size*0.2, visualY - e.size*0.4); ctx.lineTo(-e.size*0.5, visualY - e.size*0.7); ctx.lineTo(-e.size*0.3, visualY - e.size*0.3); ctx.fill();
                     ctx.beginPath(); ctx.moveTo(e.size*0.2, visualY - e.size*0.4); ctx.lineTo(e.size*0.5, visualY - e.size*0.7); ctx.lineTo(e.size*0.3, visualY - e.size*0.3); ctx.fill();
-                    ctx.fillStyle = '#fbbf24';
-                    ctx.beginPath(); ctx.moveTo(-20, visualY - e.size*0.4); ctx.lineTo(-25, visualY - e.size*0.6); ctx.lineTo(0, visualY - e.size*0.5); ctx.lineTo(25, visualY - e.size*0.6); ctx.lineTo(20, visualY - e.size*0.4); ctx.fill();
+                    ctx.fillStyle = '#fbbf24'; ctx.beginPath(); ctx.moveTo(-20, visualY - e.size*0.4); ctx.lineTo(-25, visualY - e.size*0.6); ctx.lineTo(0, visualY - e.size*0.5); ctx.lineTo(25, visualY - e.size*0.6); ctx.lineTo(20, visualY - e.size*0.4); ctx.fill();
                 }
                 ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,0.5)'; ctx.stroke();
                 let eyeOffsetX = isFacingRight ? e.size*0.15 : -e.size*0.15;
@@ -712,43 +817,34 @@
                 ctx.fillStyle = 'black'; 
                 ctx.beginPath(); ctx.arc(eyeOffsetX - e.size*0.15 + (isFacingRight?1:-1), visualY - e.size*0.3, e.size*0.04, 0, Math.PI*2); ctx.fill();
                 ctx.beginPath(); ctx.arc(eyeOffsetX + e.size*0.15 + (isFacingRight?1:-1), visualY - e.size*0.3, e.size*0.04, 0, Math.PI*2); ctx.fill();
-                ctx.fillStyle = 'white'; ctx.font = 'bold 16px Arial'; ctx.textAlign = 'center';
-                ctx.fillText(`Lv.${e.tier}`, 0, visualY - e.size*0.9 - 10);
-                let hpBarWidth = e.tier === 5 ? 100 : 50;
-                ctx.fillStyle = '#334155'; ctx.fillRect(-hpBarWidth/2, visualY - e.size*0.7 - 15, hpBarWidth, 8);
+                ctx.fillStyle = 'white'; ctx.font = 'bold 16px Arial'; ctx.textAlign = 'center'; ctx.fillText(`Lv.${e.tier}`, 0, visualY - e.size*0.9 - 10);
+                let hpBarWidth = e.tier === 5 ? 100 : 50; ctx.fillStyle = '#334155'; ctx.fillRect(-hpBarWidth/2, visualY - e.size*0.7 - 15, hpBarWidth, 8);
                 ctx.fillStyle = '#ef4444'; ctx.fillRect(-hpBarWidth/2, visualY - e.size*0.7 - 15, hpBarWidth * (e.hp / e.maxHp), 8);
                 ctx.restore();
             }
             else if (item.type === 'player') {
-                let p = item.obj;
-                let isFacingRight = (rightJoy.active) ? (Math.abs(rightJoy.angle) < Math.PI/2) : (mouseX > p.x);
-                let bob = p.isMoving ? Math.sin(globalTime * 0.5) * 4 : 0;
+                let p = item.obj; let isFacingRight = (rightJoy.active) ? (Math.abs(rightJoy.angle) < Math.PI/2) : (mouseX > p.x); let bob = p.isMoving ? Math.sin(globalTime * 0.5) * 4 : 0;
                 ctx.save(); ctx.translate(p.x, p.y);
                 ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.beginPath(); ctx.ellipse(0, 0, p.radius*1.2, p.radius*0.5, 0, 0, Math.PI*2); ctx.fill();
-                let visualY = -10 + bob;
-                let wepColor = WEAPONS[p.weaponLevel].color;
+                let visualY = -10 + bob; let wepColor = WEAPONS[p.weaponLevel].color;
                 let gunDrawLogic = () => {
                     ctx.save(); ctx.translate(0, visualY - 5); ctx.rotate(p.angle);
                     if (Math.abs(p.angle) > Math.PI/2) ctx.scale(1, -1);
                     ctx.fillStyle = '#1e293b'; ctx.fillRect(0 - p.recoilOffset, -4, 25, 8); 
                     ctx.fillStyle = '#475569'; ctx.fillRect(10 - p.recoilOffset, -2, 15, 4); 
-                    ctx.fillStyle = wepColor; ctx.fillRect(25 - p.recoilOffset, -3, 6, 6); 
-                    ctx.restore();
+                    ctx.fillStyle = wepColor; ctx.fillRect(25 - p.recoilOffset, -3, 6, 6); ctx.restore();
                 };
-                let aimUp = Math.sin(p.angle) < 0;
-                if (aimUp) gunDrawLogic();
+                let aimUp = Math.sin(p.angle) < 0; if (aimUp) gunDrawLogic();
                 ctx.fillStyle = '#dc2626'; ctx.beginPath(); ctx.moveTo(-12, visualY - 10); ctx.lineTo(-20, visualY + 20); ctx.lineTo(20, visualY + 20); ctx.lineTo(12, visualY - 10); ctx.fill();
                 let legSwing = p.isMoving ? Math.sin(globalTime * 0.8) * 8 : 0;
                 ctx.fillStyle = '#475569'; ctx.fillRect(-8, visualY + 15 - legSwing, 6, 12); ctx.fillRect(2, visualY + 15 + legSwing, 6, 12);
                 ctx.fillStyle = '#1d4ed8'; ctx.fillRect(-12, visualY - 15, 24, 30); 
                 ctx.fillStyle = '#94a3b8'; ctx.fillRect(-14, visualY - 15, 28, 16); 
                 ctx.fillStyle = '#fcd34d'; ctx.beginPath(); ctx.arc(0, visualY - 25, 16, 0, Math.PI*2); ctx.fill();
-                ctx.fillStyle = '#cbd5e1'; ctx.beginPath(); ctx.arc(0, visualY - 28, 17, Math.PI, 0); ctx.fill();
-                ctx.fillRect(-18, visualY - 28, 36, 6); 
+                ctx.fillStyle = '#cbd5e1'; ctx.beginPath(); ctx.arc(0, visualY - 28, 17, Math.PI, 0); ctx.fill(); ctx.fillRect(-18, visualY - 28, 36, 6); 
                 ctx.fillStyle = '#b91c1c'; ctx.fillRect(-3, visualY - 48, 6, 12);
                 let eyeX = Math.cos(p.angle) * 3; let eyeY = Math.sin(p.angle) * 3;
-                ctx.fillStyle = '#1e293b'; ctx.beginPath(); ctx.arc(-5 + eyeX, visualY - 23 + eyeY, 3, 0, Math.PI*2); ctx.fill();
-                ctx.beginPath(); ctx.arc(5 + eyeX, visualY - 23 + eyeY, 3, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = '#1e293b'; ctx.beginPath(); ctx.arc(-5 + eyeX, visualY - 23 + eyeY, 3, 0, Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.arc(5 + eyeX, visualY - 23 + eyeY, 3, 0, Math.PI*2); ctx.fill();
                 ctx.fillStyle = '#fcd34d'; ctx.beginPath(); ctx.arc(Math.cos(p.angle)*10 - p.recoilOffset, visualY - 5 + Math.sin(p.angle)*10, 5, 0, Math.PI*2); ctx.fill();
                 if (!aimUp) gunDrawLogic(); 
                 ctx.restore();
@@ -761,9 +857,7 @@
             ctx.beginPath(); ctx.roundRect(-10, -b.radius/2, 20 + b.radius*2, b.radius, 5); ctx.fill();
             ctx.restore(); ctx.shadowBlur = 0;
         }
-        for (let p of particles) {
-            ctx.globalAlpha = p.life; ctx.fillStyle = p.color; ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill();
-        }
+        for (let p of particles) { ctx.globalAlpha = p.life; ctx.fillStyle = p.color; ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill(); }
         ctx.globalAlpha = 1.0;
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
         for (let text of floatingTexts) {
@@ -782,43 +876,12 @@
             if (rightJoy.active) drawJoy(rightJoy, rightJoy.base);
         }
 
-        ctx.textAlign = 'left'; 
-        ctx.fillStyle = 'rgba(241, 245, 249, 0.9)'; 
-        ctx.beginPath(); ctx.roundRect(20, 20, 280, 95, 8); ctx.fill();
-        ctx.strokeStyle = '#94a3b8'; ctx.lineWidth = 3; ctx.stroke();
-        ctx.fillStyle = '#e2e8f0'; ctx.beginPath(); ctx.arc(65, 65, 30, 0, Math.PI*2); ctx.fill();
-        ctx.fillStyle = '#fcd34d'; ctx.beginPath(); ctx.arc(65, 65, 14, 0, Math.PI*2); ctx.fill(); 
-        ctx.fillStyle = '#94a3b8'; ctx.beginPath(); ctx.arc(65, 62, 15, Math.PI, 0); ctx.fill(); 
-        ctx.fillRect(50, 62, 30, 4); 
-        ctx.fillStyle = '#dc2626'; ctx.fillRect(62, 42, 6, 10); 
-        ctx.fillStyle = '#1e293b'; ctx.fillRect(59, 62, 4, 4); ctx.fillRect(67, 62, 4, 4); 
-        ctx.fillStyle = '#cbd5e1'; ctx.fillRect(105, 32, 180, 16);
-        ctx.fillStyle = player.hp > 30 ? '#22c55e' : '#ef4444'; ctx.fillRect(105, 32, (Math.max(0, player.hp) / player.maxHp) * 180, 16);
-        ctx.strokeStyle = '#475569'; ctx.lineWidth = 2; ctx.strokeRect(105, 32, 180, 16);
-        ctx.fillStyle = 'white'; ctx.font = 'bold 12px Arial'; ctx.fillText(`HP: ${Math.max(0, player.hp)}`, 110, 44);
-        let currWep = WEAPONS[player.weaponLevel];
-        ctx.fillStyle = '#000000'; ctx.font = 'bold 16px Arial'; ctx.fillText(`武裝: ${currWep.name}`, 105, 70);
-        ctx.fillText(`彈藥: ${player.currentMagazine} / ${player.totalAmmo}`, 105, 95);
-
-        let panelWidth = 140; let panelHeight = 210; let uiX = canvas.width - panelWidth - 20; let uiY = 20;
-        ctx.fillStyle = 'rgba(241, 245, 249, 0.9)'; ctx.beginPath(); ctx.roundRect(uiX, uiY, panelWidth, panelHeight, 8); ctx.fill();
-        ctx.strokeStyle = '#94a3b8'; ctx.lineWidth = 3; ctx.stroke();
-        ctx.fillStyle = '#000000'; ctx.textAlign = 'center'; ctx.font = 'bold 16px Arial'; ctx.fillText('剩餘魔物目標', uiX + panelWidth/2, uiY + 25);
-        let mTypes = [{ tier: 1, color: '#ef4444' }, { tier: 2, color: '#f97316' }, { tier: 3, color: '#eab308' }, { tier: 4, color: '#84cc16' }, { tier: 5, color: '#a855f7' }];
-        for (let i = 0; i < 5; i++) {
-            let m = mTypes[i]; let rowY = uiY + 55 + i * 32; ctx.save(); ctx.translate(uiX + 35, rowY);
-            let eSize = 18; ctx.fillStyle = 'rgba(0,0,0,0.15)'; ctx.beginPath(); ctx.ellipse(0, 2, eSize*0.5, eSize*0.2, 0, 0, Math.PI*2); ctx.fill();
-            ctx.fillStyle = m.color; ctx.beginPath(); ctx.arc(0, -eSize*0.4, eSize*0.45, Math.PI, 0); ctx.lineTo(eSize*0.45, eSize*0.1); ctx.lineTo(-eSize*0.45, eSize*0.1); ctx.fill();
-            if (m.tier === 5) { ctx.fillStyle = '#334155'; ctx.beginPath(); ctx.moveTo(-eSize*0.2, -eSize*0.4); ctx.lineTo(-eSize*0.5, -eSize*0.7); ctx.lineTo(-eSize*0.3, -eSize*0.3); ctx.fill(); ctx.beginPath(); ctx.moveTo(eSize*0.2, -eSize*0.4); ctx.lineTo(eSize*0.5, -eSize*0.7); ctx.lineTo(eSize*0.3, -eSize*0.3); ctx.fill(); ctx.fillStyle = '#fbbf24'; ctx.beginPath(); ctx.moveTo(-10, -eSize*0.4); ctx.lineTo(-12, -eSize*0.6); ctx.lineTo(0, -eSize*0.5); ctx.lineTo(12, -eSize*0.6); ctx.lineTo(10, -eSize*0.4); ctx.fill(); }
-            else { ctx.fillStyle = '#fca5a5'; ctx.beginPath(); ctx.arc(0, -2, eSize*0.2, 0, Math.PI * 2); ctx.fill(); }
-            ctx.fillStyle = m.tier >= 3 ? '#ef4444' : 'white'; ctx.beginPath(); ctx.arc(-3, -eSize*0.3, 2, 0, Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.arc(3, -eSize*0.3, 2, 0, Math.PI*2); ctx.fill();
-            ctx.fillStyle = 'black'; ctx.beginPath(); ctx.arc(-3, -eSize*0.3, 1, 0, Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.arc(3, -eSize*0.3, 1, 0, Math.PI*2); ctx.fill(); ctx.restore();
-            ctx.fillStyle = '#000000'; ctx.textAlign = 'left'; ctx.font = 'bold 16px Arial'; ctx.fillText(`x ${Math.max(0, monstersLeft[m.tier])}`, uiX + 65, rowY + 5);
-        }
+        // --- 畫部署在中央的介面 ---
+        let gameCenterX = UI_BOUND + (canvas.width - UI_BOUND) / 2;
 
         if (gameState === 'MATH_TIME') {
             ctx.fillStyle = 'rgba(0, 0, 0, 0.85)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.save(); ctx.translate(canvas.width/2, canvas.height/2); ctx.scale(currentMath.scale, currentMath.scale); 
+            ctx.save(); ctx.translate(gameCenterX, canvas.height/2); ctx.scale(currentMath.scale, currentMath.scale); 
             let headerText = currentMath.type === 'UPGRADE' ? '⚡ WEAPON EVOLUTION MODULE ⚡' : '🔵 AMMO RESUPPLY MODULE 🔵';
             let headerColor = currentMath.type === 'UPGRADE' ? '#eab308' : '#38bdf8';
             ctx.fillStyle = headerColor; ctx.font = 'bold 26px Arial'; ctx.textAlign = 'center'; ctx.fillText(headerText, 0, -240);
@@ -840,8 +903,8 @@
                     ctx.fillStyle = 'white'; ctx.font = 'bold 28px Arial'; ctx.textAlign = 'center'; ctx.fillText(btn.label, btn.x + btn.w/2, btn.y + btn.h/2);
                 }
             }
-            ctx.fillStyle = currentMath.messageColor; ctx.font = '22px Arial'; ctx.textAlign = 'center'; ctx.fillText(currentMath.message, canvas.width/2, canvas.height/2 + 350);
-            ctx.fillStyle = '#cbd5e1'; ctx.font = '18px Arial'; ctx.fillText('用實體鍵盤或虛擬按鍵作答', canvas.width/2, canvas.height/2 + 390);
+            ctx.fillStyle = currentMath.messageColor; ctx.font = '22px Arial'; ctx.textAlign = 'center'; ctx.fillText(currentMath.message, gameCenterX, canvas.height/2 + 350);
+            ctx.fillStyle = '#cbd5e1'; ctx.font = '18px Arial'; ctx.fillText('用實體鍵盤或虛擬按鍵作答', gameCenterX, canvas.height/2 + 390);
         }
 
         if (gameState === 'GAME_OVER' || gameState === 'VICTORY') {
@@ -849,55 +912,37 @@
             ctx.textAlign = 'center';
             if (gameState === 'VICTORY') {
                 ctx.fillStyle = '#fbbf24'; ctx.font = 'bold 60px Arial'; ctx.shadowBlur = 30; ctx.shadowColor = '#eab308';
-                ctx.fillText('MISSION ACCOMPLISHED!', canvas.width/2, canvas.height/2 - 40);
+                ctx.fillText('MISSION ACCOMPLISHED!', gameCenterX, canvas.height/2 - 80);
                 ctx.fillStyle = 'white'; ctx.font = 'bold 24px Arial'; ctx.shadowBlur = 0;
-                ctx.fillText(`成功擊殺 ${TOTAL_MONSTERS} 隻魔物！ 最終武器: ${WEAPONS[player.weaponLevel].name}`, canvas.width/2, canvas.height/2 + 30);
+                ctx.fillText(`成功擊殺終極 Boss！ 最終武器: ${WEAPONS[player.weaponLevel].name}`, gameCenterX, canvas.height/2 - 10);
             } else {
                 ctx.fillStyle = '#ef4444'; ctx.font = 'bold 80px Arial'; ctx.shadowBlur = 30; ctx.shadowColor = '#dc2626';
-                ctx.fillText('YOU DIED', canvas.width/2, canvas.height/2 - 40);
+                ctx.fillText('YOU DIED', gameCenterX, canvas.height/2 - 80);
                 ctx.fillStyle = 'white'; ctx.font = 'bold 28px Arial'; ctx.shadowBlur = 0;
-                ctx.fillText(`擊殺數: ${enemiesKilled} / ${TOTAL_MONSTERS}`, canvas.width/2, canvas.height/2 + 30);
+                ctx.fillText(`擊殺數: ${enemiesKilled} / ${TOTAL_MONSTERS}`, gameCenterX, canvas.height/2 - 10);
             }
+            
             ctx.globalAlpha = (globalTime % 60 < 30) ? 1 : 0.5; ctx.fillStyle = '#94a3b8'; ctx.font = '24px Arial';
-            ctx.fillText('>> 點擊畫面或按 Enter 重新挑戰 <<', canvas.width/2, canvas.height/2 + 130); ctx.globalAlpha = 1.0;
+            ctx.fillText('<< 請在左下方輸入資料上傳排行榜 >>', gameCenterX, canvas.height/2 + 60); 
+            ctx.fillText('或按 [Enter] 重新挑戰', gameCenterX, canvas.height/2 + 100); ctx.globalAlpha = 1.0;
         }
 
-        // --- 版本號標記 V25 ---
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
-        ctx.font = 'bold 20px Arial';
-        ctx.textAlign = 'left';
-        ctx.fillText('V25', 20, canvas.height - 20);
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.5)'; ctx.font = 'bold 20px Arial'; ctx.textAlign = 'right'; ctx.fillText('V28', canvas.width - 20, canvas.height - 20);
     }
 
-    // --- Google Sheets 載入資料系統 ---
     async function loadGameData() {
         if (GAS_WEB_APP_URL) {
             try {
-                let res = await fetch(GAS_WEB_APP_URL);
-                let data = await res.json();
-                
+                let res = await fetch(GAS_WEB_APP_URL); let data = await res.json();
                 if (data.weapons && data.weapons.length > 1) {
                     let rows = data.weapons;
-                    // 讀取生成時間 (假設放在第一行武器數據後面的第 10 和第 11 欄)
-                    if (rows[1].length > 9 && rows[1][9]) {
-                        let val = parseFloat(rows[1][9]);
-                        if (!isNaN(val) && val > 0) lootBoxSpawnInterval = Math.floor(val * 60);
-                    }
-                    if (rows[1].length > 10 && rows[1][10]) {
-                        let val = parseFloat(rows[1][10]);
-                        if (!isNaN(val) && val > 0) ammoBoxSpawnInterval = Math.floor(val * 60);
-                    }
-
+                    if (rows[1].length > 9 && rows[1][9]) { let val = parseFloat(rows[1][9]); if (!isNaN(val) && val > 0) lootBoxSpawnInterval = Math.floor(val * 60); }
+                    if (rows[1].length > 10 && rows[1][10]) { let val = parseFloat(rows[1][10]); if (!isNaN(val) && val > 0) ammoBoxSpawnInterval = Math.floor(val * 60); }
                     for(let i=1; i<rows.length; i++) {
                         if (rows[i].length >= 7 && WEAPONS[i-1]) {
-                            WEAPONS[i-1].name = String(rows[i][1]).trim() || WEAPONS[i-1].name;
-                            WEAPONS[i-1].damage = parseFloat(rows[i][2]) || WEAPONS[i-1].damage;
-                            WEAPONS[i-1].bullets = parseInt(rows[i][3]) || WEAPONS[i-1].bullets;
-                            WEAPONS[i-1].fireRate = parseInt(rows[i][4]) || WEAPONS[i-1].fireRate;
-                            WEAPONS[i-1].playerSpeed = parseFloat(rows[i][5]) || WEAPONS[i-1].playerSpeed;
-                            WEAPONS[i-1].reloadAmmo = parseInt(rows[i][6]) || WEAPONS[i-1].reloadAmmo;
-                            WEAPONS[i-1].magCapacity = parseInt(rows[i][7]) || WEAPONS[i-1].magCapacity;
-                            WEAPONS[i-1].ammoBoxRefill = parseInt(rows[i][8]) || WEAPONS[i-1].ammoBoxRefill;
+                            WEAPONS[i-1].name = String(rows[i][1]).trim() || WEAPONS[i-1].name; WEAPONS[i-1].damage = parseFloat(rows[i][2]) || WEAPONS[i-1].damage; WEAPONS[i-1].bullets = parseInt(rows[i][3]) || WEAPONS[i-1].bullets;
+                            WEAPONS[i-1].fireRate = parseInt(rows[i][4]) || WEAPONS[i-1].fireRate; WEAPONS[i-1].playerSpeed = parseFloat(rows[i][5]) || WEAPONS[i-1].playerSpeed; WEAPONS[i-1].reloadAmmo = parseInt(rows[i][6]) || WEAPONS[i-1].reloadAmmo;
+                            WEAPONS[i-1].magCapacity = parseInt(rows[i][7]) || WEAPONS[i-1].magCapacity; WEAPONS[i-1].ammoBoxRefill = parseInt(rows[i][8]) || WEAPONS[i-1].ammoBoxRefill;
                         }
                     }
                 }
@@ -905,10 +950,8 @@
                     let rows = data.monsters;
                     for(let i=1; i<rows.length; i++) {
                         if (rows[i].length >= 5 && MONSTER_BASE[i-1]) {
-                            MONSTER_BASE[i-1].name = String(rows[i][1]).trim() || MONSTER_BASE[i-1].name;
-                            MONSTER_BASE[i-1].count = parseInt(rows[i][2]) || MONSTER_BASE[i-1].count;
-                            MONSTER_BASE[i-1].hp = parseFloat(rows[i][3]) || MONSTER_BASE[i-1].hp;
-                            MONSTER_BASE[i-1].speed = parseFloat(rows[i][4]) || MONSTER_BASE[i-1].speed;
+                            MONSTER_BASE[i-1].name = String(rows[i][1]).trim() || MONSTER_BASE[i-1].name; MONSTER_BASE[i-1].count = parseInt(rows[i][2]) || MONSTER_BASE[i-1].count;
+                            MONSTER_BASE[i-1].hp = parseFloat(rows[i][3]) || MONSTER_BASE[i-1].hp; MONSTER_BASE[i-1].speed = parseFloat(rows[i][4]) || MONSTER_BASE[i-1].speed;
                         }
                     }
                 }
