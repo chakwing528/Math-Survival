@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Math Survival - Boss Alarm & Ammo Box V22</title>
+    <title>Math Survival - Boss Alarm & Ammo Box V23</title>
     <style>
         body {
             margin: 0;
@@ -364,11 +364,11 @@
                 closeMathUI(true, "✅ 彈藥補給成功！");
             }
             
-            let rSfx = document.getElementById('reloadSfx');
-            if (rSfx) { rSfx.currentTime = 0; rSfx.play().catch(e=>{}); }
+            // 答對不顯示聲音，已移除 reloadSfx 播放
             shakeTime = 15;
             
         } else {
+            // 答錯亦不顯示聲音
             closeMathUI(false, `❌ 錯誤！正確答案係 ${currentMath.answer}`);
         }
     }
@@ -575,7 +575,7 @@
         }
     }
 
-    // --- 渲染系統 ---
+    // --- 渲染系統 (偽 2.5D 美術) ---
     function draw() {
         ctx.fillStyle = '#d2b48c'; 
         ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -818,7 +818,7 @@
             ctx.globalAlpha = (globalTime % 60 < 30) ? 1 : 0.5; ctx.fillStyle = '#cbd5e1'; ctx.font = '26px Arial';
             ctx.fillText('>> 點擊畫面或按 Enter 重新挑戰 <<', canvas.width/2, canvas.height/2 + 130); ctx.globalAlpha = 1.0;
         }
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.5)'; ctx.font = 'bold 20px Arial'; ctx.textAlign = 'left'; ctx.fillText('V21', 20, canvas.height - 20);
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.5)'; ctx.font = 'bold 20px Arial'; ctx.textAlign = 'left'; ctx.fillText('V22', 20, canvas.height - 20);
     }
 
     async function loadGameData() {
