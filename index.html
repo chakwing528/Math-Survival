@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Math Survival - Boss Alarm & Ammo Box V23</title>
+    <title>Math Survival - Boss Alarm & Ammo Box V24</title>
     <style>
         body {
             margin: 0;
@@ -34,6 +34,7 @@
     <audio id="bgm" src="bgm.mp3" loop></audio>
     <audio id="shootSfx" src="shootSfx.m4a"></audio>
     <audio id="reloadSfx" src="reloadSfx.m4a"></audio>
+    <audio id="emptyAmmoSfx" src="emptyAmmoSfx.m4a"></audio>
 
     <div id="loading-screen">連接伺服器並載入數據中...</div>
     <canvas id="gameCanvas"></canvas>
@@ -42,6 +43,7 @@
     // ==========================================
     // 🌐 Google Apps Script (GAS) 後台設定區
     // ==========================================
+    // 修正: 移除了錯誤的 Markdown 連結格式，確保只包含純網址字串
     const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyhAYaMKRTbD_VyHDe-MZZ5OBZVdsvY2l9qcKWq8TuliBKptbhLpQsHbc4wdyKmX24Cvg/exec"; 
     
     const canvas = document.getElementById('gameCanvas');
@@ -99,15 +101,15 @@
     ];
 
     const WEAPONS = [
-        { level: 1, name: "Lv.1 基礎手槍", damage: 1, bullets: 1, fireRate: 15, playerSpeed: 4, reloadAmmo: 30, color: '#fde047', glow: '#ca8a04', recoil: 4, speed: 12 },
-        { level: 2, name: "Lv.2 雙發衝鋒", damage: 1.5, bullets: 2, fireRate: 12, playerSpeed: 5, reloadAmmo: 30, color: '#60a5fa', glow: '#2563eb', recoil: 5, speed: 14 },
-        { level: 3, name: "Lv.3 散彈速射", damage: 2.25, bullets: 3, fireRate: 10, playerSpeed: 6, reloadAmmo: 40, color: '#34d399', glow: '#059669', recoil: 6, speed: 16 },
-        { level: 4, name: "Lv.4 脈衝步槍", damage: 3.4, bullets: 4, fireRate: 8, playerSpeed: 7, reloadAmmo: 40, color: '#f472b6', glow: '#db2777', recoil: 7, speed: 18 },
-        { level: 5, name: "Lv.5 穿甲重砲", damage: 5.1, bullets: 1, fireRate: 6, playerSpeed: 8, reloadAmmo: 50, color: '#a78bfa', glow: '#7c3aed', recoil: 8, speed: 20, penetrate: true },
-        { level: 6, name: "Lv.6 散射激光", damage: 7.6, bullets: 5, fireRate: 4, playerSpeed: 9, reloadAmmo: 50, color: '#fb923c', glow: '#ea580c', recoil: 10, speed: 22 },
-        { level: 7, name: "Lv.7 電漿風暴", damage: 11.4, bullets: 3, fireRate: 3, playerSpeed: 10, reloadAmmo: 60, color: '#38bdf8', glow: '#0284c7', recoil: 12, speed: 25, penetrate: true },
-        { level: 8, name: "Lv.8 終極殲滅射線", damage: 17.1, bullets: 7, fireRate: 2, playerSpeed: 10, reloadAmmo: 60, color: '#ffffff', glow: '#fef08a', recoil: 14, speed: 28, penetrate: true },
-        { level: 9, name: "Lv.MAX 神話武器", damage: 25.6, bullets: 9, fireRate: 1, playerSpeed: 10, reloadAmmo: 100, color: '#ef4444', glow: '#b91c1c', recoil: 16, speed: 30, penetrate: true }
+        { level: 1, name: "Lv.1 基礎手槍", damage: 1, bullets: 1, fireRate: 15, playerSpeed: 4, reloadAmmo: 30, magCapacity: 30, ammoBoxRefill: 30, color: '#fde047', glow: '#ca8a04', recoil: 4, speed: 12 },
+        { level: 2, name: "Lv.2 雙發衝鋒", damage: 1.5, bullets: 2, fireRate: 12, playerSpeed: 5, reloadAmmo: 30, magCapacity: 30, ammoBoxRefill: 30, color: '#60a5fa', glow: '#2563eb', recoil: 5, speed: 14 },
+        { level: 3, name: "Lv.3 散彈速射", damage: 2.25, bullets: 3, fireRate: 10, playerSpeed: 6, reloadAmmo: 40, magCapacity: 30, ammoBoxRefill: 30, color: '#34d399', glow: '#059669', recoil: 6, speed: 16 },
+        { level: 4, name: "Lv.4 脈衝步槍", damage: 3.4, bullets: 4, fireRate: 8, playerSpeed: 7, reloadAmmo: 40, magCapacity: 30, ammoBoxRefill: 30, color: '#f472b6', glow: '#db2777', recoil: 7, speed: 18 },
+        { level: 5, name: "Lv.5 穿甲重砲", damage: 5.1, bullets: 1, fireRate: 6, playerSpeed: 8, reloadAmmo: 50, magCapacity: 30, ammoBoxRefill: 30, color: '#a78bfa', glow: '#7c3aed', recoil: 8, speed: 20, penetrate: true },
+        { level: 6, name: "Lv.6 散射激光", damage: 7.6, bullets: 5, fireRate: 4, playerSpeed: 9, reloadAmmo: 50, magCapacity: 30, ammoBoxRefill: 30, color: '#fb923c', glow: '#ea580c', recoil: 10, speed: 22 },
+        { level: 7, name: "Lv.7 電漿風暴", damage: 11.4, bullets: 3, fireRate: 3, playerSpeed: 10, reloadAmmo: 60, magCapacity: 30, ammoBoxRefill: 30, color: '#38bdf8', glow: '#0284c7', recoil: 12, speed: 25, penetrate: true },
+        { level: 8, name: "Lv.8 終極殲滅射線", damage: 17.1, bullets: 7, fireRate: 2, playerSpeed: 10, reloadAmmo: 60, magCapacity: 30, ammoBoxRefill: 30, color: '#ffffff', glow: '#fef08a', recoil: 14, speed: 28, penetrate: true },
+        { level: 9, name: "Lv.MAX 神話武器", damage: 25.6, bullets: 9, fireRate: 1, playerSpeed: 10, reloadAmmo: 100, magCapacity: 30, ammoBoxRefill: 30, color: '#ef4444', glow: '#b91c1c', recoil: 16, speed: 30, penetrate: true }
     ];
 
     let monsterQueue = [];
@@ -356,15 +358,15 @@
                 createParticles(player.x, player.y, '#4ade80', 60, 10); 
                 closeMathUI(true, "✅ 武器系統進化成功！");
             } else if (currentMath.type === 'AMMO') {
-                // 彈藥包只補充子彈 (固定 30 粒)
-                let ammoToAdd = 30;
+                // 彈藥包補充子彈 (根據Google Sheet)
+                let ammoToAdd = WEAPONS[player.weaponLevel].ammoBoxRefill || 30;
                 player.totalAmmo += ammoToAdd;
                 addFloatingText(`+${ammoToAdd} 總彈藥`, canvas.width/2, canvas.height/4 + 40, '#38bdf8', 25);
                 createParticles(player.x, player.y, '#38bdf8', 50, 10); 
                 closeMathUI(true, "✅ 彈藥補給成功！");
             }
             
-            // 答對不顯示聲音，已移除 reloadSfx 播放
+            // 答對不顯示聲音
             shakeTime = 15;
             
         } else {
@@ -379,13 +381,17 @@
             gameState = 'PLAYING'; isShooting = false; 
             leftJoy.active = false; leftJoy.dir = {x:0, y:0}; leftJoy.stick = {x: leftJoyBase.x, y: leftJoyBase.y};
             rightJoy.active = false; rightJoy.dir = {x:0, y:0}; keys.w = keys.a = keys.s = keys.d = false; 
+            
+            // 停止射擊音效防殘留
+            let sSfx = document.getElementById('shootSfx');
+            if (sSfx && !sSfx.paused) { sSfx.pause(); sSfx.currentTime = 0; }
         }, 1000);
     }
 
     function resetGame() {
         player.weaponLevel = 0; player.hp = player.maxHp; 
         player.speed = WEAPONS[0].playerSpeed || 4; 
-        player.currentMagazine = 30; 
+        player.currentMagazine = WEAPONS[0].magCapacity || 30; 
         player.totalAmmo = WEAPONS[0].reloadAmmo || 30; 
         player.isReloading = false; player.reloadTimer = 0;
         
@@ -403,12 +409,12 @@
     }
     
     function startReload() {
-        if (player.totalAmmo > 0 && player.currentMagazine < 30 && !player.isReloading) {
+        let cap = WEAPONS[player.weaponLevel].magCapacity || 30;
+        if (player.totalAmmo > 0 && player.currentMagazine < cap && !player.isReloading) {
             player.isReloading = true;
             player.reloadTimer = 30; // 30 frames = 0.5 秒
             let rSfx = document.getElementById('reloadSfx');
             if (rSfx) { rSfx.currentTime = 0; rSfx.play().catch(e=>{}); }
-            addFloatingText("Reloading...", player.x, player.y - 40, '#000000');
         }
     }
 
@@ -440,12 +446,12 @@
         if (player.isReloading) {
             player.reloadTimer--;
             if (player.reloadTimer <= 0) {
-                let bulletsNeeded = 30 - player.currentMagazine;
+                let cap = WEAPONS[player.weaponLevel].magCapacity || 30;
+                let bulletsNeeded = cap - player.currentMagazine;
                 let bulletsToReload = Math.min(bulletsNeeded, player.totalAmmo);
                 player.currentMagazine += bulletsToReload;
                 player.totalAmmo -= bulletsToReload;
                 player.isReloading = false;
-                addFloatingText("Reloaded!", player.x, player.y - 40, '#4ade80');
             }
         }
 
@@ -502,8 +508,19 @@
                 } else if (player.currentMagazine <= 0 && player.totalAmmo > 0 && !player.isReloading) {
                     startReload(); 
                 } else if (player.currentMagazine <= 0 && player.totalAmmo <= 0 && !player.isReloading) {
-                    if (globalTime % 30 === 0) addFloatingText("彈藥耗盡！尋找補給箱！", player.x, player.y - 40, '#ef4444');
+                    if (globalTime % 30 === 0) {
+                        addFloatingText("彈藥耗盡！尋找補給箱！", player.x, player.y - 40, '#ef4444');
+                        let emptySfx = document.getElementById('emptyAmmoSfx');
+                        if (emptySfx) { emptySfx.currentTime = 0; emptySfx.play().catch(e=>{}); }
+                    }
                 }
+            }
+        } else {
+            // 停止射擊時暫停射擊音效
+            let sSfx = document.getElementById('shootSfx');
+            if (sSfx && !sSfx.paused) {
+                sSfx.pause();
+                sSfx.currentTime = 0;
             }
         }
 
@@ -558,7 +575,10 @@
             lootBoxes[i].pulse += 0.1;
             if (checkCollision(player, lootBoxes[i], player.radius + lootBoxes[i].size/2)) {
                 createParticles(lootBoxes[i].x, lootBoxes[i].y, '#eab308', 40, 8);
-                lootBoxes.splice(i, 1); gameState = 'MATH_TIME'; currentMath.type = 'UPGRADE'; generateMath(); isShooting = false; rightJoy.active = false; leftJoy.active = false; break;
+                lootBoxes.splice(i, 1); gameState = 'MATH_TIME'; currentMath.type = 'UPGRADE'; generateMath(); isShooting = false; rightJoy.active = false; leftJoy.active = false; 
+                let sSfx = document.getElementById('shootSfx');
+                if (sSfx && !sSfx.paused) { sSfx.pause(); sSfx.currentTime = 0; }
+                break;
             }
         }
 
@@ -570,7 +590,10 @@
             ammoBoxes[i].pulse += 0.1;
             if (checkCollision(player, ammoBoxes[i], player.radius + ammoBoxes[i].size/2)) {
                 createParticles(ammoBoxes[i].x, ammoBoxes[i].y, '#38bdf8', 40, 8);
-                ammoBoxes.splice(i, 1); gameState = 'MATH_TIME'; currentMath.type = 'AMMO'; generateMath(); isShooting = false; rightJoy.active = false; leftJoy.active = false; break;
+                ammoBoxes.splice(i, 1); gameState = 'MATH_TIME'; currentMath.type = 'AMMO'; generateMath(); isShooting = false; rightJoy.active = false; leftJoy.active = false; 
+                let sSfx = document.getElementById('shootSfx');
+                if (sSfx && !sSfx.paused) { sSfx.pause(); sSfx.currentTime = 0; }
+                break;
             }
         }
     }
@@ -756,8 +779,7 @@
         ctx.fillStyle = 'white'; ctx.font = 'bold 12px Arial'; ctx.fillText(`HP: ${Math.max(0, player.hp)}`, 110, 44);
         let currWep = WEAPONS[player.weaponLevel];
         ctx.fillStyle = '#000000'; ctx.font = 'bold 16px Arial'; ctx.fillText(`武裝: ${currWep.name}`, 105, 70);
-        if (player.isReloading) ctx.fillText(`換彈中...`, 105, 95);
-        else ctx.fillText(`彈藥: ${player.currentMagazine} / ${player.totalAmmo}`, 105, 95);
+        ctx.fillText(`彈藥: ${player.currentMagazine} / ${player.totalAmmo}`, 105, 95);
 
         let panelWidth = 140; let panelHeight = 210; let uiX = canvas.width - panelWidth - 20; let uiY = 20;
         ctx.fillStyle = 'rgba(241, 245, 249, 0.9)'; ctx.beginPath(); ctx.roundRect(uiX, uiY, panelWidth, panelHeight, 8); ctx.fill();
@@ -788,37 +810,35 @@
             ctx.strokeStyle = headerColor; ctx.lineWidth = 4; ctx.stroke();
             let cursor = (globalTime % 60 < 30) ? '_' : ''; ctx.fillStyle = '#fbbf24'; ctx.font = 'bold 50px Courier New'; ctx.fillText(currentMath.userInput + cursor, 0, -30);
             ctx.restore();
+            
             if (currentMath.scale >= 1) { 
                 for (let btn of numpadButtons) {
-                    ctx.fillStyle = '#1e293b'; ctx.beginPath(); ctx.roundRect(btn.x, btn.y, btn.w, btn.h, 12); ctx.fill();
-                    ctx.strokeStyle = headerColor; ctx.lineWidth = 2; ctx.stroke();
-                    if (!('ontouchstart' in window) && mouseX >= btn.x && mouseX <= btn.x + btn.w && mouseY >= btn.y && mouseY <= btn.y + btn.h) ctx.fillStyle = 'rgba(255, 255, 255, 0.2)'; ctx.fill();
-                    ctx.fillStyle = 'white'; ctx.font = 'bold 32px Arial'; ctx.textAlign = 'center'; ctx.fillText(btn.label, btn.x + btn.w/2, btn.y + btn.h/2);
+                    ctx.fillStyle = '#334155'; ctx.beginPath(); ctx.roundRect(btn.x, btn.y, btn.w, btn.h, 10); ctx.fill();
+                    ctx.strokeStyle = '#64748b'; ctx.lineWidth = 2; ctx.stroke();
+                    ctx.fillStyle = 'white'; ctx.font = 'bold 28px Arial'; ctx.textAlign = 'center'; ctx.fillText(btn.label, btn.x + btn.w/2, btn.y + btn.h/2);
                 }
             }
-            ctx.fillStyle = currentMath.messageColor; ctx.font = '22px Arial'; ctx.textAlign = 'center'; ctx.fillText(currentMath.message, canvas.width/2, canvas.height/2 + 350);
-            ctx.fillStyle = '#cbd5e1'; ctx.font = '18px Arial'; ctx.fillText('用實體鍵盤或虛擬按鍵作答', canvas.width/2, canvas.height/2 + 390);
+            ctx.fillStyle = currentMath.messageColor; ctx.font = '20px Arial'; ctx.textAlign = 'center'; ctx.fillText(currentMath.message, canvas.width/2, canvas.height/2 + 350);
         }
 
         if (gameState === 'GAME_OVER' || gameState === 'VICTORY') {
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.9)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = 'rgba(15, 23, 42, 0.9)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
             ctx.textAlign = 'center';
             if (gameState === 'VICTORY') {
-                ctx.fillStyle = '#fbbf24'; ctx.font = 'bold 60px Arial'; ctx.shadowBlur = 25; ctx.shadowColor = '#eab308';
-                ctx.fillText('任務完成！', canvas.width/2, canvas.height/2 - 50);
+                ctx.fillStyle = '#fbbf24'; ctx.font = 'bold 60px Arial'; ctx.shadowBlur = 30; ctx.shadowColor = '#eab308';
+                ctx.fillText('MISSION ACCOMPLISHED!', canvas.width/2, canvas.height/2 - 40);
                 ctx.fillStyle = 'white'; ctx.font = 'bold 24px Arial'; ctx.shadowBlur = 0;
-                ctx.fillText(`成功擊殺 ${TOTAL_MONSTERS} 隻魔物！`, canvas.width/2, canvas.height/2 + 20);
-                ctx.fillText(`裝備神器: ${WEAPONS[player.weaponLevel].name}`, canvas.width/2, canvas.height/2 + 60);
+                ctx.fillText(`成功擊殺終極 Boss！ 最終武器: ${WEAPONS[player.weaponLevel].name}`, canvas.width/2, canvas.height/2 + 30);
             } else {
-                ctx.fillStyle = '#ef4444'; ctx.font = 'bold 80px Arial'; ctx.shadowBlur = 25; ctx.shadowColor = '#dc2626';
-                ctx.fillText('YOU DIED', canvas.width/2, canvas.height/2 - 50);
+                ctx.fillStyle = '#ef4444'; ctx.font = 'bold 80px Arial'; ctx.shadowBlur = 30; ctx.shadowColor = '#dc2626';
+                ctx.fillText('YOU DIED', canvas.width/2, canvas.height/2 - 40);
                 ctx.fillStyle = 'white'; ctx.font = 'bold 28px Arial'; ctx.shadowBlur = 0;
-                ctx.fillText(`擊殺進度: ${enemiesKilled} / ${TOTAL_MONSTERS}`, canvas.width/2, canvas.height/2 + 30);
+                ctx.fillText(`擊殺數: ${enemiesKilled} / 20`, canvas.width/2, canvas.height/2 + 30);
             }
-            ctx.globalAlpha = (globalTime % 60 < 30) ? 1 : 0.5; ctx.fillStyle = '#cbd5e1'; ctx.font = '26px Arial';
-            ctx.fillText('>> 點擊畫面或按 Enter 重新挑戰 <<', canvas.width/2, canvas.height/2 + 130); ctx.globalAlpha = 1.0;
+            ctx.globalAlpha = (globalTime % 60 < 30) ? 1 : 0.5; ctx.fillStyle = '#94a3b8'; ctx.font = '24px Arial';
+            ctx.fillText('>> 點擊螢幕任何位置重新開始 <<', canvas.width/2, canvas.height/2 + 100); ctx.globalAlpha = 1.0;
         }
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.5)'; ctx.font = 'bold 20px Arial'; ctx.textAlign = 'left'; ctx.fillText('V22', 20, canvas.height - 20);
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.5)'; ctx.font = 'bold 20px Arial'; ctx.textAlign = 'left'; ctx.fillText('V24', 20, canvas.height - 20);
     }
 
     async function loadGameData() {
@@ -835,6 +855,8 @@
                             WEAPONS[i-1].fireRate = parseInt(rows[i][4]) || WEAPONS[i-1].fireRate;
                             WEAPONS[i-1].playerSpeed = parseFloat(rows[i][5]) || WEAPONS[i-1].playerSpeed;
                             WEAPONS[i-1].reloadAmmo = parseInt(rows[i][6]) || WEAPONS[i-1].reloadAmmo;
+                            WEAPONS[i-1].magCapacity = parseInt(rows[i][7]) || WEAPONS[i-1].magCapacity;
+                            WEAPONS[i-1].ammoBoxRefill = parseInt(rows[i][8]) || WEAPONS[i-1].ammoBoxRefill;
                         }
                     }
                 }
