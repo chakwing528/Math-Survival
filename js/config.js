@@ -26,14 +26,25 @@ const GAS_LEADERBOARD_URL = GAS_WEB_APP_URL;
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
+// --- 修正：BGM 播放防阻擋機制 ---
 let audioInitialized = false;
 function initAudio() {
     if (!audioInitialized) {
         let bgm = document.getElementById('bgm');
-        if(bgm) { bgm.volume = 0.4; bgm.play().catch(e=>{}); }
-        audioInitialized = true;
+        if (bgm) { 
+            bgm.volume = 0.4; 
+            let playPromise = bgm.play();
+            if (playPromise !== undefined) {
+                playPromise.then(() => {
+                    audioInitialized = true; // 成功播放才標記
+                }).catch(error => {
+                    console.log("BGM 暫時被瀏覽器阻擋，將於下次點擊重試");
+                });
+            }
+        }
     }
 }
+window.initAudio = initAudio; // 暴露給 HTML 按鈕呼叫
 
 // --- 視窗與 UI 邊界設定 ---
 const UI_BOUND = 200; 
@@ -102,6 +113,6 @@ let player = {
 
 let bullets = []; let enemies = []; let lootBoxes = []; let ammoBoxes = []; let particles = []; let floatingTexts = [];
 
-// 🚀 DOM 快取優化 (提升效能用)
+// DOM 快取優化
 const uiElements = {};
 let uiReady = false;
