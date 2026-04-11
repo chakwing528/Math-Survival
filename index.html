@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Math Survival - DSE MCQ</title>
+    <title>Math Survival - DSE MCQ V34</title>
     
-    <!-- 1. 指向 css 資料夾內的樣式表 -->
+    <!-- 1. 指向 css 資料夾 -->
     <link rel="stylesheet" href="css/style.css">
 
     <!-- 引入 MathJax 處理 LaTeX 數學排版 -->
@@ -13,9 +13,9 @@
 </head>
 <body>
 
-    <!-- 2. 指向 audio 資料夾內的音效檔 -->
+    <!-- 2. 指向 audio 資料夾 (修正了 m4a 副檔名名稱) -->
     <audio id="bgm" src="audio/bgm.mp3" loop preload="auto"></audio>
-    <audio id="shootSfx" src="audio/shootSfx.m4a" preload="auto"></audio>
+    <audio id="shootSfx" src="audio/shootsSfx.m4a" preload="auto"></audio>
     <audio id="reloadSfx" src="audio/reloadSfx.m4a" preload="auto"></audio>
     <audio id="emptyAmmoSfx" src="audio/emptyAmmoSfx.m4a" preload="auto"></audio>
 
@@ -25,7 +25,6 @@
     <!-- 難度選擇選單 -->
     <div id="start-menu">
         <h1 style="color: #fbbf24; font-size: 40px; margin-bottom: 30px; text-shadow: 2px 2px 4px #000; text-align: center;">請選擇目標等級</h1>
-        <!-- 確保點擊時觸發 window.initAudio() -->
         <button class="diff-btn" onclick="window.initAudio(); window.startGame('S1')">S1 程度</button>
         <button class="diff-btn" onclick="window.initAudio(); window.startGame('S2')">S2 程度</button>
         <button class="diff-btn" onclick="window.initAudio(); window.startGame('S3')">S3 程度</button>
@@ -46,7 +45,6 @@
 
     <!-- 左側專屬 UI 容器 -->
     <div id="ui-container">
-        <!-- 玩家資訊 -->
         <div class="ui-box">
             <div class="player-info-wrapper">
                 <canvas id="player-icon" width="45" height="45"></canvas>
@@ -59,7 +57,6 @@
             </div>
         </div>
 
-        <!-- 怪物計數 -->
         <div class="ui-box">
             <div style="text-align:center; color:#000; font-weight:bold; font-size:12px; margin-bottom:5px;">剩餘魔物目標</div>
             <div class="monster-row"><canvas id="m-icon-1" width="24" height="24"></canvas><span class="monster-count" id="m-count-1">x 0</span></div>
@@ -69,7 +66,7 @@
             <div class="monster-row"><canvas id="m-icon-5" width="24" height="24"></canvas><span class="monster-count" id="m-count-5">x 0</span></div>
         </div>
 
-        <!-- 即時排行榜與提交表單 -->
+        <!-- 排行榜 -->
         <div class="ui-box" id="leaderboard-box">
             <h3>🏆 總排行榜 🏆</h3>
             <ol id="leaderboard-list"><li>載入排行榜中...</li></ol>
@@ -77,20 +74,18 @@
                 <input type="text" id="lb-class" placeholder="班別 (例: 1A)">
                 <input type="text" id="lb-sid" placeholder="學號 (例: 01)">
                 <input type="text" id="lb-name" placeholder="名字">
-                <!-- 新增：左右排列的提交與直接重玩按鈕 -->
-                <div style="display: flex; gap: 5px; width: 90%; justify-content: center;">
-                    <button onclick="window.submitScore()" style="flex: 1;">上傳</button>
-                    <button onclick="window.showStartMenu()" style="flex: 1; background: #64748b;">重玩</button>
+                <div style="display: flex; gap: 5px; width: 90%; justify-content: center; margin-top: 5px;">
+                    <button onclick="window.submitScore()" style="flex: 1; padding: 6px; font-size: 11px;">上傳</button>
+                    <button onclick="window.showStartMenu()" style="flex: 1; background: #64748b; padding: 6px; font-size: 11px;">重玩</button>
                 </div>
             </div>
         </div>
 
-        <!-- 版本號 (固定在左下角) -->
-        <div style="color: rgba(255, 255, 255, 0.5); font-weight: bold; font-size: 14px; margin-top: auto; padding-left: 5px;">V30</div>
+        <div style="color: rgba(255, 255, 255, 0.5); font-weight: bold; font-size: 14px; margin-top: auto; padding-left: 5px;">V34</div>
     </div>
 
-    <!-- 3. 引入 JS 資料夾內的腳本 (順序極度重要) -->
-    <script src="js/indices.js"></script> 
+    <!-- 3. 引入 JS 資料夾內的腳本 (路徑已修正為 js/topics/indices.js) -->
+    <script src="js/topics/indices.js"></script> 
     <script src="js/config.js"></script>  
     <script src="js/ui.js"></script>      
     <script src="js/engine.js"></script>  
