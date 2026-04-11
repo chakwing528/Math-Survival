@@ -3,7 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Math Survival - Leaderboard V31</title>
+    <title>Math Survival - DSE MCQ V33</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <script>
+        function getRandomInt(min, max) { return Math.floor(Math.random() * (max - min)) + min; }
+        function getRandomExp() { let e = getRandomInt(-5, 6); return e === 0 ? 2 : e; }
+        function buildEq(steps) { return steps.map(s => s.text).join(" = "); }
+        function wrapHint(msg, eq) { return `${msg}<br>\\( \\displaystyle ${eq} \\)`; }
+        const msgCorrect = "<span style='color:green'>正確！</span>";
+        function shuffleArray(array) { 
+            let arr = [...array];
+            for (let i = arr.length - 1; i > 0; i--) { 
+                const j = Math.floor(Math.random() * (i + 1)); 
+                [arr[i], arr[j]] = [arr[j], arr[i]]; 
+            } 
+            return arr; 
+        }
+    </script>
+
+    <script src="indices.js"></script>
+
     <style>
         body {
             margin: 0; padding: 0; overflow: hidden;
@@ -19,34 +40,59 @@
             color: #fbbf24; font-size: 32px; font-weight: bold; z-index: 1000;
         }
 
-        /* --- 左側專屬 UI 容器 (收窄至 180px) --- */
+        /* --- S1/S2/S3 難度選擇選單 --- */
+        #start-menu {
+            position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
+            background-color: rgba(15, 23, 42, 0.95); display: none; flex-direction: column;
+            justify-content: center; align-items: center; z-index: 500; gap: 20px;
+        }
+        .diff-btn {
+            background: #3b82f6; color: white; border: 2px solid #94a3b8; padding: 15px 40px;
+            font-size: 24px; font-weight: bold; border-radius: 10px; cursor: pointer; width: 250px;
+            transition: background 0.2s;
+        }
+        .diff-btn:hover { background: #2563eb; }
+
+        /* --- 全新 MCQ 數學題彈出視窗 --- */
+        #math-overlay {
+            position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(0,0,0,0.85); z-index: 600; display: none;
+            flex-direction: column; justify-content: center; align-items: center;
+        }
+        .math-container {
+            background: #1e293b; padding: 30px; border-radius: 12px;
+            border: 4px solid #38bdf8; width: 85%; max-width: 600px;
+            text-align: center; color: white; box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        }
+        #math-timer-bg { width: 100%; height: 12px; background: #334155; margin-bottom: 20px; border-radius: 6px; overflow: hidden;}
+        #math-timer-bar { height: 100%; background: #4ade80; width: 100%; transition: width 0.1s linear, background-color 0.3s; }
+        #math-question-content { font-size: 20px; margin-bottom: 25px; overflow-x: auto; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px;}
+        .mcq-options { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .mcq-btn {
+            background: #334155; border: 2px solid #64748b; padding: 15px;
+            border-radius: 8px; color: white; font-size: 20px; cursor: pointer;
+            transition: 0.2s; display: flex; align-items: center; justify-content: flex-start; gap: 15px;
+        }
+        .mcq-btn:hover { background: #475569; border-color: #fbbf24; }
+        .mcq-label { color: #fbbf24; font-weight: bold; font-size: 24px; }
+
+        /* --- 左側專屬 UI 容器 --- */
         #ui-container {
             position: absolute; top: 10px; left: 10px; bottom: 10px; width: 180px; 
             display: flex; flex-direction: column; gap: 8px; z-index: 10; pointer-events: none;
         }
-        .ui-box {
-            background: rgba(241, 245, 249, 0.4); 
-            border: 2px solid rgba(148, 163, 184, 0.5); border-radius: 6px;
-            padding: 8px; pointer-events: auto; 
-        }
-        
-        /* 玩家資訊欄 */
+        .ui-box { background: rgba(241, 245, 249, 0.4); border: 2px solid rgba(148, 163, 184, 0.5); border-radius: 6px; padding: 8px; pointer-events: auto; }
         .player-info-wrapper { display: flex; align-items: center; gap: 8px; }
         #hp-bar-bg { width: 100%; height: 10px; background: #cbd5e1; border: 2px solid #475569; margin-bottom: 4px; }
         #ui-hp-fill { height: 100%; background: #22c55e; width: 100%; }
         .black-text { color: #000000; font-weight: bold; font-size: 11px; line-height: 1.3; }
-        
-        /* 怪物計數欄 */
         .monster-row { display: flex; align-items: center; gap: 8px; margin-bottom: 2px; }
         .monster-count { color: #000000; font-weight: bold; font-size: 13px; }
         
-        /* 排行榜區域 */
         #leaderboard-box { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
         #leaderboard-box h3 { margin: 0 0 8px 0; color: #000; text-align: center; font-size: 13px; }
         #leaderboard-list { margin: 0; padding-left: 20px; color: #000; font-weight: bold; font-size: 11px; overflow-y: auto; max-height: 350px; }
         #leaderboard-list li { margin-bottom: 4px; padding: 2px 4px; }
-
-        /* 提交表單 */
         #submit-form { display: none; flex-direction: column; align-items: center; gap: 6px; margin-top: 8px; }
         #submit-form input { width: 90%; padding: 4px; border-radius: 4px; border: 1px solid #ccc; text-align: center; font-size: 11px; }
         #submit-form button { background: #3b82f6; color: white; border: none; padding: 6px; border-radius: 4px; cursor: pointer; width: 90%; font-weight: bold; font-size: 11px;}
@@ -61,6 +107,22 @@
 
     <div id="loading-screen">連接伺服器並載入數據中...</div>
     
+    <div id="start-menu">
+        <h1 style="color: #fbbf24; font-size: 40px; margin-bottom: 30px; text-shadow: 2px 2px 4px #000;">請選擇目標等級</h1>
+        <button class="diff-btn" onclick="startGame('S1')">S1 程度</button>
+        <button class="diff-btn" onclick="startGame('S2')">S2 程度</button>
+        <button class="diff-btn" onclick="startGame('S3')">S3 程度</button>
+    </div>
+
+    <div id="math-overlay">
+        <div class="math-container">
+            <h2 id="math-header" style="margin-top: 0;"></h2>
+            <div id="math-timer-bg"><div id="math-timer-bar"></div></div>
+            <div id="math-question-content"></div>
+            <div class="mcq-options" id="math-options-container"></div>
+        </div>
+    </div>
+
     <canvas id="gameCanvas"></canvas>
 
     <div id="ui-container">
@@ -133,13 +195,19 @@
         canvas.height = window.innerHeight;
         leftJoyBase = { x: UI_BOUND + 60, y: canvas.height - 100 };
         leftJoy.stick = { x: leftJoyBase.x, y: leftJoyBase.y };
-        setupNumpad();
     }
     window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
 
-    let gameState = 'PLAYING';
+    let gameState = 'START_MENU'; 
     let globalTime = 0; let shakeTime = 0; let bossAlarmTimer = 0;
     
+    // --- 題庫與難度系統 ---
+    let currentDifficulty = 'S1';
+    let questionBank = [];
+    let currentMathType = ''; // 'UPGRADE' 或 'AMMO'
+    let mathTimer = 0;
+
     let enemiesKilled = 0; let totalMonstersSpawned = 0; let TOTAL_MONSTERS = 19; 
     let monstersLeft = [0, 0, 0, 0, 0, 0]; 
     let currentWave = 1;
@@ -166,15 +234,6 @@
         { level: 9, name: "Lv.MAX 神話武器", damage: 25.6, bullets: 9, fireRate: 1, playerSpeed: 10, reloadAmmo: 100, magCapacity: 30, ammoBoxRefill: 30, color: '#ef4444', glow: '#b91c1c', recoil: 16, speed: 30, penetrate: true }
     ];
 
-    let monsterQueue = [];
-    function initMonsterQueue() {
-        monsterQueue = []; TOTAL_MONSTERS = 0; monstersLeft = [0, 0, 0, 0, 0, 0];
-        for (let m of MONSTER_BASE) {
-            for(let i=0; i<m.count; i++) monsterQueue.push({...m});
-            TOTAL_MONSTERS += m.count; monstersLeft[m.tier] += m.count; 
-        }
-    }
-
     let player = {
         x: UI_BOUND + 100, y: 0, radius: 20, color: '#3b82f6', speed: 4, hp: 100, maxHp: 100,
         weaponLevel: -1, currentMagazine: 0, totalAmmo: 0,       
@@ -182,24 +241,7 @@
     };
 
     let bullets = []; let enemies = []; let lootBoxes = []; let ammoBoxes = []; let particles = []; let floatingTexts = [];
-    let currentMath = { question: '', answer: 0, userInput: '', message: '', messageColor: 'white', scale: 0, type: 'UPGRADE' };
-    let mathTimer = 0;
     let scoreSubmitted = false;
-
-    let numpadButtons = [];
-    function setupNumpad() {
-        numpadButtons = [];
-        const bw = window.innerWidth > 600 ? 80 : 65; const bh = window.innerWidth > 600 ? 60 : 50; const gap = 10;
-        const gameCenterX = UI_BOUND + (canvas.width - UI_BOUND) / 2;
-        const startX = gameCenterX - (bw*3 + gap*2)/2;
-        const startY = canvas.height/2 + 20;
-
-        const keys = [['7','8','9'], ['4','5','6'], ['1','2','3'], ['Del','0','Enter']];
-        for(let r=0; r<4; r++) {
-            for(let c=0; c<3; c++) numpadButtons.push({ label: keys[r][c], x: startX + c * (bw + gap), y: startY + r * (bh + gap), w: bw, h: bh });
-        }
-    }
-    resizeCanvas();
 
     // --- 繪製側邊欄靜態圖示 ---
     function drawHUDIcons() {
@@ -229,7 +271,7 @@
     }
     setTimeout(drawHUDIcons, 100);
 
-    // --- 排行榜邏輯 (緩存消除機制) ---
+    // --- 排行榜邏輯 ---
     function fetchLeaderboard() {
         if (!GAS_LEADERBOARD_URL) return;
         const timestamp = new Date().getTime();
@@ -257,7 +299,6 @@
         const sid = document.getElementById('lb-sid').value.trim();
         const name = document.getElementById('lb-name').value.trim();
         if (!cls || !sid || !name) { alert("請填寫班別、學號及名字！"); return; }
-
         if (!GAS_LEADERBOARD_URL) return;
 
         scoreSubmitted = true;
@@ -267,11 +308,10 @@
         const now = new Date();
         const dateStr = now.toLocaleDateString('zh-HK');
         const timeStr = now.toLocaleTimeString('zh-HK');
-        const diff = `Wave ${currentWave}`;
+        const diff = currentDifficulty; 
         const score = enemiesKilled;
         const timestamp = now.getTime();
 
-        // 加入時間戳強制刷新緩存
         const addUrl = `${GAS_LEADERBOARD_URL}?action=addScore&date=${encodeURIComponent(dateStr)}&time=${encodeURIComponent(timeStr)}&diff=${encodeURIComponent(diff)}&cls=${encodeURIComponent(cls)}&sid=${encodeURIComponent(sid)}&name=${encodeURIComponent(name)}&score=${score}&t=${timestamp}`;
         fetch(addUrl).catch(e => console.log("LB 上傳延遲", e));
 
@@ -285,6 +325,118 @@
             renderLeaderboard([{ diff: diff, cls: cls, name: name, score: score, isMe: true }]);
         }
     }
+
+    // --- 開始遊戲邏輯 (結合外部題庫) ---
+    function startGame(level) {
+        currentDifficulty = level;
+        document.getElementById('start-menu').style.display = 'none';
+        resetGame();
+    }
+
+    // --- MCQ 題目生成系統 ---
+    function generateFallbackMCQ() {
+        let maxVal = 10 + (Math.max(0, player.weaponLevel) * 10);
+        let num1 = getRandomInt(5, maxVal); let num2 = getRandomInt(5, maxVal);
+        let ans = num1 + num2;
+        let opts = [
+            { text: `\\( ${ans} \\)`, isCorrect: true },
+            { text: `\\( ${ans + getRandomInt(1, 5)} \\)`, isCorrect: false },
+            { text: `\\( ${ans - getRandomInt(1, 5)} \\)`, isCorrect: false },
+            { text: `\\( ${ans + getRandomInt(6, 10)} \\)`, isCorrect: false }
+        ];
+        return { 
+            question: `<div class="mb-4 text-base text-slate-300">請計算以下結果：</div><div class="text-2xl font-bold py-4">\\( \\displaystyle ${num1} + ${num2} = ? \\)</div>`, 
+            options: shuffleArray(opts).map((o,i)=>({...o, id: String.fromCharCode(65+i)})) 
+        };
+    }
+
+    function triggerMath(type) {
+        currentMathType = type;
+        gameState = 'MATH_TIME';
+        isShooting = false; rightJoy.active = false; leftJoy.active = false;
+        
+        let headerEl = document.getElementById('math-header');
+        if (type === 'UPGRADE') {
+            headerEl.textContent = '⚡ 武器進化程序 ⚡'; headerEl.style.color = '#eab308';
+            document.getElementById('math-container').style.borderColor = '#eab308';
+        } else {
+            headerEl.textContent = '🔵 彈藥補給程序 🔵'; headerEl.style.color = '#38bdf8';
+            document.getElementById('math-container').style.borderColor = '#38bdf8';
+        }
+
+        let lvlMap = { 'S1': '1', 'S2': '2', 'S3': '3' };
+        let qLevel = lvlMap[currentDifficulty] || '1';
+        let qData;
+
+        // 嘗試載入外部題庫 (indices.js)
+        if (typeof generateIndicesQuestions === 'function') {
+            try {
+                let qList = generateIndicesQuestions(1, qLevel);
+                qData = qList[0];
+            } catch(e) { console.error("題庫生成錯誤，使用後備題目", e); qData = generateFallbackMCQ(); }
+        } else {
+            qData = generateFallbackMCQ();
+        }
+
+        // 渲染題目
+        document.getElementById('math-question-content').innerHTML = qData.question;
+        
+        // 渲染按鈕
+        const optsContainer = document.getElementById('math-options-container');
+        optsContainer.innerHTML = '';
+        qData.options.forEach(opt => {
+            let btn = document.createElement('div');
+            btn.className = 'mcq-btn';
+            btn.innerHTML = `<span class="mcq-label">${opt.id}.</span> <span>${opt.text}</span>`;
+            btn.onclick = () => submitMCQ(opt.isCorrect);
+            optsContainer.appendChild(btn);
+        });
+
+        // 渲染 LaTeX 並顯示
+        if (typeof MathJax !== 'undefined') MathJax.typesetPromise();
+        document.getElementById('math-overlay').style.display = 'flex';
+        mathTimer = 600; // 10 秒
+    }
+
+    function submitMCQ(isCorrect) {
+        if (isCorrect) {
+            if (currentMathType === 'UPGRADE') {
+                if (player.weaponLevel === -1) {
+                    player.weaponLevel = 0; player.speed = WEAPONS[0].playerSpeed;
+                    player.currentMagazine = WEAPONS[0].magCapacity || 30; player.totalAmmo += WEAPONS[0].reloadAmmo || 30;
+                    addFloatingText(`解鎖: ${WEAPONS[0].name}!`, canvas.width/2, canvas.height/4, '#fbbf24', 35);
+                } else if (player.weaponLevel < WEAPONS.length - 1) {
+                    player.weaponLevel++; player.speed = WEAPONS[player.weaponLevel].playerSpeed;
+                    let ammoToAdd = WEAPONS[player.weaponLevel].reloadAmmo || 30; player.totalAmmo += ammoToAdd;
+                    addFloatingText(`解鎖: ${WEAPONS[player.weaponLevel].name}!`, canvas.width/2, canvas.height/4, '#fbbf24', 35);
+                    addFloatingText(`+${ammoToAdd} 總彈藥`, canvas.width/2, canvas.height/4 + 40, '#000000', 25);
+                } else {
+                    let ammoToAdd = WEAPONS[player.weaponLevel].reloadAmmo || 30; player.totalAmmo += ammoToAdd;
+                    addFloatingText(`等級上限！ +${ammoToAdd} 總彈藥`, canvas.width/2, canvas.height/4, '#fbbf24', 35);
+                }
+                player.hp = Math.min(player.maxHp, player.hp + 50); 
+                createParticles(player.x, player.y, '#4ade80', 60, 10); 
+            } else if (currentMathType === 'AMMO') {
+                let ammoToAdd = (player.weaponLevel >= 0 && WEAPONS[player.weaponLevel].ammoBoxRefill) ? WEAPONS[player.weaponLevel].ammoBoxRefill : 30;
+                player.totalAmmo += ammoToAdd;
+                addFloatingText(`+${ammoToAdd} 總彈藥`, canvas.width/2, canvas.height/4 + 40, '#38bdf8', 25);
+                createParticles(player.x, player.y, '#38bdf8', 50, 10); 
+            }
+            closeMathOverlay(true);
+        } else {
+            addFloatingText("❌ 答錯了！寶箱損毀", player.x, player.y - 40, '#ef4444');
+            closeMathOverlay(false);
+        }
+    }
+
+    function closeMathOverlay(success) {
+        document.getElementById('math-overlay').style.display = 'none';
+        shakeTime = success ? 0 : 15;
+        gameState = 'PLAYING'; 
+        isShooting = false; leftJoy.active = false; rightJoy.active = false; keys.w = keys.a = keys.s = keys.d = false; 
+        let sSfx = document.getElementById('shootSfx'); if (sSfx && !sSfx.paused) { sSfx.pause(); sSfx.currentTime = 0; }
+    }
+
 
     // --- 事件處理 ---
     canvas.addEventListener('touchstart', handleTouchStart, {passive: false});
@@ -300,12 +452,6 @@
         for (let i = 0; i < touches.length; i++) {
             let t = touches[i];
             let tx = t.clientX; let ty = t.clientY;
-            
-            if (gameState === 'MATH_TIME') {
-                for (let btn of numpadButtons) {
-                    if (tx >= btn.x && tx <= btn.x + btn.w && ty >= btn.y && ty <= btn.y + btn.h) { handleNumpadInput(btn.label); break; }
-                } continue;
-            }
 
             if (gameState === 'GAME_OVER' || gameState === 'VICTORY') { 
                 if (scoreSubmitted || document.getElementById('submit-form').style.display === 'none') resetGame(); 
@@ -368,11 +514,7 @@
     window.addEventListener('mousedown', (e) => {
         if(e.target !== canvas) return;
         initAudio();
-        if (gameState === 'MATH_TIME') {
-            for (let btn of numpadButtons) {
-                if (e.clientX >= btn.x && e.clientX <= btn.x + btn.w && e.clientY >= btn.y && e.clientY <= btn.y + btn.h) { handleNumpadInput(btn.label); break; }
-            }
-        } else if (gameState === 'GAME_OVER' || gameState === 'VICTORY') {
+        if (gameState === 'GAME_OVER' || gameState === 'VICTORY') {
             if (scoreSubmitted || document.getElementById('submit-form').style.display === 'none') resetGame(); 
         } else if (gameState === 'PLAYING') isShooting = true;
     });
@@ -380,21 +522,11 @@
     window.addEventListener('keydown', (e) => {
         initAudio();
         if (gameState === 'PLAYING') { let key = e.key.toLowerCase(); if (keys.hasOwnProperty(key)) keys[key] = true; } 
-        else if (gameState === 'MATH_TIME') {
-            if (!isNaN(e.key) && e.key !== ' ') { if (currentMath.userInput.length < 5) currentMath.userInput += e.key; } 
-            else if (e.key === 'Backspace') currentMath.userInput = currentMath.userInput.slice(0, -1); 
-            else if (e.key === 'Enter' || e.key === 'NumpadEnter') checkMathAnswer();
-        } else if (gameState === 'GAME_OVER' || gameState === 'VICTORY') { 
+        else if (gameState === 'GAME_OVER' || gameState === 'VICTORY') { 
             if (e.key === 'Enter') { if (scoreSubmitted || document.getElementById('submit-form').style.display === 'none') resetGame(); }
         }
     });
     window.addEventListener('keyup', (e) => { if (gameState === 'PLAYING') { let key = e.key.toLowerCase(); if (keys.hasOwnProperty(key)) keys[key] = false; }});
-
-    function handleNumpadInput(val) {
-        if (val === 'Del') currentMath.userInput = currentMath.userInput.slice(0, -1);
-        else if (val === 'Enter') checkMathAnswer();
-        else { if (currentMath.userInput.length < 5) currentMath.userInput += val; }
-    }
 
     // --- 遊戲邏輯 ---
     function fireBullet(angle, weapon, customSpeed) {
@@ -403,20 +535,6 @@
             vx: Math.cos(angle) * customSpeed, vy: Math.sin(angle) * customSpeed,
             radius: weapon.size || 4, color: weapon.color, glow: weapon.glow, damage: weapon.damage, penetrate: weapon.penetrate, hitEnemies: []
         });
-    }
-
-    function createParticles(x, y, color, count, speedStr = 5, z = 0, decay = null) {
-        for (let i = 0; i < count; i++) {
-            particles.push({
-                x: x, y: y, z: z,
-                vx: (Math.random() - 0.5) * speedStr, vy: (Math.random() - 0.5) * speedStr, vz: Math.random() * speedStr,
-                life: 1.0, decay: decay || (0.02 + Math.random() * 0.04), color: color, size: 2 + Math.random() * 4
-            });
-        }
-    }
-
-    function addFloatingText(text, x, y, color, size = 20) {
-        floatingTexts.push({ text, x, y, color, size, life: 1.0, dy: -1.5 });
     }
 
     function spawnLootBox() {
@@ -453,69 +571,6 @@
             bossAlarmTimer = 120;
             addFloatingText("⚠️ 萬血首領來襲！ ⚠️", canvas.width/2, 100, '#ef4444', 50);
         }
-    }
-
-    function generateMath() {
-        let maxVal = 10 + (player.weaponLevel * 10); if (maxVal < 10) maxVal = 10; if (maxVal > 90) maxVal = 90; 
-        const num1 = Math.floor(Math.random() * maxVal) + 5; const num2 = Math.floor(Math.random() * maxVal) + 5;
-        if (Math.random() > 0.5) { currentMath.question = `${num1} + ${num2} = ?`; currentMath.answer = num1 + num2; } 
-        else { let max = Math.max(num1, num2), min = Math.min(num1, num2); currentMath.question = `${max} - ${min} = ?`; currentMath.answer = max - min; }
-        
-        currentMath.userInput = ''; currentMath.message = '快！請在 10 秒內作答！'; currentMath.messageColor = '#fbbf24'; currentMath.scale = 0; mathTimer = 600; 
-    }
-
-    function checkMathAnswer() {
-        if (currentMath.userInput === '') return;
-        if (parseInt(currentMath.userInput) === currentMath.answer) {
-            
-            if (currentMath.type === 'UPGRADE') {
-                if (player.weaponLevel === -1) {
-                    player.weaponLevel = 0;
-                    player.speed = WEAPONS[0].playerSpeed;
-                    player.currentMagazine = WEAPONS[0].magCapacity || 30;
-                    player.totalAmmo += WEAPONS[0].reloadAmmo || 30;
-                    addFloatingText(`解鎖: ${WEAPONS[0].name}!`, canvas.width/2, canvas.height/4, '#fbbf24', 35);
-                } else if (player.weaponLevel < WEAPONS.length - 1) {
-                    player.weaponLevel++;
-                    player.speed = WEAPONS[player.weaponLevel].playerSpeed;
-                    let ammoToAdd = WEAPONS[player.weaponLevel].reloadAmmo || 30;
-                    player.totalAmmo += ammoToAdd;
-                    addFloatingText(`解鎖: ${WEAPONS[player.weaponLevel].name}!`, canvas.width/2, canvas.height/4, '#fbbf24', 35);
-                    addFloatingText(`+${ammoToAdd} 總彈藥`, canvas.width/2, canvas.height/4 + 40, '#000000', 25);
-                } else {
-                    let ammoToAdd = WEAPONS[player.weaponLevel].reloadAmmo || 30;
-                    player.totalAmmo += ammoToAdd;
-                    addFloatingText(`等級上限！ +${ammoToAdd} 總彈藥`, canvas.width/2, canvas.height/4, '#fbbf24', 35);
-                }
-                
-                player.hp = Math.min(player.maxHp, player.hp + 50); 
-                createParticles(player.x, player.y, '#4ade80', 60, 10); 
-                closeMathUI(true, "✅ 武器系統進化成功！");
-                let sSfx = document.getElementById('shootSfx'); if (sSfx && !sSfx.paused) { sSfx.pause(); sSfx.currentTime = 0; }
-                
-            } else if (currentMath.type === 'AMMO') {
-                let ammoToAdd = (player.weaponLevel >= 0 && WEAPONS[player.weaponLevel].ammoBoxRefill) ? WEAPONS[player.weaponLevel].ammoBoxRefill : 30;
-                player.totalAmmo += ammoToAdd;
-                addFloatingText(`+${ammoToAdd} 總彈藥`, canvas.width/2, canvas.height/4 + 40, '#38bdf8', 25);
-                createParticles(player.x, player.y, '#38bdf8', 50, 10); 
-                closeMathUI(true, "✅ 彈藥補給成功！");
-                let sSfx = document.getElementById('shootSfx'); if (sSfx && !sSfx.paused) { sSfx.pause(); sSfx.currentTime = 0; }
-            }
-            shakeTime = 15;
-            
-        } else {
-            closeMathUI(false, `❌ 錯誤！正確答案係 ${currentMath.answer}`);
-        }
-    }
-
-    function closeMathUI(success, msg) {
-        currentMath.question = msg; currentMath.userInput = ''; currentMath.message = ''; currentMath.messageColor = success ? '#4ade80' : '#f87171';
-        setTimeout(() => { 
-            gameState = 'PLAYING'; isShooting = false; 
-            leftJoy.active = false; leftJoy.dir = {x:0, y:0}; leftJoy.stick = {x: leftJoyBase.x, y: leftJoyBase.y};
-            rightJoy.active = false; rightJoy.dir = {x:0, y:0}; keys.w = keys.a = keys.s = keys.d = false; 
-            let sSfx = document.getElementById('shootSfx'); if (sSfx && !sSfx.paused) { sSfx.pause(); sSfx.currentTime = 0; }
-        }, 1000);
     }
 
     function triggerGameOver(isVictory) {
@@ -562,7 +617,6 @@
         }
     }
 
-    // --- HTML UI 同步 ---
     function updateHTMLHUD() {
         document.getElementById('ui-hp-fill').style.width = (Math.max(0, player.hp) / player.maxHp * 100) + '%';
         document.getElementById('ui-hp-text').textContent = `HP: ${Math.max(0, player.hp)}`;
@@ -588,10 +642,19 @@
         globalTime++;
         updateHTMLHUD();
 
+        if (gameState === 'START_MENU') return;
+
         if (gameState === 'MATH_TIME') {
-            if (currentMath.scale < 1) currentMath.scale += 0.15;
             mathTimer--;
-            if (mathTimer <= 0 && currentMath.scale >= 1) closeMathUI(false, "⏳ 時間到！寶箱已損毀。");
+            let pct = Math.max(0, (mathTimer / 600) * 100);
+            let bar = document.getElementById('math-timer-bar');
+            bar.style.width = pct + '%';
+            bar.style.backgroundColor = mathTimer < 180 ? '#ef4444' : '#4ade80';
+            
+            if (mathTimer <= 0) {
+                closeMathOverlay(false);
+                addFloatingText("⏳ 時間到！寶箱已損毀。", player.x, player.y - 40, '#ef4444');
+            }
         }
 
         if (player.recoilOffset > 0) player.recoilOffset *= 0.8; 
@@ -648,7 +711,6 @@
         if (rightJoy.active) { player.angle = rightJoy.angle; } 
         else if (!('ontouchstart' in window)) { player.angle = Math.atan2(mouseY - player.y, mouseX - player.x); }
 
-        // --- 射擊邏輯 ---
         if (isShooting || rightJoy.active) {
             if (player.weaponLevel === -1) {
                 if (globalTime % 30 === 0) {
@@ -740,8 +802,7 @@
             lootBoxes[i].pulse += 0.1;
             if (checkCollision(player, lootBoxes[i], player.radius + lootBoxes[i].size/2)) {
                 createParticles(lootBoxes[i].x, lootBoxes[i].y, '#eab308', 40, 8);
-                lootBoxes.splice(i, 1); gameState = 'MATH_TIME'; currentMath.type = 'UPGRADE'; generateMath(); isShooting = false; rightJoy.active = false; leftJoy.active = false; 
-                let sSfx = document.getElementById('shootSfx'); if (sSfx && !sSfx.paused) { sSfx.pause(); sSfx.currentTime = 0; }
+                lootBoxes.splice(i, 1); triggerMath('UPGRADE'); 
                 break;
             }
         }
@@ -751,15 +812,20 @@
             ammoBoxes[i].pulse += 0.1;
             if (checkCollision(player, ammoBoxes[i], player.radius + ammoBoxes[i].size/2)) {
                 createParticles(ammoBoxes[i].x, ammoBoxes[i].y, '#38bdf8', 40, 8);
-                ammoBoxes.splice(i, 1); gameState = 'MATH_TIME'; currentMath.type = 'AMMO'; generateMath(); isShooting = false; rightJoy.active = false; leftJoy.active = false; 
-                let sSfx = document.getElementById('shootSfx'); if (sSfx && !sSfx.paused) { sSfx.pause(); sSfx.currentTime = 0; }
+                ammoBoxes.splice(i, 1); triggerMath('AMMO'); 
                 break;
             }
         }
     }
 
-    // --- 渲染系統 (偽 2.5D 美術) ---
+    // --- 渲染系統 ---
     function draw() {
+        if (gameState === 'START_MENU') {
+            ctx.fillStyle = '#0f172a'; 
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            return;
+        }
+
         ctx.fillStyle = '#d2b48c'; 
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         
@@ -912,34 +978,6 @@
 
         let gameCenterX = UI_BOUND + (canvas.width - UI_BOUND) / 2;
 
-        if (gameState === 'MATH_TIME') {
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.85)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.save(); ctx.translate(gameCenterX, canvas.height/2); ctx.scale(currentMath.scale, currentMath.scale); 
-            let headerText = currentMath.type === 'UPGRADE' ? '⚡ WEAPON EVOLUTION MODULE ⚡' : '🔵 AMMO RESUPPLY MODULE 🔵';
-            let headerColor = currentMath.type === 'UPGRADE' ? '#eab308' : '#38bdf8';
-            ctx.fillStyle = headerColor; ctx.font = 'bold 26px Arial'; ctx.textAlign = 'center'; ctx.fillText(headerText, 0, -240);
-            ctx.fillStyle = '#334155'; ctx.fillRect(-200, -190, 400, 15);
-            ctx.fillStyle = mathTimer > 180 ? '#4ade80' : '#ef4444'; ctx.fillRect(-200, -190, 400 * (mathTimer / 600), 15);
-            ctx.fillStyle = 'white'; ctx.font = 'bold 65px Arial'; ctx.fillText(currentMath.question, 0, -110);
-            ctx.fillStyle = '#1e293b'; ctx.beginPath(); ctx.roundRect(-150, -70, 300, 70, 10); ctx.fill();
-            ctx.strokeStyle = headerColor; ctx.lineWidth = 4; ctx.stroke();
-            let cursor = (globalTime % 60 < 30) ? '_' : ''; ctx.fillStyle = '#fbbf24'; ctx.font = 'bold 50px Courier New'; ctx.fillText(currentMath.userInput + cursor, 0, -30);
-            ctx.restore();
-            
-            if (currentMath.scale >= 1) { 
-                for (let btn of numpadButtons) {
-                    ctx.fillStyle = '#334155'; ctx.beginPath(); ctx.roundRect(btn.x, btn.y, btn.w, btn.h, 10); ctx.fill();
-                    ctx.strokeStyle = '#64748b'; ctx.lineWidth = 2; ctx.stroke();
-                    if (!('ontouchstart' in window) && mouseX >= btn.x && mouseX <= btn.x + btn.w && mouseY >= btn.y && mouseY <= btn.y + btn.h) {
-                        ctx.fillStyle = 'rgba(255, 255, 255, 0.2)'; ctx.fill();
-                    }
-                    ctx.fillStyle = 'white'; ctx.font = 'bold 28px Arial'; ctx.textAlign = 'center'; ctx.fillText(btn.label, btn.x + btn.w/2, btn.y + btn.h/2);
-                }
-            }
-            ctx.fillStyle = currentMath.messageColor; ctx.font = '22px Arial'; ctx.textAlign = 'center'; ctx.fillText(currentMath.message, gameCenterX, canvas.height/2 + 350);
-            ctx.fillStyle = '#cbd5e1'; ctx.font = '18px Arial'; ctx.fillText('用實體鍵盤或虛擬按鍵作答', gameCenterX, canvas.height/2 + 390);
-        }
-
         if (gameState === 'GAME_OVER' || gameState === 'VICTORY') {
             ctx.fillStyle = 'rgba(15, 23, 42, 0.9)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
             ctx.textAlign = 'center';
@@ -961,7 +999,7 @@
             ctx.fillText('或按 [Enter] 重新挑戰', gameCenterX, canvas.height/2 + 100); ctx.globalAlpha = 1.0;
         }
 
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.5)'; ctx.font = 'bold 20px Arial'; ctx.textAlign = 'right'; ctx.fillText('V31', canvas.width - 20, canvas.height - 20);
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.5)'; ctx.font = 'bold 20px Arial'; ctx.textAlign = 'right'; ctx.fillText('V33', canvas.width - 20, canvas.height - 20);
     }
 
     async function loadGameData() {
@@ -994,7 +1032,11 @@
             } catch(e) { console.error("載入數據失敗，使用本地預設值:", e); }
         }
         document.getElementById('loading-screen').style.display = 'none';
-        resetGame(); gameLoop();
+        
+        // 進入選單畫面
+        document.getElementById('start-menu').style.display = 'flex';
+        gameState = 'START_MENU';
+        gameLoop(); 
     }
     
     function gameLoop() { update(); draw(); requestAnimationFrame(gameLoop); }
