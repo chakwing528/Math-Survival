@@ -8,8 +8,11 @@
     <!-- 引入 MathJax 處理 LaTeX 數學排版 -->
     <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 
-    <!-- ⬇️ 實際在 GitHub 上，請保留這行引入 indices.js ⬇️ -->
+    <!-- ⬇️ 實際在 GitHub 上，請保留這行引入 indices.js 及其他題庫 ⬇️ -->
     <script src="js/topics/indices.js"></script>
+    <script src="js/topics/expansion.js"></script>
+    <script src="js/topics/factorization.js"></script>
+    <script src="js/topics/rounding.js"></script>
 
     <style>
         body {
@@ -29,12 +32,12 @@
         #start-menu {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background-color: rgba(15, 23, 42, 0.95); display: none; flex-direction: column;
-            justify-content: center; align-items: center; z-index: 500; gap: 20px;
+            justify-content: center; align-items: center; z-index: 500; gap: 12px;
         }
         .diff-btn {
-            background: #3b82f6; color: white; border: 2px solid #94a3b8; padding: 15px 40px;
-            font-size: 24px; font-weight: bold; border-radius: 10px; cursor: pointer; width: 250px;
-            transition: background 0.2s;
+            background: #3b82f6; color: white; border: 2px solid #94a3b8; padding: 12px 20px;
+            font-size: 22px; font-weight: bold; border-radius: 10px; cursor: pointer; width: 280px;
+            transition: background 0.2s; line-height: 1.2;
         }
         .diff-btn:hover { background: #2563eb; }
 
@@ -105,10 +108,28 @@
     <div id="loading-screen">連接伺服器並載入數據中...</div>
     
     <div id="start-menu">
-        <h1 style="color: #fbbf24; font-size: 40px; margin-bottom: 30px; text-shadow: 2px 2px 4px #000; text-align: center;">請選擇目標等級</h1>
-        <button class="diff-btn" onclick="window.startGame('S1')">S1 程度</button>
-        <button class="diff-btn" onclick="window.startGame('S2')">S2 程度</button>
-        <button class="diff-btn" onclick="window.startGame('S3')">S3 程度</button>
+        <h1 style="color: #fbbf24; font-size: 35px; margin-bottom: 15px; text-shadow: 2px 2px 4px #000; text-align: center;">請選擇目標程度</h1>
+        
+        <button class="diff-btn" onclick="window.startGame('1')">
+            程度 1
+            <span style="font-size: 14px; font-weight: normal; display: block; margin-top: 4px; color: #e2e8f0;">10-50 整數加減運算</span>
+        </button>
+        <button class="diff-btn" onclick="window.startGame('2')">
+            程度 2
+            <span style="font-size: 14px; font-weight: normal; display: block; margin-top: 4px; color: #e2e8f0;">整數四則混合運算 (先乘除後加減)</span>
+        </button>
+        <button class="diff-btn" onclick="window.startGame('3')">
+            程度 3
+            <span style="font-size: 14px; font-weight: normal; display: block; margin-top: 4px; color: #e2e8f0;">加減混合 及 基礎指數 (Indices)</span>
+        </button>
+        <button class="diff-btn" onclick="window.startGame('4')">
+            程度 4
+            <span style="font-size: 14px; font-weight: normal; display: block; margin-top: 4px; color: #e2e8f0;">捨入、展開、因式分解、指數 (基礎隨機)</span>
+        </button>
+        <button class="diff-btn" onclick="window.startGame('5')">
+            程度 5
+            <span style="font-size: 14px; font-weight: normal; display: block; margin-top: 4px; color: #e2e8f0;">捨入、展開、因式分解、指數 (進階隨機)</span>
+        </button>
     </div>
 
     <div id="math-overlay">
@@ -255,11 +276,12 @@ resizeCanvas();
 // Global State
 let gameState = 'START_MENU'; 
 let globalTime = 0; let shakeTime = 0; let bossAlarmTimer = 0;
-let currentDifficulty = 'S1';
+let currentDifficulty = '1';
 let questionBank = [];
 let currentMathType = ''; 
 let mathTimer = 0;
 let scoreSubmitted = false;
+let questionsSolved = 0;
 
 // Progression & Entity Arrays
 let enemiesKilled = 0; let totalMonstersSpawned = 0; let TOTAL_MONSTERS = 19; 
@@ -335,6 +357,97 @@ function addFloatingText(text, x, y, color, size = 20) {
 // UI & HUD MANAGEMENT
 // ==============================================================================
 
+// 新增魔怪外觀繪製模組，統一 HUD 與遊戲內的顯示樣式
+function drawMonsterEntity(ctx, eSize, color, tier, visualY, isFacingRight) {
+    let eyeOffsetX = isFacingRight ? eSize*0.15 : -eSize*0.15;
+    
+    // 基礎身體
+    ctx.fillStyle = color; ctx.beginPath(); 
+    if (tier >= 4) {
+        // 等別 4 以上為鋸齒狀底部
+        ctx.arc(0, visualY - eSize*0.4, eSize*0.45, Math.PI, 0); 
+        ctx.lineTo(eSize*0.45, visualY + eSize*0.1);
+        ctx.lineTo(eSize*0.2, visualY - eSize*0.05);
+        ctx.lineTo(0, visualY + eSize*0.1);
+        ctx.lineTo(-eSize*0.2, visualY - eSize*0.05);
+        ctx.lineTo(-eSize*0.45, visualY + eSize*0.1);
+    } else {
+        // 一般平滑底部
+        ctx.arc(0, visualY - eSize*0.4, eSize*0.45, Math.PI, 0); 
+        ctx.lineTo(eSize*0.45, visualY + eSize*0.1); 
+        ctx.lineTo(-eSize*0.45, visualY + eSize*0.1); 
+    }
+    ctx.fill();
+    ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(0,0,0,0.4)'; ctx.stroke();
+
+    // 各等級專屬造型裝飾
+    if (tier === 1) {
+        // Lv1: 基礎小怪
+        ctx.fillStyle = 'white';
+        ctx.beginPath(); ctx.arc(eyeOffsetX - eSize*0.15, visualY - eSize*0.3, eSize*0.08, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(eyeOffsetX + eSize*0.15, visualY - eSize*0.3, eSize*0.08, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = 'black'; 
+        ctx.beginPath(); ctx.arc(eyeOffsetX - eSize*0.15 + (isFacingRight?1:-1), visualY - eSize*0.3, eSize*0.04, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(eyeOffsetX + eSize*0.15 + (isFacingRight?1:-1), visualY - eSize*0.3, eSize*0.04, 0, Math.PI*2); ctx.fill();
+    } else if (tier === 2) {
+        // Lv2: 憤怒的角怪
+        ctx.fillStyle = 'white';
+        ctx.beginPath(); ctx.arc(eyeOffsetX - eSize*0.15, visualY - eSize*0.3, eSize*0.08, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(eyeOffsetX + eSize*0.15, visualY - eSize*0.3, eSize*0.08, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = 'black'; 
+        ctx.beginPath(); ctx.arc(eyeOffsetX - eSize*0.15 + (isFacingRight?1:-1), visualY - eSize*0.3, eSize*0.04, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(eyeOffsetX + eSize*0.15 + (isFacingRight?1:-1), visualY - eSize*0.3, eSize*0.04, 0, Math.PI*2); ctx.fill();
+        // 憤怒眉毛
+        ctx.lineWidth = 2; ctx.strokeStyle = 'black'; ctx.beginPath();
+        ctx.moveTo(eyeOffsetX - eSize*0.3, visualY - eSize*0.45); ctx.lineTo(eyeOffsetX - eSize*0.05, visualY - eSize*0.35);
+        ctx.moveTo(eyeOffsetX + eSize*0.3, visualY - eSize*0.45); ctx.lineTo(eyeOffsetX + eSize*0.05, visualY - eSize*0.35);
+        ctx.stroke();
+        // 頭頂尖角
+        ctx.fillStyle = '#fef08a'; ctx.beginPath(); ctx.moveTo(-eSize*0.1, visualY - eSize*0.8); ctx.lineTo(eSize*0.1, visualY - eSize*0.8); ctx.lineTo(0, visualY - eSize*1.1); ctx.fill();
+        ctx.lineWidth = 1; ctx.stroke();
+    } else if (tier === 3) {
+        // Lv3: 機械護甲怪
+        ctx.fillStyle = '#334155'; ctx.fillRect(-eSize*0.35, visualY - eSize*0.4, eSize*0.7, eSize*0.25);
+        ctx.fillStyle = '#38bdf8'; ctx.fillRect(-eSize*0.2, visualY - eSize*0.32, eSize*0.4, eSize*0.08);
+        // 兩側護甲刺
+        ctx.fillStyle = '#94a3b8'; ctx.beginPath(); 
+        ctx.moveTo(-eSize*0.45, visualY - eSize*0.2); ctx.lineTo(-eSize*0.7, visualY - eSize*0.3); ctx.lineTo(-eSize*0.45, visualY - eSize*0.4);
+        ctx.moveTo(eSize*0.45, visualY - eSize*0.2); ctx.lineTo(eSize*0.7, visualY - eSize*0.3); ctx.lineTo(eSize*0.45, visualY - eSize*0.4);
+        ctx.fill(); ctx.stroke();
+    } else if (tier === 4) {
+        // Lv4: 異形四眼怪
+        ctx.fillStyle = 'black'; 
+        ctx.beginPath(); ctx.arc(eyeOffsetX - eSize*0.15, visualY - eSize*0.25, eSize*0.08, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(eyeOffsetX + eSize*0.15, visualY - eSize*0.25, eSize*0.08, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(eyeOffsetX - eSize*0.1, visualY - eSize*0.5, eSize*0.05, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(eyeOffsetX + eSize*0.1, visualY - eSize*0.5, eSize*0.05, 0, Math.PI*2); ctx.fill();
+        // 發紅發光瞳孔
+        ctx.fillStyle = '#ef4444';
+        ctx.beginPath(); ctx.arc(eyeOffsetX - eSize*0.15, visualY - eSize*0.25, eSize*0.03, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(eyeOffsetX + eSize*0.15, visualY - eSize*0.25, eSize*0.03, 0, Math.PI*2); ctx.fill();
+    } else if (tier === 5) {
+        // Lv5: 終極王冠魔首領
+        // 王冠
+        ctx.fillStyle = '#334155';
+        ctx.beginPath(); ctx.moveTo(-eSize*0.2, visualY - eSize*0.4); ctx.lineTo(-eSize*0.5, visualY - eSize*0.7); ctx.lineTo(-eSize*0.3, visualY - eSize*0.3); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(eSize*0.2, visualY - eSize*0.4); ctx.lineTo(eSize*0.5, visualY - eSize*0.7); ctx.lineTo(eSize*0.3, visualY - eSize*0.3); ctx.fill();
+        ctx.fillStyle = '#fbbf24'; 
+        ctx.beginPath(); ctx.moveTo(-eSize*0.6, visualY - eSize*0.5); ctx.lineTo(-eSize*0.8, visualY - eSize*0.8); ctx.lineTo(0, visualY - eSize*0.6); ctx.lineTo(eSize*0.8, visualY - eSize*0.8); ctx.lineTo(eSize*0.6, visualY - eSize*0.5); ctx.fill();
+        // 血紅雙眼
+        ctx.fillStyle = '#ef4444';
+        ctx.beginPath(); ctx.arc(eyeOffsetX - eSize*0.15, visualY - eSize*0.25, eSize*0.1, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(eyeOffsetX + eSize*0.15, visualY - eSize*0.25, eSize*0.1, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = 'black'; 
+        ctx.beginPath(); ctx.arc(eyeOffsetX - eSize*0.15, visualY - eSize*0.25, eSize*0.04, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(eyeOffsetX + eSize*0.15, visualY - eSize*0.25, eSize*0.04, 0, Math.PI*2); ctx.fill();
+        // 銳利巨齒
+        ctx.fillStyle = 'black';
+        ctx.beginPath(); ctx.arc(0, visualY + eSize*0.05, eSize*0.2, 0, Math.PI); ctx.fill();
+        ctx.fillStyle = 'white';
+        ctx.beginPath(); ctx.moveTo(-eSize*0.15, visualY + eSize*0.05); ctx.lineTo(-eSize*0.05, visualY+eSize*0.15); ctx.lineTo(0, visualY + eSize*0.05); ctx.lineTo(eSize*0.05, visualY+eSize*0.15); ctx.lineTo(eSize*0.15, visualY + eSize*0.05); ctx.fill();
+    }
+}
+
 function cacheUIElements() {
     uiElements.hpFill = document.getElementById('ui-hp-fill');
     uiElements.hpText = document.getElementById('ui-hp-text');
@@ -407,16 +520,13 @@ function drawHUDIcons() {
         if(!mC) continue;
         let mCtx = mC.getContext('2d');
         mCtx.clearRect(0,0,mC.width,mC.height);
-        // 大幅放大怪物圖示，調整中心點以配合 48x48 畫布
+        
+        mCtx.save();
         mCtx.translate(24, 28); mCtx.scale(2.2, 2.2); 
-        let eSize = 14; 
-        mCtx.fillStyle = mTypes[i].color; mCtx.beginPath(); mCtx.arc(0, -eSize*0.4, eSize*0.45, Math.PI, 0); mCtx.lineTo(eSize*0.45, eSize*0.1); mCtx.lineTo(-eSize*0.45, eSize*0.1); mCtx.fill();
-        if (mTypes[i].tier === 5) {
-            mCtx.fillStyle = '#334155'; mCtx.beginPath(); mCtx.moveTo(-eSize*0.2, -eSize*0.4); mCtx.lineTo(-eSize*0.5, -eSize*0.7); mCtx.lineTo(-eSize*0.3, -eSize*0.3); mCtx.fill(); mCtx.beginPath(); mCtx.moveTo(eSize*0.2, -eSize*0.4); mCtx.lineTo(eSize*0.5, -eSize*0.7); mCtx.lineTo(eSize*0.3, -eSize*0.3); mCtx.fill();
-            mCtx.fillStyle = '#fbbf24'; mCtx.beginPath(); mCtx.moveTo(-8, -eSize*0.4); mCtx.lineTo(-10, -eSize*0.6); mCtx.lineTo(0, -eSize*0.5); mCtx.lineTo(10, -eSize*0.6); mCtx.lineTo(8, -eSize*0.4); mCtx.fill();
-        } else { mCtx.fillStyle = '#fca5a5'; mCtx.beginPath(); mCtx.arc(0, -2, eSize*0.2, 0, Math.PI * 2); mCtx.fill(); }
-        mCtx.fillStyle = mTypes[i].tier >= 3 ? '#ef4444' : 'white'; mCtx.beginPath(); mCtx.arc(-2.5, -eSize*0.3, 1.5, 0, Math.PI*2); mCtx.fill(); mCtx.beginPath(); mCtx.arc(2.5, -eSize*0.3, 1.5, 0, Math.PI*2); mCtx.fill();
-        mCtx.fillStyle = 'black'; mCtx.beginPath(); mCtx.arc(-2.5, -eSize*0.3, 1, 0, Math.PI*2); mCtx.fill(); mCtx.beginPath(); mCtx.arc(2.5, -eSize*0.3, 1, 0, Math.PI*2); mCtx.fill();
+        
+        drawMonsterEntity(mCtx, 14, mTypes[i].color, mTypes[i].tier, 0, true);
+        
+        mCtx.restore();
     }
 }
 setTimeout(drawHUDIcons, 100);
@@ -460,7 +570,7 @@ window.submitScore = async function() {
     const now = new Date();
     const dateStr = now.toLocaleDateString('zh-HK');
     const timeStr = now.toLocaleTimeString('zh-HK');
-    const diff = currentDifficulty; 
+    const diff = "程度 " + currentDifficulty; 
     const score = enemiesKilled;
     const timestamp = now.getTime();
 
@@ -510,10 +620,62 @@ function generateFallbackMCQ() {
     };
 }
 
+function formatMCQ(questionStr, ans) {
+    let wrong1 = ans + getRandomInt(1, 4);
+    let wrong2 = ans - getRandomInt(1, 4);
+    let wrong3 = ans + getRandomInt(5, 8);
+    let opts = [
+        { text: `\\( ${ans} \\)`, isCorrect: true },
+        { text: `\\( ${wrong1} \\)`, isCorrect: false },
+        { text: `\\( ${wrong2} \\)`, isCorrect: false },
+        { text: `\\( ${wrong3} \\)`, isCorrect: false }
+    ];
+    return {
+        question: `<div style="font-size:16px;color:#cbd5e1;margin-bottom:10px;">請計算以下結果：</div><div style="font-size:28px;font-weight:bold;">\\( \\displaystyle ${questionStr} = ? \\)</div>`,
+        options: shuffleArray(opts).map((o,i)=>({...o, id: String.fromCharCode(65+i)}))
+    };
+}
+
+function generateLevel1Question() {
+    let wl = Math.max(0, player.weaponLevel);
+    // 基礎 10-50，隨著武器等級而提高數值範圍
+    let min = 10 + wl * 2;
+    let max = 50 + wl * 5;
+    let A = getRandomInt(min, max);
+    let B = getRandomInt(min, max);
+    let isAdd = Math.random() > 0.5;
+    if (!isAdd && A < B) { let temp = A; A = B; B = temp; } // 保保證小四程度都是正數減法
+    let ans = isAdd ? A + B : A - B;
+    let op = isAdd ? '+' : '-';
+    return formatMCQ(`${A} ${op} ${B}`, ans);
+}
+
+function generateLevel2Question() {
+    let wl = Math.max(0, player.weaponLevel);
+    let maxV = 10 + wl * 2;
+    // 預設 8 種四則運算組合 (先乘除後加減原則)，確保整除和正數
+    let patterns = [
+        () => { let b=getRandomInt(2,maxV), c=getRandomInt(2,maxV), a=getRandomInt(1,maxV*2); return {q: `${a} + ${b} \\times ${c}`, a: a+b*c}; },
+        () => { let b=getRandomInt(2,maxV), c=getRandomInt(2,maxV), a=getRandomInt(b*c+1, b*c+20); return {q: `${a} - ${b} \\times ${c}`, a: a-b*c}; },
+        () => { let a=getRandomInt(2,maxV), b=getRandomInt(2,maxV), c=getRandomInt(1,maxV*2); return {q: `${a} \\times ${b} + ${c}`, a: a*b+c}; },
+        () => { let a=getRandomInt(2,maxV), b=getRandomInt(2,maxV), c=getRandomInt(1,a*b-1); return {q: `${a} \\times ${b} - ${c}`, a: a*b-c}; },
+        () => { let c=getRandomInt(2,10), b=c*getRandomInt(2,maxV), a=getRandomInt(1,maxV*2); return {q: `${a} + ${b} \\div ${c}`, a: a+b/c}; },
+        () => { let c=getRandomInt(2,10), b=c*getRandomInt(2,maxV), a=getRandomInt(b/c+1, b/c+20); return {q: `${a} - ${b} \\div ${c}`, a: a-b/c}; },
+        () => { let b=getRandomInt(2,10), a=b*getRandomInt(2,maxV), c=getRandomInt(1,maxV*2); return {q: `${a} \\div ${b} + ${c}`, a: a/b+c}; },
+        () => { let b=getRandomInt(2,10), a=b*getRandomInt(2,maxV), c=getRandomInt(1,a/b-1); return {q: `${a} \\div ${b} - ${c}`, a: a/b-c}; }
+    ];
+    let p = patterns[getRandomInt(0, patterns.length)]();
+    return formatMCQ(p.q, p.a);
+}
+
 function triggerMath(type) {
     currentMathType = type;
     gameState = 'MATH_TIME';
     isShooting = false; rightJoy.active = false; leftJoy.active = false;
+    
+    // 玩家回答問題時，馬上停止射擊聲音
+    let sSfx = document.getElementById('shootSfx'); 
+    if (sSfx && !sSfx.paused) { sSfx.pause(); sSfx.currentTime = 0; }
     
     let headerEl = document.getElementById('math-header');
     let containerEl = document.getElementById('math-container');
@@ -528,21 +690,43 @@ function triggerMath(type) {
         }
     }
 
-    let lvlMap = { 'S1': '1', 'S2': '2', 'S3': '3' };
-    let qLevel = lvlMap[currentDifficulty] || '1';
     let qData;
+    let diffStr = currentDifficulty; 
 
-    if (typeof generateIndicesQuestions === 'function') {
-        try {
-            let qList = generateIndicesQuestions(1, qLevel);
-            qData = (qList && qList.length > 0) ? qList[0] : generateFallbackMCQ();
-        } catch(e) { 
-            console.error("題庫生成錯誤，使用後備題目", e); 
-            qData = generateFallbackMCQ(); 
+    try {
+        if (diffStr === '1') {
+            qData = generateLevel1Question();
+        } else if (diffStr === '2') {
+            qData = generateLevel2Question();
+        } else if (diffStr === '3') {
+            if (questionsSolved < 3) {
+                // 程度 3：前三題出簡單加減法 (此處借用程度1的出題)
+                qData = generateLevel1Question();
+            } else if (typeof generateIndicesQuestions === 'function') {
+                qData = generateIndicesQuestions(1, 1)[0];
+            } else {
+                qData = generateFallbackMCQ();
+            }
+        } else if (diffStr === '4' || diffStr === '5') {
+            let level = diffStr === '4' ? 1 : 2;
+            let topics = ['rounding', 'expansion', 'factorization', 'indices'];
+            let t = topics[getRandomInt(0, topics.length)];
+            
+            // 隨機抽取 4 種題庫中的一題
+            if (t === 'rounding' && typeof generateRoundingQuestions === 'function') qData = generateRoundingQuestions(1, level)[0];
+            else if (t === 'expansion' && typeof generateExpansionQuestions === 'function') qData = generateExpansionQuestions(1, level)[0];
+            else if (t === 'factorization' && typeof generateFactorizationQuestions === 'function') qData = generateFactorizationQuestions(1, level)[0];
+            else if (t === 'indices' && typeof generateIndicesQuestions === 'function') qData = generateIndicesQuestions(1, level)[0];
+            else qData = generateFallbackMCQ();
+        } else {
+            qData = generateFallbackMCQ();
         }
-    } else {
-        qData = generateFallbackMCQ();
+    } catch(e) { 
+        console.error("題庫生成錯誤，使用後備題目", e); 
+        qData = generateFallbackMCQ(); 
     }
+    
+    if (!qData) qData = generateFallbackMCQ();
 
     let contentEl = document.getElementById('math-question-content');
     if (contentEl) contentEl.innerHTML = qData.question;
@@ -570,6 +754,7 @@ function triggerMath(type) {
 
 window.submitMCQ = function(isCorrect) {
     if (isCorrect) {
+        questionsSolved++;
         if (currentMathType === 'UPGRADE') {
             if (player.weaponLevel === -1) {
                 player.weaponLevel = 0; player.speed = WEAPONS[0].playerSpeed;
@@ -766,7 +951,7 @@ function resetGame() {
     player.isReloading = false; player.reloadTimer = 0;
     player.angle = 0;
     
-    enemiesKilled = 0; totalMonstersSpawned = 0;
+    enemiesKilled = 0; totalMonstersSpawned = 0; questionsSolved = 0;
     player.x = UI_BOUND + (canvas.width - UI_BOUND)/2; player.y = canvas.height / 2;
     bullets = []; enemies = []; lootBoxes = []; ammoBoxes = []; particles = []; floatingTexts = [];
     isShooting = false; keys.w = keys.a = keys.s = keys.d = false;
@@ -1050,37 +1235,17 @@ function draw() {
             ctx.save(); ctx.translate(e.x, e.y); 
             ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.beginPath(); ctx.ellipse(0, 0, e.size*0.5, e.size*0.2, 0, 0, Math.PI*2); ctx.fill();
             let visualY = -10 - bob;
-            ctx.fillStyle = e.color; ctx.beginPath();
-            ctx.arc(0, visualY - e.size*0.4, e.size*0.45, Math.PI, 0); 
-            ctx.lineTo(e.size*0.45, visualY + e.size*0.1); ctx.lineTo(-e.size*0.45, visualY + e.size*0.1); ctx.fill();
-            if (e.tier === 1 || e.tier === 2) {
-                ctx.strokeStyle = 'rgba(0,0,0,0.2)'; ctx.lineWidth = 3;
-                ctx.beginPath(); ctx.moveTo(-e.size*0.4, visualY - e.size*0.1); ctx.lineTo(e.size*0.4, visualY); ctx.stroke();
-                ctx.beginPath(); ctx.moveTo(-e.size*0.4, visualY - e.size*0.3); ctx.lineTo(e.size*0.4, visualY - e.size*0.2); ctx.stroke();
-            } else if (e.tier === 4) {
-                ctx.fillStyle = '#bef264'; ctx.beginPath(); ctx.arc(-e.size*0.2, visualY - e.size*0.1, e.size*0.1, 0, Math.PI*2); ctx.fill();
-                ctx.beginPath(); ctx.arc(e.size*0.25, visualY - e.size*0.3, e.size*0.08, 0, Math.PI*2); ctx.fill();
-            } else if (e.tier === 5) {
-                ctx.fillStyle = '#334155';
-                ctx.beginPath(); ctx.moveTo(-e.size*0.2, visualY - e.size*0.4); ctx.lineTo(-e.size*0.5, visualY - e.size*0.7); ctx.lineTo(-e.size*0.3, visualY - e.size*0.3); ctx.fill();
-                ctx.beginPath(); ctx.moveTo(e.size*0.2, visualY - e.size*0.4); ctx.lineTo(e.size*0.5, visualY - e.size*0.7); ctx.lineTo(e.size*0.3, visualY - e.size*0.3); ctx.fill();
-                ctx.fillStyle = '#fbbf24'; ctx.beginPath(); ctx.moveTo(-20, visualY - e.size*0.4); ctx.lineTo(-25, visualY - e.size*0.6); ctx.lineTo(0, visualY - e.size*0.5); ctx.lineTo(25, visualY - e.size*0.6); ctx.lineTo(20, visualY - e.size*0.4); ctx.fill();
-            }
-            ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,0.5)'; ctx.stroke();
-            let eyeOffsetX = isFacingRight ? e.size*0.15 : -e.size*0.15;
-            ctx.fillStyle = e.tier >= 3 ? '#ef4444' : 'white';
-            ctx.beginPath(); ctx.arc(eyeOffsetX - e.size*0.15, visualY - e.size*0.3, e.size*0.08, 0, Math.PI*2); ctx.fill();
-            ctx.beginPath(); ctx.arc(eyeOffsetX + e.size*0.15, visualY - e.size*0.3, e.size*0.08, 0, Math.PI*2); ctx.fill();
-            ctx.fillStyle = 'black'; 
-            ctx.beginPath(); ctx.arc(eyeOffsetX - e.size*0.15 + (isFacingRight?1:-1), visualY - e.size*0.3, e.size*0.04, 0, Math.PI*2); ctx.fill();
-            ctx.beginPath(); ctx.arc(eyeOffsetX + e.size*0.15 + (isFacingRight?1:-1), visualY - e.size*0.3, e.size*0.04, 0, Math.PI*2); ctx.fill();
+            
+            // 放大遊戲內魔怪的視覺比例 (乘以 1.4)，讓五個等級的特徵更明顯，同時維持碰撞判定不變
+            let visualSize = e.size * 1.4;
+            drawMonsterEntity(ctx, visualSize, e.color, e.tier, visualY, isFacingRight);
             
             // Fake shadow text for performance
-            ctx.fillStyle = 'black'; ctx.font = 'bold 16px Arial'; ctx.textAlign = 'center'; ctx.fillText(`Lv.${e.tier}`, 2, visualY - e.size*0.9 - 8);
-            ctx.fillStyle = 'white'; ctx.fillText(`Lv.${e.tier}`, 0, visualY - e.size*0.9 - 10);
+            ctx.fillStyle = 'black'; ctx.font = 'bold 16px Arial'; ctx.textAlign = 'center'; ctx.fillText(`Lv.${e.tier}`, 2, visualY - visualSize*0.9 - 8);
+            ctx.fillStyle = 'white'; ctx.fillText(`Lv.${e.tier}`, 0, visualY - visualSize*0.9 - 10);
             
-            let hpBarWidth = e.tier === 5 ? 100 : 50; ctx.fillStyle = '#334155'; ctx.fillRect(-hpBarWidth/2, visualY - e.size*0.7 - 15, hpBarWidth, 8);
-            ctx.fillStyle = '#ef4444'; ctx.fillRect(-hpBarWidth/2, visualY - e.size*0.7 - 15, hpBarWidth * (e.hp / e.maxHp), 8);
+            let hpBarWidth = e.tier === 5 ? 100 : 50; ctx.fillStyle = '#334155'; ctx.fillRect(-hpBarWidth/2, visualY - visualSize*0.7 - 15, hpBarWidth, 8);
+            ctx.fillStyle = '#ef4444'; ctx.fillRect(-hpBarWidth/2, visualY - visualSize*0.7 - 15, hpBarWidth * (e.hp / e.maxHp), 8);
             ctx.restore();
         }
         else if (item.type === 'player') {
