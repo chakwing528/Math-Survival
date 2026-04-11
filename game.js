@@ -96,6 +96,67 @@ let player = {
 let bullets = []; let enemies = []; let lootBoxes = []; let ammoBoxes = []; let particles = []; let floatingTexts = [];
 let scoreSubmitted = false;
 
+// --- 🚀 DOM 快取優化 (解決大量卡頓的核心) ---
+const uiElements = {};
+let uiReady = false;
+
+function cacheUIElements() {
+    uiElements.hpFill = document.getElementById('ui-hp-fill');
+    uiElements.hpText = document.getElementById('ui-hp-text');
+    uiElements.wepName = document.getElementById('ui-wep-name');
+    uiElements.ammoText = document.getElementById('ui-ammo-text');
+    uiElements.mathTimerBar = document.getElementById('math-timer-bar');
+    uiElements.mCounts = [];
+    for(let i=1; i<=5; i++) {
+        uiElements.mCounts[i] = document.getElementById(`m-count-${i}`);
+    }
+    uiReady = true;
+}
+
+let lastHUDState = { hp: -1, weapon: -2, ammo: -1, total: -1, reloading: null, mCounts: [-1,-1,-1,-1,-1,-1] };
+
+function updateHTMLHUD() {
+    if (!uiReady) cacheUIElements();
+    if (!uiElements.hpFill) return; // 確保元素已載入
+
+    // 只有在數值發生變化時才去觸碰 DOM，節省 90% 性能
+    if (lastHUDState.hp !== player.hp) {
+        uiElements.hpFill.style.width = (Math.max(0, player.hp) / player.maxHp * 100) + '%';
+        uiElements.hpText.textContent = `HP: ${Math.max(0, player.hp)}`;
+        lastHUDState.hp = player.hp;
+    }
+    
+    let ammoChanged = lastHUDState.ammo !== player.currentMagazine || lastHUDState.total !== player.totalAmmo || lastHUDState.reloading !== player.isReloading;
+    let wepChanged = lastHUDState.weapon !== player.weaponLevel;
+
+    if (wepChanged || ammoChanged) {
+        if (player.weaponLevel >= 0) {
+            if (wepChanged) {
+                let currWep = WEAPONS[player.weaponLevel];
+                if (currWep) uiElements.wepName.textContent = `武裝: ${currWep.name}`;
+            }
+            if (ammoChanged) {
+                if (player.isReloading) uiElements.ammoText.textContent = `換彈中...`;
+                else uiElements.ammoText.textContent = `彈藥: ${player.currentMagazine}/${player.totalAmmo}`;
+            }
+        } else {
+            if (wepChanged) uiElements.wepName.textContent = `武裝: 尚未裝備`;
+            if (ammoChanged) uiElements.ammoText.textContent = `彈藥: 0/0`;
+        }
+        lastHUDState.weapon = player.weaponLevel;
+        lastHUDState.ammo = player.currentMagazine;
+        lastHUDState.total = player.totalAmmo;
+        lastHUDState.reloading = player.isReloading;
+    }
+
+    for(let i=1; i<=5; i++) {
+        if (uiElements.mCounts[i] && lastHUDState.mCounts[i] !== monstersLeft[i]) {
+            uiElements.mCounts[i].textContent = `x ${Math.max(0, monstersLeft[i])}`;
+            lastHUDState.mCounts[i] = monstersLeft[i];
+        }
+    }
+}
+
 // --- 繪製側邊欄靜態圖示 ---
 function drawHUDIcons() {
     let pC = document.getElementById('player-icon'); 
@@ -196,7 +257,8 @@ window.submitScore = async function() {
 
 window.startGame = function(level) {
     currentDifficulty = level;
-    document.getElementById('start-menu').style.display = 'none';
+    let menu = document.getElementById('start-menu');
+    if (menu) menu.style.display = 'none';
     resetGame();
 }
 
@@ -224,12 +286,14 @@ function triggerMath(type) {
     let headerEl = document.getElementById('math-header');
     let containerEl = document.getElementById('math-container');
     
-    if (type === 'UPGRADE') {
-        headerEl.textContent = '⚡ 武器進化程序 ⚡'; headerEl.style.color = '#eab308';
-        containerEl.style.borderColor = '#eab308';
-    } else {
-        headerEl.textContent = '🔵 彈藥補給程序 🔵'; headerEl.style.color = '#38bdf8';
-        containerEl.style.borderColor = '#38bdf8';
+    if (headerEl && containerEl) {
+        if (type === 'UPGRADE') {
+            headerEl.textContent = '⚡ 武器進化程序 ⚡'; headerEl.style.color = '#eab308';
+            containerEl.style.borderColor = '#eab308';
+        } else {
+            headerEl.textContent = '🔵 彈藥補給程序 🔵'; headerEl.style.color = '#38bdf8';
+            containerEl.style.borderColor = '#38bdf8';
+        }
     }
 
     let lvlMap = { 'S1': '1', 'S2': '2', 'S3': '3' };
@@ -239,26 +303,36 @@ function triggerMath(type) {
     if (typeof generateIndicesQuestions === 'function') {
         try {
             let qList = generateIndicesQuestions(1, qLevel);
-            qData = qList[0];
-        } catch(e) { console.error("題庫生成錯誤，使用後備題目", e); qData = generateFallbackMCQ(); }
+            qData = (qList && qList.length > 0) ? qList[0] : generateFallbackMCQ();
+        } catch(e) { 
+            console.error("題庫生成錯誤，使用後備題目", e); 
+            qData = generateFallbackMCQ(); 
+        }
     } else {
         qData = generateFallbackMCQ();
     }
 
-    document.getElementById('math-question-content').innerHTML = qData.question;
+    let contentEl = document.getElementById('math-question-content');
+    if (contentEl) contentEl.innerHTML = qData.question;
     
     const optsContainer = document.getElementById('math-options-container');
-    optsContainer.innerHTML = '';
-    qData.options.forEach(opt => {
-        let btn = document.createElement('div');
-        btn.className = 'mcq-btn';
-        btn.innerHTML = `<span class="mcq-label">${opt.id}.</span> <span>${opt.text}</span>`;
-        btn.onclick = () => window.submitMCQ(opt.isCorrect);
-        optsContainer.appendChild(btn);
-    });
+    if (optsContainer) {
+        optsContainer.innerHTML = '';
+        qData.options.forEach(opt => {
+            let btn = document.createElement('div');
+            btn.className = 'mcq-btn';
+            btn.innerHTML = `<span class="mcq-label">${opt.id}.</span> <span>${opt.text}</span>`;
+            btn.onclick = () => window.submitMCQ(opt.isCorrect);
+            optsContainer.appendChild(btn);
+        });
+    }
 
-    if (typeof MathJax !== 'undefined') MathJax.typesetPromise([document.getElementById('math-overlay')]);
-    document.getElementById('math-overlay').style.display = 'flex';
+    let overlay = document.getElementById('math-overlay');
+    if (overlay) {
+        if (typeof MathJax !== 'undefined') MathJax.typesetPromise([overlay]).catch(e => console.log(e));
+        overlay.style.display = 'flex';
+    }
+    
     mathTimer = 600; // 10 秒
 }
 
@@ -294,7 +368,9 @@ window.submitMCQ = function(isCorrect) {
 }
 
 function closeMathOverlay(success) {
-    document.getElementById('math-overlay').style.display = 'none';
+    let overlay = document.getElementById('math-overlay');
+    if (overlay) overlay.style.display = 'none';
+    
     shakeTime = success ? 0 : 15;
     gameState = 'PLAYING'; 
     isShooting = false; leftJoy.active = false; rightJoy.active = false; keys.w = keys.a = keys.s = keys.d = false; 
@@ -317,7 +393,7 @@ function handleTouchStart(e) {
         let tx = t.clientX; let ty = t.clientY;
 
         if (gameState === 'GAME_OVER' || gameState === 'VICTORY') { 
-            if (scoreSubmitted || document.getElementById('submit-form').style.display === 'none') resetGame(); 
+            if (scoreSubmitted || (document.getElementById('submit-form') && document.getElementById('submit-form').style.display === 'none')) resetGame(); 
             return; 
         }
 
@@ -330,7 +406,7 @@ function handleTouchStart(e) {
                 rightJoy.active = true; rightJoy.id = t.identifier;
                 rightJoy.base = {x: t.clientX, y: t.clientY};
                 rightJoy.stick = {x: t.clientX, y: t.clientY};
-                player.angle = Math.atan2(0, 1);
+                player.angle = Math.atan2(ty - player.y, tx - player.x) || 0;
             }
         }
     }
@@ -343,12 +419,12 @@ function handleTouchMove(e) {
         if (leftJoy.active && t.identifier === leftJoy.id) updateFixedJoystick(leftJoy, Math.max(UI_BOUND, tx), ty); 
         if (rightJoy.active && t.identifier === rightJoy.id) {
             let dx = tx - rightJoy.base.x; let dy = ty - rightJoy.base.y; let dist = Math.sqrt(dx*dx + dy*dy);
-            rightJoy.angle = Math.atan2(dy, dx);
+            rightJoy.angle = Math.atan2(dy, dx) || 0;
             if (dist > joyRadius) {
                 rightJoy.stick.x = rightJoy.base.x + Math.cos(rightJoy.angle) * joyRadius; rightJoy.stick.y = rightJoy.base.y + Math.sin(rightJoy.angle) * joyRadius;
                 rightJoy.dir.x = Math.cos(rightJoy.angle); rightJoy.dir.y = Math.sin(rightJoy.angle);
             } else {
-                rightJoy.stick.x = tx; rightJoy.stick.y = ty; rightJoy.dir.x = dx / joyRadius; rightJoy.dir.y = dy / joyRadius;
+                rightJoy.stick.x = tx; rightJoy.stick.y = ty; rightJoy.dir.x = dist > 0 ? dx / joyRadius : 0; rightJoy.dir.y = dist > 0 ? dy / joyRadius : 0;
             }
             player.angle = rightJoy.angle;
         }
@@ -365,11 +441,11 @@ function handleTouchEnd(e) {
 }
 
 function updateFixedJoystick(joy, tx, ty) {
-    let dx = tx - leftJoyBase.x; let dy = ty - leftJoyBase.y; let dist = Math.sqrt(dx*dx + dy*dy); let angle = Math.atan2(dy, dx);
+    let dx = tx - leftJoyBase.x; let dy = ty - leftJoyBase.y; let dist = Math.sqrt(dx*dx + dy*dy); let angle = Math.atan2(dy, dx) || 0;
     if (dist > joyRadius) {
         joy.stick.x = leftJoyBase.x + Math.cos(angle) * joyRadius; joy.stick.y = leftJoyBase.y + Math.sin(angle) * joyRadius; joy.dir.x = Math.cos(angle); joy.dir.y = Math.sin(angle);
     } else {
-        joy.stick.x = tx; joy.stick.y = ty; joy.dir.x = dx / joyRadius; joy.dir.y = dy / joyRadius;
+        joy.stick.x = tx; joy.stick.y = ty; joy.dir.x = dist > 0 ? dx / joyRadius : 0; joy.dir.y = dist > 0 ? dy / joyRadius : 0;
     }
 }
 
@@ -378,7 +454,7 @@ window.addEventListener('mousedown', (e) => {
     if(e.target !== canvas) return;
     initAudio();
     if (gameState === 'GAME_OVER' || gameState === 'VICTORY') {
-        if (scoreSubmitted || document.getElementById('submit-form').style.display === 'none') resetGame(); 
+        if (scoreSubmitted || (document.getElementById('submit-form') && document.getElementById('submit-form').style.display === 'none')) resetGame(); 
     } else if (gameState === 'PLAYING') isShooting = true;
 });
 window.addEventListener('mouseup', () => { isShooting = false; });
@@ -386,15 +462,15 @@ window.addEventListener('keydown', (e) => {
     initAudio();
     if (gameState === 'PLAYING') { let key = e.key.toLowerCase(); if (keys.hasOwnProperty(key)) keys[key] = true; } 
     else if (gameState === 'GAME_OVER' || gameState === 'VICTORY') { 
-        if (e.key === 'Enter') { if (scoreSubmitted || document.getElementById('submit-form').style.display === 'none') resetGame(); }
+        if (e.key === 'Enter') { if (scoreSubmitted || (document.getElementById('submit-form') && document.getElementById('submit-form').style.display === 'none')) resetGame(); }
     }
 });
 window.addEventListener('keyup', (e) => { if (gameState === 'PLAYING') { let key = e.key.toLowerCase(); if (keys.hasOwnProperty(key)) keys[key] = false; }});
 
 function fireBullet(angle, weapon, customSpeed) {
     bullets.push({
-        x: player.x + Math.cos(player.angle) * 30, y: player.y + Math.sin(player.angle) * 30, 
-        vx: Math.cos(angle) * customSpeed, vy: Math.sin(angle) * customSpeed,
+        x: player.x + Math.cos(player.angle || 0) * 30, y: player.y + Math.sin(player.angle || 0) * 30, 
+        vx: Math.cos(angle || 0) * customSpeed, vy: Math.sin(angle || 0) * customSpeed,
         radius: weapon.size || 4, color: weapon.color, glow: weapon.glow, damage: weapon.damage, penetrate: weapon.penetrate, hitEnemies: []
     });
 }
@@ -437,7 +513,8 @@ function spawnEnemy() {
 
 function triggerGameOver(isVictory) {
     gameState = isVictory ? 'VICTORY' : 'GAME_OVER';
-    document.getElementById('submit-form').style.display = 'flex';
+    let form = document.getElementById('submit-form');
+    if (form) form.style.display = 'flex';
     scoreSubmitted = false;
 }
 
@@ -448,6 +525,7 @@ function resetGame() {
     player.currentMagazine = 0; 
     player.totalAmmo = 0; 
     player.isReloading = false; player.reloadTimer = 0;
+    player.angle = 0;
     
     enemiesKilled = 0; totalMonstersSpawned = 0;
     player.x = UI_BOUND + (canvas.width - UI_BOUND)/2; player.y = canvas.height / 2;
@@ -456,7 +534,9 @@ function resetGame() {
     leftJoy.active = false; rightJoy.active = false;
     player.lastFireTime = 0; globalTime = 0; bossAlarmTimer = 0; currentWave = 1;
     
-    document.getElementById('submit-form').style.display = 'none';
+    let form = document.getElementById('submit-form');
+    if (form) form.style.display = 'none';
+    
     initMonsterQueue(); fetchLeaderboard();
     gameState = 'PLAYING';
     
@@ -478,35 +558,6 @@ function startReload() {
     }
 }
 
-function updateHTMLHUD() {
-    let hpFill = document.getElementById('ui-hp-fill');
-    if(hpFill) hpFill.style.width = (Math.max(0, player.hp) / player.maxHp * 100) + '%';
-    let hpText = document.getElementById('ui-hp-text');
-    if(hpText) hpText.textContent = `HP: ${Math.max(0, player.hp)}`;
-    
-    if (player.weaponLevel >= 0) {
-        let currWep = WEAPONS[player.weaponLevel];
-        let wepName = document.getElementById('ui-wep-name');
-        if(wepName) wepName.textContent = `武裝: ${currWep.name}`;
-        
-        let ammoText = document.getElementById('ui-ammo-text');
-        if(ammoText) {
-            if (player.isReloading) ammoText.textContent = `換彈中...`;
-            else ammoText.textContent = `彈藥: ${player.currentMagazine}/${player.totalAmmo}`;
-        }
-    } else {
-        let wepName = document.getElementById('ui-wep-name');
-        if(wepName) wepName.textContent = `武裝: 尚未裝備`;
-        let ammoText = document.getElementById('ui-ammo-text');
-        if(ammoText) ammoText.textContent = `彈藥: 0/0`;
-    }
-
-    for(let i=1; i<=5; i++) {
-        let el = document.getElementById(`m-count-${i}`);
-        if(el) el.textContent = `x ${Math.max(0, monstersLeft[i])}`;
-    }
-}
-
 // 主更新迴圈
 function update() {
     globalTime++;
@@ -517,10 +568,9 @@ function update() {
     if (gameState === 'MATH_TIME') {
         mathTimer--;
         let pct = Math.max(0, (mathTimer / 600) * 100);
-        let bar = document.getElementById('math-timer-bar');
-        if (bar) {
-            bar.style.width = pct + '%';
-            bar.style.backgroundColor = mathTimer < 180 ? '#ef4444' : '#4ade80';
+        if (uiElements.mathTimerBar) {
+            uiElements.mathTimerBar.style.width = pct + '%';
+            uiElements.mathTimerBar.style.backgroundColor = mathTimer < 180 ? '#ef4444' : '#4ade80';
         }
         
         if (mathTimer <= 0) {
@@ -580,8 +630,8 @@ function update() {
     player.x = Math.max(UI_BOUND + player.radius, Math.min(canvas.width - player.radius, player.x));
     player.y = Math.max(player.radius, Math.min(canvas.height - player.radius, player.y));
 
-    if (rightJoy.active) { player.angle = rightJoy.angle; } 
-    else if (!('ontouchstart' in window)) { player.angle = Math.atan2(mouseY - player.y, mouseX - player.x); }
+    if (rightJoy.active) { player.angle = rightJoy.angle || 0; } 
+    else if (!('ontouchstart' in window)) { player.angle = Math.atan2(mouseY - player.y, mouseX - player.x) || 0; }
 
     if (isShooting || rightJoy.active) {
         if (player.weaponLevel === -1) {
@@ -603,11 +653,11 @@ function update() {
                     for(let k=0; k<weapon.bullets; k++) {
                         let speedOffset = weapon.speed - (k * 2.5); 
                         if (speedOffset < 8) speedOffset = 8;
-                        let angleOffset = player.angle + (Math.random() - 0.5) * 0.05; 
+                        let angleOffset = (player.angle || 0) + (Math.random() - 0.5) * 0.05; 
                         fireBullet(angleOffset, weapon, speedOffset);
                     }
                     
-                    createParticles(player.x + Math.cos(player.angle)*30, player.y + Math.sin(player.angle)*30, weapon.color, weapon.level*2, weapon.level*1.5);
+                    createParticles(player.x + Math.cos(player.angle || 0)*30, player.y + Math.sin(player.angle || 0)*30, weapon.color, weapon.level*2, weapon.level*1.5);
                     shakeTime = Math.max(shakeTime, 2);
                     player.recoilOffset = weapon.recoil; player.lastFireTime = globalTime;
                 } else if (player.currentMagazine <= 0 && player.totalAmmo > 0 && !player.isReloading) {
@@ -634,7 +684,7 @@ function update() {
 
     for (let i = enemies.length - 1; i >= 0; i--) {
         let enemy = enemies[i];
-        let angleToPlayer = Math.atan2(player.y - enemy.y, player.x - enemy.x);
+        let angleToPlayer = Math.atan2(player.y - enemy.y, player.x - enemy.x) || 0;
         enemy.angle = angleToPlayer;
         enemy.x += Math.cos(angleToPlayer) * enemy.speed; enemy.y += Math.sin(angleToPlayer) * enemy.speed;
 
@@ -793,15 +843,15 @@ function draw() {
             
             let gunDrawLogic = () => {
                 if (player.weaponLevel === -1) return;
-                let wepColor = WEAPONS[player.weaponLevel].color;
-                ctx.save(); ctx.translate(0, visualY - 5); ctx.rotate(p.angle);
+                let wepColor = WEAPONS[player.weaponLevel] ? WEAPONS[player.weaponLevel].color : '#fff';
+                ctx.save(); ctx.translate(0, visualY - 5); ctx.rotate(p.angle || 0);
                 if (Math.abs(p.angle) > Math.PI/2) ctx.scale(1, -1);
                 ctx.fillStyle = '#1e293b'; ctx.fillRect(0 - p.recoilOffset, -4, 25, 8); 
                 ctx.fillStyle = '#475569'; ctx.fillRect(10 - p.recoilOffset, -2, 15, 4); 
                 ctx.fillStyle = wepColor; ctx.fillRect(25 - p.recoilOffset, -3, 6, 6); ctx.restore();
             };
             
-            let aimUp = Math.sin(p.angle) < 0; if (aimUp) gunDrawLogic();
+            let aimUp = Math.sin(p.angle || 0) < 0; if (aimUp) gunDrawLogic();
             ctx.fillStyle = '#dc2626'; ctx.beginPath(); ctx.moveTo(-12, visualY - 10); ctx.lineTo(-20, visualY + 20); ctx.lineTo(20, visualY + 20); ctx.lineTo(12, visualY - 10); ctx.fill();
             let legSwing = p.isMoving ? Math.sin(globalTime * 0.8) * 8 : 0;
             ctx.fillStyle = '#475569'; ctx.fillRect(-8, visualY + 15 - legSwing, 6, 12); ctx.fillRect(2, visualY + 15 + legSwing, 6, 12);
@@ -810,11 +860,11 @@ function draw() {
             ctx.fillStyle = '#fcd34d'; ctx.beginPath(); ctx.arc(0, visualY - 25, 16, 0, Math.PI*2); ctx.fill();
             ctx.fillStyle = '#cbd5e1'; ctx.beginPath(); ctx.arc(0, visualY - 28, 17, Math.PI, 0); ctx.fill(); ctx.fillRect(-18, visualY - 28, 36, 6); 
             ctx.fillStyle = '#b91c1c'; ctx.fillRect(-3, visualY - 48, 6, 12);
-            let eyeX = Math.cos(p.angle) * 3; let eyeY = Math.sin(p.angle) * 3;
+            let eyeX = Math.cos(p.angle || 0) * 3; let eyeY = Math.sin(p.angle || 0) * 3;
             ctx.fillStyle = '#1e293b'; ctx.beginPath(); ctx.arc(-5 + eyeX, visualY - 23 + eyeY, 3, 0, Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.arc(5 + eyeX, visualY - 23 + eyeY, 3, 0, Math.PI*2); ctx.fill();
             
             if (player.weaponLevel >= 0) {
-                ctx.fillStyle = '#fcd34d'; ctx.beginPath(); ctx.arc(Math.cos(p.angle)*10 - p.recoilOffset, visualY - 5 + Math.sin(p.angle)*10, 5, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = '#fcd34d'; ctx.beginPath(); ctx.arc(Math.cos(p.angle || 0)*10 - p.recoilOffset, visualY - 5 + Math.sin(p.angle || 0)*10, 5, 0, Math.PI*2); ctx.fill();
             }
             
             if (!aimUp) gunDrawLogic(); 
@@ -848,34 +898,6 @@ function draw() {
     }
 
     let gameCenterX = UI_BOUND + (canvas.width - UI_BOUND) / 2;
-
-    if (gameState === 'MATH_TIME') {
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.85)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.save(); ctx.translate(gameCenterX, canvas.height/2); ctx.scale(currentMath.scale, currentMath.scale); 
-        let headerText = currentMath.type === 'UPGRADE' ? '⚡ WEAPON EVOLUTION MODULE ⚡' : '🔵 AMMO RESUPPLY MODULE 🔵';
-        let headerColor = currentMath.type === 'UPGRADE' ? '#eab308' : '#38bdf8';
-        ctx.fillStyle = headerColor; ctx.font = 'bold 26px Arial'; ctx.textAlign = 'center'; ctx.fillText(headerText, 0, -240);
-        ctx.fillStyle = '#334155'; ctx.fillRect(-200, -190, 400, 15);
-        ctx.fillStyle = mathTimer > 180 ? '#4ade80' : '#ef4444'; ctx.fillRect(-200, -190, 400 * (mathTimer / 600), 15);
-        ctx.fillStyle = 'white'; ctx.font = 'bold 65px Arial'; ctx.fillText(currentMath.question, 0, -110);
-        ctx.fillStyle = '#1e293b'; ctx.beginPath(); ctx.roundRect(-150, -70, 300, 70, 10); ctx.fill();
-        ctx.strokeStyle = headerColor; ctx.lineWidth = 4; ctx.stroke();
-        let cursor = (globalTime % 60 < 30) ? '_' : ''; ctx.fillStyle = '#fbbf24'; ctx.font = 'bold 50px Courier New'; ctx.fillText(currentMath.userInput + cursor, 0, -30);
-        ctx.restore();
-        
-        if (currentMath.scale >= 1) { 
-            for (let btn of numpadButtons) {
-                ctx.fillStyle = '#334155'; ctx.beginPath(); ctx.roundRect(btn.x, btn.y, btn.w, btn.h, 10); ctx.fill();
-                ctx.strokeStyle = '#64748b'; ctx.lineWidth = 2; ctx.stroke();
-                if (!('ontouchstart' in window) && mouseX >= btn.x && mouseX <= btn.x + btn.w && mouseY >= btn.y && mouseY <= btn.y + btn.h) {
-                    ctx.fillStyle = 'rgba(255, 255, 255, 0.2)'; ctx.fill();
-                }
-                ctx.fillStyle = 'white'; ctx.font = 'bold 28px Arial'; ctx.textAlign = 'center'; ctx.fillText(btn.label, btn.x + btn.w/2, btn.y + btn.h/2);
-            }
-        }
-        ctx.fillStyle = currentMath.messageColor; ctx.font = '22px Arial'; ctx.textAlign = 'center'; ctx.fillText(currentMath.message, gameCenterX, canvas.height/2 + 350);
-        ctx.fillStyle = '#cbd5e1'; ctx.font = '18px Arial'; ctx.fillText('用實體鍵盤或虛擬按鍵作答', gameCenterX, canvas.height/2 + 390);
-    }
 
     if (gameState === 'GAME_OVER' || gameState === 'VICTORY') {
         ctx.fillStyle = 'rgba(15, 23, 42, 0.9)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -931,7 +953,8 @@ async function loadGameData() {
     document.getElementById('loading-screen').style.display = 'none';
     
     // 進入選單畫面
-    document.getElementById('start-menu').style.display = 'flex';
+    let menu = document.getElementById('start-menu');
+    if (menu) menu.style.display = 'flex';
     gameState = 'START_MENU';
     gameLoop(); 
 }
