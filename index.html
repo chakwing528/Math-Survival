@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Math Survival - V38</title>
+    <title>Math Survival - V39</title>
     
     <!-- 1. 指向 css 資料夾 -->
     <link rel="stylesheet" href="css/style.css">
@@ -20,6 +20,29 @@
             font-family: Arial, sans-serif; font-size: 24px; font-weight: bold;
         }
     </style>
+
+    <script>
+        // 🚀 V39 全域安全啟動器 (防止按鈕按了沒反應的終極方案)
+        window.safeStart = function(level) {
+            // 嘗試啟動音效
+            try { 
+                if (typeof window.initAudio === 'function') window.initAudio(); 
+            } catch(e) { console.warn("音效啟動攔截:", e); }
+            
+            // 嘗試啟動遊戲
+            try { 
+                if (typeof window.startGame === 'function') {
+                    window.startGame(level); 
+                } else {
+                    // 如果腳本死機或載入失敗，給予明確提示而非默默卡住
+                    alert("⚠️ 遊戲核心尚未就緒！\n(可能原因：網路延遲、或 JS 檔案讀取失敗)\n\n請按「確定」並等待幾秒，或按鍵盤 Ctrl + F5 強制重新整理網頁。");
+                }
+            } catch(e) { 
+                console.error("啟動錯誤:", e);
+                alert("遊戲啟動發生錯誤：" + e.message);
+            }
+        };
+    </script>
 </head>
 <body>
 
@@ -35,9 +58,10 @@
     <!-- 難度選擇選單 (初始隱藏，由 JS 開啟) -->
     <div id="start-menu" style="display: none;">
         <h1 style="color: #fbbf24; font-size: 40px; margin-bottom: 30px; text-shadow: 2px 2px 4px #000; text-align: center;">請選擇目標等級</h1>
-        <button class="diff-btn" onclick="window.initAudio(); window.startGame('S1')">S1 程度</button>
-        <button class="diff-btn" onclick="window.initAudio(); window.startGame('S2')">S2 程度</button>
-        <button class="diff-btn" onclick="window.initAudio(); window.startGame('S3')">S3 程度</button>
+        <!-- 改用 safeStart 來確保點擊 100% 會有反應 -->
+        <button class="diff-btn" onclick="window.safeStart('S1')">S1 程度</button>
+        <button class="diff-btn" onclick="window.safeStart('S2')">S2 程度</button>
+        <button class="diff-btn" onclick="window.safeStart('S3')">S3 程度</button>
     </div>
 
     <!-- MCQ 答題視窗 -->
@@ -55,7 +79,7 @@
 
     <!-- 左側 UI 容器 -->
     <div id="ui-container">
-        <!-- 玩家資訊、怪物計數區塊 (保持不變) -->
+        <!-- 玩家資訊、怪物計數區塊 -->
         <div class="ui-box">
             <div class="player-info-wrapper">
                 <canvas id="player-icon" width="45" height="45"></canvas>
@@ -91,8 +115,8 @@
             </div>
         </div>
 
-        <!-- 版本號 (升級至 V38) -->
-        <div style="color: rgba(255, 255, 255, 0.5); font-weight: bold; font-size: 14px; margin-top: auto; padding-left: 5px;">V38</div>
+        <!-- 版本號 (升級至 V39) -->
+        <div style="color: rgba(255, 255, 255, 0.5); font-weight: bold; font-size: 14px; margin-top: auto; padding-left: 5px;">V39</div>
     </div>
 
     <!-- 3. 腳本引入順序 (路徑已按截圖修正) -->
@@ -102,16 +126,15 @@
     <script src="js/engine.js"></script>  
 
     <script>
-        // 🚀 V38 終極防卡死計時器 (Fail-safe Timer)
-        // 如果因為任何原因腳本沒跑完，3秒後強制開啟遊戲介面
+        // 🚀 V39 終極防卡死計時器 (Fail-safe Timer)
+        // 如果因為任何原因腳本沒跑完，3秒後強制開啟遊戲選單
         setTimeout(() => {
             const loader = document.getElementById('loading-screen');
             const menu = document.getElementById('start-menu');
             if (loader && loader.style.display !== 'none') {
-                console.warn("[V38] 檢測到載入異常，啟動安全恢復模式...");
+                console.warn("[V39] 檢測到載入異常，啟動安全恢復模式...");
                 loader.style.display = 'none';
                 menu.style.display = 'flex';
-                // 嘗試將遊戲狀態設為選單，防止邏輯卡死
                 if (typeof gameState !== 'undefined') {
                     gameState = 'START_MENU';
                 }
