@@ -3,81 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Math Survival - V40</title>
+    <title>Math Survival - V41</title>
     
+    <link rel="stylesheet" href="css/style.css">
     <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     
     <style>
-        /* ================= 整合所有 CSS 確保 100% 載入 ================= */
-        body {
-            margin: 0; padding: 0; overflow: hidden;
-            background-color: #d2b48c; /* 經典沙漠地牢底色 */
-            color: white;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            user-select: none; -webkit-user-select: none; touch-action: none;
-        }
-        #gameCanvas { display: block; width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; z-index: 1; }
-        
+        /* 確保載入畫面與選單在最上方 */
         #loading-screen {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: #0f172a; color: #fbbf24; display: flex;
             align-items: center; justify-content: center; z-index: 9999;
             font-family: Arial, sans-serif; font-size: 24px; font-weight: bold;
         }
-
         #start-menu {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background-color: rgba(15, 23, 42, 0.95); display: none; flex-direction: column;
             justify-content: center; align-items: center; z-index: 500; gap: 20px;
         }
-        .diff-btn {
-            background: #3b82f6; color: white; border: 2px solid #94a3b8; padding: 15px 40px;
-            font-size: 24px; font-weight: bold; border-radius: 10px; cursor: pointer; width: 250px;
-            transition: background 0.2s;
-        }
-        .diff-btn:hover { background: #2563eb; }
-
-        #math-overlay {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.85); z-index: 600; display: none;
-            flex-direction: column; justify-content: center; align-items: center;
-        }
-        .math-container {
-            background: #1e293b; padding: 30px; border-radius: 12px;
-            border: 4px solid #38bdf8; width: 85%; max-width: 600px; max-height: 90%; overflow-y: auto;
-            text-align: center; color: white; box-shadow: 0 0 20px rgba(0,0,0,0.5);
-        }
-        #math-timer-bg { width: 100%; height: 12px; background: #334155; margin-bottom: 20px; border-radius: 6px; overflow: hidden;}
-        #math-timer-bar { height: 100%; background: #4ade80; width: 100%; transition: width 0.1s linear, background-color 0.3s; }
-        #math-question-content { font-size: 20px; margin-bottom: 25px; overflow-x: auto; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px;}
-        .mcq-options { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-        .mcq-btn {
-            background: #334155; border: 2px solid #64748b; padding: 15px;
-            border-radius: 8px; color: white; font-size: 20px; cursor: pointer;
-            transition: 0.2s; display: flex; align-items: center; justify-content: flex-start; gap: 15px;
-        }
-        .mcq-btn:hover { background: #475569; border-color: #fbbf24; }
-        .mcq-label { color: #fbbf24; font-weight: bold; font-size: 24px; }
-
-        #ui-container {
-            position: absolute; top: 10px; left: 10px; bottom: 10px; width: 180px; 
-            display: flex; flex-direction: column; gap: 8px; z-index: 10; pointer-events: none;
-        }
-        .ui-box { background: rgba(241, 245, 249, 0.4); border: 2px solid rgba(148, 163, 184, 0.5); border-radius: 6px; padding: 8px; pointer-events: auto; }
-        .player-info-wrapper { display: flex; align-items: center; gap: 8px; }
-        #hp-bar-bg { width: 100%; height: 10px; background: #cbd5e1; border: 2px solid #475569; margin-bottom: 4px; }
-        #ui-hp-fill { height: 100%; background: #22c55e; width: 100%; }
-        .black-text { color: #000000; font-weight: bold; font-size: 11px; line-height: 1.3; }
-        .monster-row { display: flex; align-items: center; gap: 8px; margin-bottom: 2px; }
-        .monster-count { color: #000000; font-weight: bold; font-size: 13px; }
-
-        #leaderboard-box { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-        #leaderboard-box h3 { margin: 0 0 8px 0; color: #000; text-align: center; font-size: 13px; }
-        #leaderboard-list { margin: 0; padding-left: 20px; color: #000; font-weight: bold; font-size: 11px; overflow-y: auto; max-height: 350px; }
-        #leaderboard-list li { margin-bottom: 4px; padding: 2px 4px; }
-        #submit-form { display: none; flex-direction: column; align-items: center; gap: 6px; margin-top: 8px; }
-        #submit-form input { width: 90%; padding: 4px; border-radius: 4px; border: 1px solid #ccc; text-align: center; font-size: 11px; }
-        #submit-form button { background: #3b82f6; color: white; border: none; padding: 6px; border-radius: 4px; cursor: pointer; width: 90%; font-weight: bold; font-size: 11px;}
     </style>
 </head>
 <body>
@@ -91,13 +34,13 @@
     <audio id="reloadSfx" src="audio/reloadSfx.m4a" preload="auto"></audio>
     <audio id="emptyAmmoSfx" src="audio/emptyAmmoSfx.m4a" preload="auto"></audio>
 
-    <div id="loading-screen">連接伺服器中，請稍候...</div>
+    <div id="loading-screen">系統初始化中...</div>
     
     <div id="start-menu">
         <h1 style="color: #fbbf24; font-size: 40px; margin-bottom: 30px; text-shadow: 2px 2px 4px #000; text-align: center;">請選擇目標等級</h1>
-        <button class="diff-btn" onclick="startGame('S1')">S1 程度</button>
-        <button class="diff-btn" onclick="startGame('S2')">S2 程度</button>
-        <button class="diff-btn" onclick="startGame('S3')">S3 程度</button>
+        <button class="diff-btn" onclick="safeStart('S1')">S1 程度</button>
+        <button class="diff-btn" onclick="safeStart('S2')">S2 程度</button>
+        <button class="diff-btn" onclick="safeStart('S3')">S3 程度</button>
     </div>
 
     <div id="math-overlay">
@@ -147,12 +90,12 @@
             </div>
         </div>
 
-        <div style="color: rgba(255, 255, 255, 0.5); font-weight: bold; font-size: 14px; margin-top: auto; padding-left: 5px;">V40</div>
+        <div style="color: rgba(255, 255, 255, 0.5); font-weight: bold; font-size: 14px; margin-top: auto; padding-left: 5px;">V41</div>
     </div>
 
 <script>
 // ============================================================================
-// 🎮 V40 終極穩定單檔版 - 保證不卡死，並完全還原精美畫風！
+// 🎮 V41 畫質還原與終極穩定單檔版 - 保證絕不卡死！
 // ============================================================================
 
 // 🌐 API 設定
@@ -178,7 +121,6 @@ const keys = { w: false, a: false, s: false, d: false };
 let mouseX = window.innerWidth / 2; let mouseY = window.innerHeight / 2;
 let isShooting = false;
 
-// --- 視窗調整 ---
 function resizeCanvas() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
@@ -194,27 +136,27 @@ let monstersLeft = [0, 0, 0, 0, 0, 0];
 let lootBoxSpawnInterval = 480; let ammoBoxSpawnInterval = 180; 
 
 let MONSTER_BASE = [
-    {tier: 1, name: "一級怪物", count: 5, hp: 8, speed: 0.5, size: 26, color: '#ef4444'},
-    {tier: 2, name: "二級怪物", count: 5, hp: 25, speed: 0.8, size: 30, color: '#f97316'},
-    {tier: 3, name: "三級怪物", count: 5, hp: 200, speed: 1.0, size: 40, color: '#eab308'},
-    {tier: 4, name: "四級怪物", count: 3, hp: 500, speed: 1.2, size: 50, color: '#84cc16'},
-    {tier: 5, name: "五級首領", count: 1, hp: 1500, speed: 1.5, size: 80, color: '#a855f7'}
+    {tier: 1, name: "木乃伊兵", count: 6, hp: 5, speed: 0.5, size: 26, color: '#ef4444'},
+    {tier: 2, name: "狂暴木乃伊", count: 5, hp: 50, speed: 1.0, size: 30, color: '#f97316'},
+    {tier: 3, name: "沙漠石魔", count: 5, hp: 100, speed: 2.0, size: 40, color: '#eab308'},
+    {tier: 4, name: "劇毒巨妖", count: 3, hp: 200, speed: 3.0, size: 50, color: '#84cc16'},
+    {tier: 5, name: "深淵領主 (Boss)", count: 1, hp: 500, speed: 4.0, size: 80, color: '#a855f7'}
 ];
 
 const WEAPONS = [
     { level: 1, name: "Lv.1 基礎手槍", damage: 1, bullets: 1, fireRate: 15, playerSpeed: 4, reloadAmmo: 30, magCapacity: 30, color: '#fde047', glow: '#ca8a04', recoil: 4, speed: 12 },
-    { level: 2, name: "Lv.2 雙發衝鋒", damage: 1.5, bullets: 2, fireRate: 12, playerSpeed: 5, reloadAmmo: 30, magCapacity: 30, color: '#60a5fa', glow: '#2563eb', recoil: 5, speed: 14 },
-    { level: 3, name: "Lv.3 散彈速射", damage: 2.25, bullets: 3, fireRate: 10, playerSpeed: 6, reloadAmmo: 40, magCapacity: 30, color: '#34d399', glow: '#059669', recoil: 6, speed: 16 },
-    { level: 4, name: "Lv.4 脈衝步槍", damage: 3.4, bullets: 4, fireRate: 8, playerSpeed: 7, reloadAmmo: 40, magCapacity: 30, color: '#f472b6', glow: '#db2777', recoil: 7, speed: 18 },
-    { level: 5, name: "Lv.5 穿甲重砲", damage: 5.1, bullets: 1, fireRate: 6, playerSpeed: 8, reloadAmmo: 50, magCapacity: 30, color: '#a78bfa', glow: '#7c3aed', recoil: 8, speed: 20, penetrate: true },
-    { level: 6, name: "Lv.6 散射激光", damage: 7.6, bullets: 5, fireRate: 4, playerSpeed: 9, reloadAmmo: 50, magCapacity: 30, color: '#fb923c', glow: '#ea580c', recoil: 10, speed: 22 },
-    { level: 7, name: "Lv.7 電漿風暴", damage: 11.4, bullets: 3, fireRate: 3, playerSpeed: 10, reloadAmmo: 60, magCapacity: 30, color: '#38bdf8', glow: '#0284c7', recoil: 12, speed: 25, penetrate: true },
-    { level: 8, name: "Lv.8 終極殲滅", damage: 17.1, bullets: 7, fireRate: 2, playerSpeed: 10, reloadAmmo: 60, magCapacity: 30, color: '#ffffff', glow: '#fef08a', recoil: 14, speed: 28, penetrate: true },
-    { level: 9, name: "Lv.MAX 神話武器", damage: 25.6, bullets: 9, fireRate: 1, playerSpeed: 10, reloadAmmo: 100, magCapacity: 30, color: '#ef4444', glow: '#b91c1c', recoil: 16, speed: 30, penetrate: true }
+    { level: 2, name: "Lv.2 雙發衝鋒", damage: 1, bullets: 1, fireRate: 12, playerSpeed: 5, reloadAmmo: 30, magCapacity: 30, color: '#60a5fa', glow: '#2563eb', recoil: 5, speed: 14 },
+    { level: 3, name: "Lv.3 散彈速射", damage: 1, bullets: 2, fireRate: 8, playerSpeed: 6, reloadAmmo: 40, magCapacity: 30, color: '#34d399', glow: '#059669', recoil: 6, speed: 16 },
+    { level: 4, name: "Lv.4 脈衝步槍", damage: 2, bullets: 2, fireRate: 8, playerSpeed: 7, reloadAmmo: 40, magCapacity: 30, color: '#f472b6', glow: '#db2777', recoil: 7, speed: 18 },
+    { level: 5, name: "Lv.5 穿甲重砲", damage: 2, bullets: 3, fireRate: 6, playerSpeed: 8, reloadAmmo: 50, magCapacity: 30, color: '#a78bfa', glow: '#7c3aed', recoil: 8, speed: 20, penetrate: true },
+    { level: 6, name: "Lv.6 散射激光", damage: 3, bullets: 3, fireRate: 6, playerSpeed: 9, reloadAmmo: 50, magCapacity: 30, color: '#fb923c', glow: '#ea580c', recoil: 10, speed: 22 },
+    { level: 7, name: "Lv.7 電漿風暴", damage: 3, bullets: 4, fireRate: 2, playerSpeed: 10, reloadAmmo: 60, magCapacity: 30, color: '#38bdf8', glow: '#0284c7', recoil: 12, speed: 25, penetrate: true },
+    { level: 8, name: "Lv.8 終極殲滅", damage: 4, bullets: 4, fireRate: 2, playerSpeed: 10, reloadAmmo: 60, magCapacity: 30, color: '#ffffff', glow: '#fef08a', recoil: 14, speed: 28, penetrate: true },
+    { level: 9, name: "Lv.MAX 神話武器", damage: 5, bullets: 5, fireRate: 1, playerSpeed: 10, reloadAmmo: 100, magCapacity: 30, color: '#ef4444', glow: '#b91c1c', recoil: 16, speed: 30, penetrate: true }
 ];
 
 let player = {
-    x: UI_BOUND + 100, y: canvas.height/2, radius: 20, color: '#3b82f6', speed: 4, hp: 100, maxHp: 100,
+    x: UI_BOUND + 100, y: window.innerHeight/2, radius: 20, color: '#3b82f6', speed: 4, hp: 100, maxHp: 100,
     weaponLevel: -1, currentMagazine: 0, totalAmmo: 0,       
     isReloading: false, reloadTimer: 0, angle: 0, recoilOffset: 0, lastFireTime: 0, isMoving: false
 };
@@ -259,7 +201,8 @@ function updateHTMLHUD() {
     document.getElementById('ui-hp-text').textContent = `HP: ${Math.max(0, player.hp)}`;
     
     if (player.weaponLevel >= 0) {
-        document.getElementById('ui-wep-name').textContent = `武裝: ${WEAPONS[player.weaponLevel].name}`;
+        let currWep = WEAPONS[player.weaponLevel];
+        document.getElementById('ui-wep-name').textContent = `武裝: ${currWep ? currWep.name : 'Unknown'}`;
         document.getElementById('ui-ammo-text').textContent = player.isReloading ? `換彈中...` : `彈藥: ${player.currentMagazine}/${player.totalAmmo}`;
     } else {
         document.getElementById('ui-wep-name').textContent = `武裝: 尚未裝備`;
@@ -268,7 +211,7 @@ function updateHTMLHUD() {
 
     for(let i=1; i<=5; i++) {
         let el = document.getElementById(`m-count-${i}`);
-        if(el) el.textContent = `x ${Math.max(0, monstersLeft[i])}`;
+        if(el) el.textContent = `x ${Math.max(0, monstersLeft[i] || 0)}`;
     }
 }
 
@@ -308,12 +251,16 @@ setTimeout(drawHUDIcons, 100);
 // ==========================================
 
 function fetchLeaderboard() {
-    if (!GAS_LEADERBOARD_URL) return;
-    fetch(`${GAS_LEADERBOARD_URL}?action=getLeaderboard&t=${Date.now()}`)
+    const list = document.getElementById('leaderboard-list');
+    if(!list) return;
+    if (!GAS_WEB_APP_URL) {
+        list.innerHTML = "<li>排行榜未啟動</li>";
+        return;
+    }
+    list.innerHTML = "<li>載入中...</li>";
+    fetch(`${GAS_WEB_APP_URL}?action=getLeaderboard&t=${Date.now()}`)
         .then(res => res.json())
         .then(data => {
-            const list = document.getElementById('leaderboard-list');
-            if(!list) return;
             list.innerHTML = "";
             if (!data || data.length === 0) { list.innerHTML = "<li>暫無數據</li>"; return; }
             data.forEach(item => {
@@ -323,10 +270,13 @@ function fetchLeaderboard() {
                 if (item.isMe) { li.style.backgroundColor = "rgba(46, 204, 113, 0.4)"; li.style.borderRadius = "4px"; }
                 list.appendChild(li);
             });
-        }).catch(e => console.log("LB 獲取失敗"));
+        }).catch(e => {
+            console.log("LB 獲取失敗", e);
+            list.innerHTML = "<li>載入失敗</li>";
+        });
 }
 
-window.submitScore = function() {
+function submitScore() {
     const cls = document.getElementById('lb-class').value.trim();
     const sid = document.getElementById('lb-sid').value.trim();
     const name = document.getElementById('lb-name').value.trim();
@@ -340,8 +290,9 @@ window.submitScore = function() {
     fetch(addUrl).then(()=>fetchLeaderboard()).catch(()=>{});
 }
 
-window.startGame = function(level) {
-    initAudio();
+// 🛡️ 安全啟動函數 (防卡死)
+window.safeStart = function(level) {
+    try { initAudio(); } catch(e) {}
     currentDifficulty = level;
     document.getElementById('start-menu').style.display = 'none';
     resetGame();
@@ -355,7 +306,7 @@ window.showStartMenu = function() {
 }
 
 function resetGame() {
-    player.weaponLevel = -1; player.hp = 100; player.speed = 4; 
+    player.weaponLevel = -1; player.hp = player.maxHp; player.speed = 4; 
     player.currentMagazine = 0; player.totalAmmo = 0; player.isReloading = false; 
     
     enemiesKilled = 0; totalMonstersSpawned = 0;
@@ -364,6 +315,7 @@ function resetGame() {
     isShooting = false; keys.w = keys.a = keys.s = keys.d = false;
     leftJoy.active = false; rightJoy.active = false;
     globalTime = 0; bossAlarmTimer = 0; scoreSubmitted = false;
+    player.angle = 0; // 避免 angle 為 NaN
     
     document.getElementById('submit-form').style.display = 'none';
     
@@ -375,7 +327,12 @@ function resetGame() {
     
     fetchLeaderboard();
     gameState = 'PLAYING';
-    spawnLootBox();
+    
+    // 開局立即生成武器箱
+    lootBoxes.push({
+        x: UI_BOUND + (canvas.width - UI_BOUND)/2, y: canvas.height/2 + 100,
+        size: 35, pulse: 0, spawnTime: globalTime 
+    });
 }
 
 // ==========================================
@@ -389,37 +346,48 @@ function triggerMath(type) {
     
     let headerEl = document.getElementById('math-header');
     let containerEl = document.getElementById('math-container');
-    headerEl.textContent = type === 'UPGRADE' ? '⚡ 武器進化程序 ⚡' : '🔵 彈藥補給程序 🔵';
-    headerEl.style.color = type === 'UPGRADE' ? '#eab308' : '#38bdf8';
-    containerEl.style.borderColor = headerEl.style.color;
+    if (headerEl && containerEl) {
+        headerEl.textContent = type === 'UPGRADE' ? '⚡ 武器進化程序 ⚡' : '🔵 彈藥補給程序 🔵';
+        headerEl.style.color = type === 'UPGRADE' ? '#eab308' : '#38bdf8';
+        containerEl.style.borderColor = headerEl.style.color;
+    }
 
     let qLevel = currentDifficulty === 'S3' ? '3' : (currentDifficulty === 'S2' ? '2' : '1');
     let qData;
 
+    // 嘗試調用外部題庫 indices.js
     if (typeof generateIndicesQuestions === 'function') {
-        try { qData = generateIndicesQuestions(1, qLevel)[0]; } catch(e) { qData = generateFallbackMCQ(); }
+        try { 
+            let qList = generateIndicesQuestions(1, qLevel);
+            qData = (qList && qList.length > 0) ? qList[0] : generateFallbackMCQ();
+        } catch(e) { qData = generateFallbackMCQ(); }
     } else { qData = generateFallbackMCQ(); }
 
     document.getElementById('math-question-content').innerHTML = qData.question;
     const optsContainer = document.getElementById('math-options-container');
-    optsContainer.innerHTML = '';
-    
-    if(qData.options) {
-        qData.options.forEach(opt => {
-            let btn = document.createElement('div'); btn.className = 'mcq-btn';
-            btn.innerHTML = `<span class="mcq-label">${opt.id}.</span> <span>${opt.text}</span>`;
-            btn.onclick = () => submitMCQ(opt.isCorrect);
-            optsContainer.appendChild(btn);
-        });
+    if (optsContainer) {
+        optsContainer.innerHTML = '';
+        if(qData.options) {
+            qData.options.forEach(opt => {
+                let btn = document.createElement('div'); btn.className = 'mcq-btn';
+                btn.innerHTML = `<span class="mcq-label">${opt.id}.</span> <span>${opt.text}</span>`;
+                btn.onclick = () => window.submitMCQ(opt.isCorrect);
+                optsContainer.appendChild(btn);
+            });
+        }
     }
 
-    if (typeof MathJax !== 'undefined') MathJax.typesetPromise([document.getElementById('math-overlay')]);
-    document.getElementById('math-overlay').style.display = 'flex';
+    let overlay = document.getElementById('math-overlay');
+    if (overlay) {
+        if (typeof MathJax !== 'undefined') MathJax.typesetPromise([overlay]).catch(e => {});
+        overlay.style.display = 'flex';
+    }
     mathTimer = 600; 
 }
 
 function generateFallbackMCQ() {
-    let num1 = getRandomInt(5, 20); let num2 = getRandomInt(5, 20); let ans = num1 + num2;
+    let maxVal = 10 + (Math.max(0, player.weaponLevel) * 10);
+    let num1 = getRandomInt(5, maxVal); let num2 = getRandomInt(5, maxVal); let ans = num1 + num2;
     let opts = [{text:`\\( ${ans} \\)`, isCorrect:true}, {text:`\\( ${ans+1} \\)`, isCorrect:false}, {text:`\\( ${ans-1} \\)`, isCorrect:false}, {text:`\\( ${ans+2} \\)`, isCorrect:false}];
     return { 
         question: `<div style="font-size:16px;color:#cbd5e1;margin-bottom:10px;">請計算以下結果：</div><div style="font-size:28px;font-weight:bold;">\\( \\displaystyle ${num1} + ${num2} = ? \\)</div>`, 
@@ -432,12 +400,12 @@ window.submitMCQ = function(isCorrect) {
         if (currentMathType === 'UPGRADE') {
             if (player.weaponLevel === -1) {
                 player.weaponLevel = 0; player.speed = WEAPONS[0].playerSpeed;
-                player.currentMagazine = WEAPONS[0].magCapacity; player.totalAmmo += WEAPONS[0].reloadAmmo;
+                player.currentMagazine = WEAPONS[0].magCapacity || 30; player.totalAmmo += WEAPONS[0].reloadAmmo || 30;
             } else if (player.weaponLevel < WEAPONS.length - 1) {
                 player.weaponLevel++; player.speed = WEAPONS[player.weaponLevel].playerSpeed;
-                player.totalAmmo += WEAPONS[player.weaponLevel].reloadAmmo;
+                player.totalAmmo += WEAPONS[player.weaponLevel].reloadAmmo || 30;
             } else {
-                player.totalAmmo += WEAPONS[player.weaponLevel].reloadAmmo;
+                player.totalAmmo += WEAPONS[player.weaponLevel].reloadAmmo || 30;
             }
             player.hp = Math.min(player.maxHp, player.hp + 50); 
             createParticles(player.x, player.y, '#4ade80', 60, 10); 
@@ -499,8 +467,8 @@ canvas.addEventListener('touchmove', (e) => {
 canvas.addEventListener('touchend', (e) => {
     e.preventDefault();
     for(let t of e.changedTouches) {
-        if (leftJoy.active && t.identifier === leftJoy.id) { leftJoy.active = false; leftJoy.stick = {x: leftJoyBase.x, y: leftJoyBase.y}; }
-        if (rightJoy.active && t.identifier === rightJoy.id) rightJoy.active = false; 
+        if (leftJoy.active && t.identifier === leftJoy.id) { leftJoy.active = false; leftJoy.stick = {x: leftJoyBase.x, y: leftJoyBase.y}; leftJoy.dir = {x:0, y:0}; }
+        if (rightJoy.active && t.identifier === rightJoy.id) { rightJoy.active = false; rightJoy.dir = {x:0, y:0}; }
     }
 }, {passive: false});
 
@@ -509,7 +477,7 @@ function updateFixedJoystick(joy, tx, ty) {
     if (dist > joyRadius) {
         joy.stick.x = leftJoyBase.x + Math.cos(angle) * joyRadius; joy.stick.y = leftJoyBase.y + Math.sin(angle) * joyRadius;
     } else { joy.stick.x = tx; joy.stick.y = ty; }
-    joy.dir = {x: dx/joyRadius, y: dy/joyRadius};
+    joy.dir = {x: dist > 0 ? dx/joyRadius : 0, y: dist > 0 ? dy/joyRadius : 0};
 }
 
 window.addEventListener('mousemove', (e) => { mouseX = e.clientX; mouseY = e.clientY; });
@@ -528,7 +496,7 @@ window.addEventListener('keydown', (e) => {
 window.addEventListener('keyup', (e) => { if (gameState === 'PLAYING') { let key = e.key.toLowerCase(); if (keys.hasOwnProperty(key)) keys[key] = false; }});
 
 // ==========================================
-// ⚔️ 遊戲邏輯與繪圖引擎 (畫質還原版)
+// ⚔️ 遊戲邏輯與繪圖引擎
 // ==========================================
 
 function spawnLootBox() { lootBoxes.push({ x: Math.random()*(canvas.width-UI_BOUND-100)+UI_BOUND+50, y: Math.random()*(canvas.height-200)+100, size: 35, pulse: 0, spawnTime: globalTime }); }
@@ -543,16 +511,16 @@ function update() {
 
     if (gameState === 'MATH_TIME') {
         mathTimer--;
-        if (uiElements.mathTimerBar) {
-            uiElements.mathTimerBar.style.width = (mathTimer/600*100)+'%';
-            uiElements.mathTimerBar.style.backgroundColor = mathTimer < 180 ? '#ef4444' : '#4ade80';
+        let bar = document.getElementById('math-timer-bar');
+        if (bar) {
+            bar.style.width = (mathTimer/600*100)+'%';
+            bar.style.backgroundColor = mathTimer < 180 ? '#ef4444' : '#4ade80';
         }
         if (mathTimer <= 0) closeMathOverlay(false);
     }
     if (gameState !== 'PLAYING') return;
 
     if (player.recoilOffset > 0) player.recoilOffset *= 0.8; 
-    if (bossAlarmTimer > 0) bossAlarmTimer--;
 
     for (let i=particles.length-1; i>=0; i--) {
         particles[i].x += particles[i].vx; particles[i].y += particles[i].vy; particles[i].life -= particles[i].decay;
@@ -568,10 +536,11 @@ function update() {
     }
 
     if (player.weaponLevel >= 0 && globalTime % ammoBoxSpawnInterval === 0) spawnAmmoBox(); 
-    if (globalTime % lootBoxSpawnInterval === 0) spawnLootBox(); 
+    if (globalTime % lootBoxSpawnInterval === 0 && globalTime > 100) spawnLootBox(); 
+    
     if (monsterQueue.length > 0 && (enemies.length < 4 || globalTime % 180 === 0)) {
         let m = monsterQueue.shift(); totalMonstersSpawned++;
-        enemies.push({...m, x: Math.random()<0.5?UI_BOUND-50:canvas.width+50, y: Math.random()*canvas.height, maxHp: m.hp, bobPhase: Math.random()*Math.PI*2});
+        enemies.push({...m, x: Math.random()<0.5?UI_BOUND-50:canvas.width+50, y: Math.random()*canvas.height, maxHp: m.hp, bobPhase: Math.random()*Math.PI*2, angle: 0});
     }
 
     let spd = player.speed || 4; 
@@ -663,12 +632,6 @@ function draw() {
     for(let i=0; i<canvas.width; i+=80) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke(); }
     for(let i=0; i<canvas.height; i+=80) { ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(canvas.width, i); ctx.stroke(); }
 
-    if (bossAlarmTimer > 0) {
-        ctx.fillStyle = `rgba(220, 38, 38, ${Math.abs(Math.sin(bossAlarmTimer*0.1))*0.4})`;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-    }
-
-    // --- 繪製順序 (Y軸排序) ---
     let drawables = [];
     if (player.hp > 0) drawables.push({ type: 'player', y: player.y, obj: player });
     for (let e of enemies) drawables.push({ type: 'enemy', y: e.y, obj: e });
@@ -683,7 +646,6 @@ function draw() {
             if (timeLeft < 180 && globalTime % 20 < 10) ctx.globalAlpha = 0.4;
             
             ctx.save(); ctx.translate(box.x, box.y);
-            // 光暈
             ctx.shadowBlur = 20 + glow; ctx.shadowColor = isLoot ? '#eab308' : '#38bdf8';
             ctx.fillStyle = 'rgba(0,0,0,0.4)'; ctx.beginPath(); ctx.ellipse(0, 0, 24, 12, 0, 0, Math.PI*2); ctx.fill();
             
@@ -691,7 +653,7 @@ function draw() {
             ctx.fillStyle = isLoot ? '#78350f' : '#1e3a8a'; ctx.fillRect(-20, visualY - 15, 40, 30);
             ctx.fillStyle = isLoot ? '#f59e0b' : '#3b82f6'; ctx.fillRect(-22, visualY - 23, 44, 15);
             ctx.fillStyle = isLoot ? '#fbbf24' : '#60a5fa'; ctx.fillRect(-5, visualY - 10, 10, 10);
-            ctx.shadowBlur = 0; // 重置陰影避免影響字體
+            ctx.shadowBlur = 0; 
             
             ctx.fillStyle = 'white'; ctx.font = 'bold 14px Arial'; ctx.textAlign = 'center'; 
             ctx.fillText(isLoot ? 'UP' : 'AMMO', 0, visualY - 30);
@@ -705,7 +667,6 @@ function draw() {
             
             let visualY = -10 - bob;
             
-            // 怪物詳細繪製 (還原精緻多邊形/層次)
             ctx.fillStyle = e.color; ctx.beginPath();
             ctx.arc(0, visualY - e.size*0.4, e.size*0.45, Math.PI, 0); 
             ctx.lineTo(e.size*0.45, visualY + e.size*0.1); ctx.lineTo(-e.size*0.45, visualY + e.size*0.1); ctx.fill();
@@ -725,7 +686,6 @@ function draw() {
             }
             ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,0.5)'; ctx.stroke();
             
-            // 眼睛
             let eyeOffsetX = isFacingRight ? e.size*0.15 : -e.size*0.15;
             ctx.fillStyle = e.tier >= 3 ? '#ef4444' : 'white';
             ctx.beginPath(); ctx.arc(eyeOffsetX - e.size*0.15, visualY - e.size*0.3, e.size*0.08, 0, Math.PI*2); ctx.fill();
@@ -745,7 +705,6 @@ function draw() {
             ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.beginPath(); ctx.ellipse(0, 0, p.radius*1.2, p.radius*0.5, 0, 0, Math.PI*2); ctx.fill();
             
             let visualY = -10 + bob; 
-            
             let gunDrawLogic = () => {
                 if (player.weaponLevel === -1) return;
                 let wepColor = WEAPONS[player.weaponLevel] ? WEAPONS[player.weaponLevel].color : '#fff';
@@ -760,33 +719,26 @@ function draw() {
             let aimUp = Math.sin(p.angle || 0) < 0; 
             if (aimUp) gunDrawLogic();
             
-            // 勇士披風 (紅色)
             ctx.fillStyle = '#dc2626'; ctx.beginPath(); ctx.moveTo(-12, visualY - 10); ctx.lineTo(-20, visualY + 20); ctx.lineTo(20, visualY + 20); ctx.lineTo(12, visualY - 10); ctx.fill();
-            
             let legSwing = p.isMoving ? Math.sin(globalTime * 0.8) * 8 : 0;
             ctx.fillStyle = '#475569'; ctx.fillRect(-8, visualY + 15 - legSwing, 6, 12); ctx.fillRect(2, visualY + 15 + legSwing, 6, 12);
-            
-            // 戰服與胸甲 (藍銀色)
             ctx.fillStyle = '#1d4ed8'; ctx.fillRect(-12, visualY - 15, 24, 30); 
             ctx.fillStyle = '#94a3b8'; ctx.fillRect(-14, visualY - 15, 28, 16); 
-            
-            // 臉與頭盔
             ctx.fillStyle = '#fcd34d'; ctx.beginPath(); ctx.arc(0, visualY - 25, 16, 0, Math.PI*2); ctx.fill();
             ctx.fillStyle = '#cbd5e1'; ctx.beginPath(); ctx.arc(0, visualY - 28, 17, Math.PI, 0); ctx.fill(); ctx.fillRect(-18, visualY - 28, 36, 6); 
-            ctx.fillStyle = '#b91c1c'; ctx.fillRect(-3, visualY - 48, 6, 12); // 紅纓
+            ctx.fillStyle = '#b91c1c'; ctx.fillRect(-3, visualY - 48, 6, 12);
             
             let eyeX = Math.cos(p.angle || 0) * 3; let eyeY = Math.sin(p.angle || 0) * 3;
             ctx.fillStyle = '#1e293b'; ctx.beginPath(); ctx.arc(-5 + eyeX, visualY - 23 + eyeY, 3, 0, Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.arc(5 + eyeX, visualY - 23 + eyeY, 3, 0, Math.PI*2); ctx.fill();
             
-            // 握槍的手
-            if (player.weaponLevel >= 0) { ctx.fillStyle = '#fcd34d'; ctx.beginPath(); ctx.arc(Math.cos(p.angle || 0)*10 - p.recoilOffset, visualY - 5 + Math.sin(p.angle || 0)*10, 5, 0, Math.PI*2); ctx.fill(); }
-            
+            if (player.weaponLevel >= 0) {
+                ctx.fillStyle = '#fcd34d'; ctx.beginPath(); ctx.arc(Math.cos(p.angle || 0)*10 - p.recoilOffset, visualY - 5 + Math.sin(p.angle || 0)*10, 5, 0, Math.PI*2); ctx.fill();
+            }
             if (!aimUp) gunDrawLogic(); 
             ctx.restore();
         }
     }
 
-    // 發光子彈
     for (let b of bullets) {
         ctx.save(); ctx.translate(b.x, b.y - 15); ctx.rotate(Math.atan2(b.vy, b.vx)); 
         ctx.shadowBlur = 10; ctx.shadowColor = b.glow;
@@ -797,6 +749,14 @@ function draw() {
     for (let p of particles) { ctx.globalAlpha = p.life; ctx.fillStyle = p.color; ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill(); }
     ctx.globalAlpha = 1.0;
     
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    for (let text of floatingTexts) {
+        ctx.globalAlpha = text.life; ctx.font = `bold ${text.size}px Arial`;
+        ctx.fillStyle = 'black'; ctx.fillText(text.text, text.x + 2, text.y + 2);
+        ctx.fillStyle = text.color; ctx.fillText(text.text, text.x, text.y);
+    }
+    ctx.globalAlpha = 1.0; ctx.restore(); 
+
     if (gameState === 'PLAYING' && ('ontouchstart' in window)) {
         const drawJoy = (joy, base) => {
             ctx.fillStyle = 'rgba(255, 255, 255, 0.15)'; ctx.beginPath(); ctx.arc(base.x, base.y, joyRadius, 0, Math.PI*2); ctx.fill();
@@ -813,33 +773,36 @@ function draw() {
         ctx.fillStyle = 'rgba(15, 23, 42, 0.9)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.textAlign = 'center';
         if (gameState === 'VICTORY') {
-            ctx.fillStyle = '#fbbf24'; ctx.font = 'bold 60px Arial'; ctx.shadowBlur=20; ctx.shadowColor='#eab308'; ctx.fillText('MISSION ACCOMPLISHED!', gameCenterX, canvas.height/2 - 80);
-            ctx.fillStyle = 'white'; ctx.font = 'bold 24px Arial'; ctx.shadowBlur=0;
+            ctx.fillStyle = 'black'; ctx.font = 'bold 60px Arial'; ctx.fillText('MISSION ACCOMPLISHED!', gameCenterX + 3, canvas.height/2 - 77); 
+            ctx.fillStyle = '#fbbf24'; ctx.fillText('MISSION ACCOMPLISHED!', gameCenterX, canvas.height/2 - 80);
+            ctx.fillStyle = 'white'; ctx.font = 'bold 24px Arial'; 
             let finalWepName = player.weaponLevel >= 0 ? WEAPONS[player.weaponLevel].name : '無';
             ctx.fillText(`成功擊殺終極 Boss！ 最終武器: ${finalWepName}`, gameCenterX, canvas.height/2 - 10);
         } else {
-            ctx.fillStyle = '#ef4444'; ctx.font = 'bold 80px Arial'; ctx.shadowBlur=20; ctx.shadowColor='#ef4444'; ctx.fillText('YOU DIED', gameCenterX, canvas.height/2 - 80);
-            ctx.fillStyle = 'white'; ctx.font = 'bold 28px Arial'; ctx.shadowBlur=0;
+            ctx.fillStyle = 'black'; ctx.font = 'bold 80px Arial'; ctx.fillText('YOU DIED', gameCenterX + 4, canvas.height/2 - 76);
+            ctx.fillStyle = '#ef4444'; ctx.fillText('YOU DIED', gameCenterX, canvas.height/2 - 80);
+            ctx.fillStyle = 'white'; ctx.font = 'bold 28px Arial';
             ctx.fillText(`擊殺數: ${enemiesKilled} / ${TOTAL_MONSTERS}`, gameCenterX, canvas.height/2 - 10);
         }
+        
         ctx.globalAlpha = (globalTime % 60 < 30) ? 1 : 0.5; ctx.fillStyle = '#94a3b8'; ctx.font = '24px Arial';
         ctx.fillText('<< 請在左下方輸入資料上傳排行榜 >>', gameCenterX, canvas.height/2 + 60); 
-        ctx.fillText('或按 [Enter] 重玩', gameCenterX, canvas.height/2 + 100); ctx.globalAlpha = 1.0;
+        ctx.fillText('或按 [Enter] 返回主選單', gameCenterX, canvas.height/2 + 100); ctx.globalAlpha = 1.0;
     }
-    ctx.restore();
 }
 
 // ==========================================
-// 🚀 非阻塞核心啟動 (保證不卡畫面)
+// 🚀 非阻塞核心啟動 (保證絕不卡載入畫面)
 // ==========================================
-async function loadGameData() {
+function loadGameData() {
+    // 立即顯示選單
     const loader = document.getElementById('loading-screen');
-    const menu = document.getElementById('start-menu');
+    const startMenu = document.getElementById('start-menu');
     if (loader) loader.style.display = 'none';
-    if (menu) menu.style.display = 'flex';
+    if (startMenu) startMenu.style.display = 'flex';
     gameState = 'START_MENU';
 
-    // 背景默默獲取數據，不卡死玩家
+    // 背景下載數據
     if (GAS_WEB_APP_URL) {
         fetch(`${GAS_WEB_APP_URL}?t=${Date.now()}`)
             .then(res => res.json())
@@ -852,6 +815,10 @@ async function loadGameData() {
                             WEAPONS[i-1].damage = parseFloat(rows[i][2]) || WEAPONS[i-1].damage;
                             WEAPONS[i-1].bullets = parseInt(rows[i][3]) || WEAPONS[i-1].bullets;
                             WEAPONS[i-1].fireRate = parseInt(rows[i][4]) || WEAPONS[i-1].fireRate;
+                            if(rows[i].length >= 6) WEAPONS[i-1].playerSpeed = parseFloat(rows[i][5]) || WEAPONS[i-1].playerSpeed;
+                            if(rows[i].length >= 7) WEAPONS[i-1].reloadAmmo = parseInt(rows[i][6]) || WEAPONS[i-1].reloadAmmo;
+                            if(rows[i].length >= 8) WEAPONS[i-1].magCapacity = parseInt(rows[i][7]) || WEAPONS[i-1].magCapacity;
+                            if(rows[i].length >= 9) WEAPONS[i-1].ammoBoxRefill = parseInt(rows[i][8]) || WEAPONS[i-1].ammoBoxRefill;
                         }
                     }
                 }
@@ -864,6 +831,8 @@ async function loadGameData() {
                         }
                     }
                 }
+                // 若玩家還在主選單，重新生成怪物隊列以應用最新血量
+                if (gameState === 'START_MENU') initMonsterQueue();
                 console.log("雲端數值同步完成");
             }).catch(e => console.warn("使用本地數值"));
     }
@@ -871,6 +840,17 @@ async function loadGameData() {
 }
 
 function gameLoop() { update(); draw(); requestAnimationFrame(gameLoop); }
+
+// 啟動防卡死雙重保險
+setTimeout(() => {
+    const loader = document.getElementById('loading-screen');
+    if (loader && loader.style.display !== 'none') {
+        loader.style.display = 'none';
+        document.getElementById('start-menu').style.display = 'flex';
+        gameState = 'START_MENU';
+    }
+}, 2000);
+
 loadGameData();
 </script>
 
