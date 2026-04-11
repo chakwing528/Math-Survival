@@ -75,7 +75,10 @@
                 <input type="text" id="lb-class" placeholder="班別 (例: 1A)">
                 <input type="text" id="lb-sid" placeholder="學號 (例: 01)">
                 <input type="text" id="lb-name" placeholder="名字">
-                <button onclick="window.submitScore()">上傳成績</button>
+                <div style="display: flex; gap: 5px; width: 90%;">
+                    <button onclick="window.submitScore()" style="flex: 1;">上傳成績</button>
+                    <button onclick="window.showStartMenu()" style="flex: 1; background: #64748b;">直接重玩</button>
+                </div>
             </div>
         </div>
 
