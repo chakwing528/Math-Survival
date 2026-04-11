@@ -3,27 +3,44 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Math Survival - DSE MCQ V35</title>
+    <title>Math Survival - V38</title>
     
+    <!-- 1. 指向 css 資料夾 -->
     <link rel="stylesheet" href="css/style.css">
+
+    <!-- 引入 MathJax 處理 LaTeX 數學排版 -->
     <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    
+    <style>
+        /* 載入畫面樣式，確保永遠在最上層 */
+        #loading-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #0f172a; color: #fbbf24; display: flex;
+            align-items: center; justify-content: center; z-index: 9999;
+            font-family: Arial, sans-serif; font-size: 24px; font-weight: bold;
+        }
+    </style>
 </head>
 <body>
 
+    <!-- 2. 音效資源 (檔名嚴格對應：shootsSfx.m4a) -->
     <audio id="bgm" src="audio/bgm.mp3" loop preload="auto"></audio>
     <audio id="shootSfx" src="audio/shootsSfx.m4a" preload="auto"></audio>
     <audio id="reloadSfx" src="audio/reloadSfx.m4a" preload="auto"></audio>
     <audio id="emptyAmmoSfx" src="audio/emptyAmmoSfx.m4a" preload="auto"></audio>
 
-    <div id="loading-screen">連接伺服器並載入數據中...</div>
+    <!-- 載入中遮罩 -->
+    <div id="loading-screen">連接伺服器中，請稍候...</div>
     
-    <div id="start-menu">
+    <!-- 難度選擇選單 (初始隱藏，由 JS 開啟) -->
+    <div id="start-menu" style="display: none;">
         <h1 style="color: #fbbf24; font-size: 40px; margin-bottom: 30px; text-shadow: 2px 2px 4px #000; text-align: center;">請選擇目標等級</h1>
         <button class="diff-btn" onclick="window.initAudio(); window.startGame('S1')">S1 程度</button>
         <button class="diff-btn" onclick="window.initAudio(); window.startGame('S2')">S2 程度</button>
         <button class="diff-btn" onclick="window.initAudio(); window.startGame('S3')">S3 程度</button>
     </div>
 
+    <!-- MCQ 答題視窗 -->
     <div id="math-overlay">
         <div id="math-container" class="math-container">
             <h2 id="math-header" style="margin-top: 0;"></h2>
@@ -33,9 +50,12 @@
         </div>
     </div>
 
+    <!-- 遊戲畫布 -->
     <canvas id="gameCanvas"></canvas>
 
+    <!-- 左側 UI 容器 -->
     <div id="ui-container">
+        <!-- 玩家資訊、怪物計數區塊 (保持不變) -->
         <div class="ui-box">
             <div class="player-info-wrapper">
                 <canvas id="player-icon" width="45" height="45"></canvas>
@@ -59,25 +79,44 @@
 
         <div class="ui-box" id="leaderboard-box">
             <h3>🏆 總排行榜 🏆</h3>
-            <ol id="leaderboard-list"><li>載入排行榜中...</li></ol>
+            <ol id="leaderboard-list"><li>載入中...</li></ol>
             <div id="submit-form">
-                <input type="text" id="lb-class" placeholder="班別 (例: 1A)">
-                <input type="text" id="lb-sid" placeholder="學號 (例: 01)">
+                <input type="text" id="lb-class" placeholder="班別">
+                <input type="text" id="lb-sid" placeholder="學號">
                 <input type="text" id="lb-name" placeholder="名字">
                 <div style="display: flex; gap: 5px; width: 90%; justify-content: center; margin-top: 5px;">
-                    <button onclick="window.submitScore()" style="flex: 1; padding: 6px; font-size: 11px;">上傳</button>
-                    <button onclick="window.showStartMenu()" style="flex: 1; background: #64748b; padding: 6px; font-size: 11px;">重玩</button>
+                    <button onclick="window.submitScore()" style="flex: 1;">上傳</button>
+                    <button onclick="window.showStartMenu()" style="flex: 1; background: #64748b;">重玩</button>
                 </div>
             </div>
         </div>
-        
-        <div style="color: rgba(255, 255, 255, 0.5); font-weight: bold; font-size: 14px; margin-top: auto; padding-left: 5px;">V35</div>
+
+        <!-- 版本號 (升級至 V38) -->
+        <div style="color: rgba(255, 255, 255, 0.5); font-weight: bold; font-size: 14px; margin-top: auto; padding-left: 5px;">V38</div>
     </div>
 
-    <!-- 腳本引入 -->
+    <!-- 3. 腳本引入順序 (路徑已按截圖修正) -->
     <script src="js/topics/indices.js"></script> 
     <script src="js/config.js"></script>  
     <script src="js/ui.js"></script>      
     <script src="js/engine.js"></script>  
+
+    <script>
+        // 🚀 V38 終極防卡死計時器 (Fail-safe Timer)
+        // 如果因為任何原因腳本沒跑完，3秒後強制開啟遊戲介面
+        setTimeout(() => {
+            const loader = document.getElementById('loading-screen');
+            const menu = document.getElementById('start-menu');
+            if (loader && loader.style.display !== 'none') {
+                console.warn("[V38] 檢測到載入異常，啟動安全恢復模式...");
+                loader.style.display = 'none';
+                menu.style.display = 'flex';
+                // 嘗試將遊戲狀態設為選單，防止邏輯卡死
+                if (typeof gameState !== 'undefined') {
+                    gameState = 'START_MENU';
+                }
+            }
+        }, 3000); 
+    </script>
 </body>
 </html>
