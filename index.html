@@ -1,7 +1,89 @@
-<!-- ⬇️ 依序引入遊戲模組 ⬇️ -->
-    <script src="indices.js"></script> <!-- 你的 DSE 題庫 -->
-    <script src="config.js"></script>  <!-- 設定檔 -->
-    <script src="ui.js"></script>      <!-- 介面控制 -->
-    <script src="engine.js"></script>  <!-- 核心引擎 -->
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Math Survival - DSE MCQ</title>
+    
+    <!-- 1. 正確指向 css 資料夾內的 style.css -->
+    <link rel="stylesheet" href="css/style.css">
+
+    <!-- 引入 MathJax 處理 LaTeX 數學排版 -->
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+
+    <!-- 2. 正確指向 audio 資料夾內的音效檔 -->
+    <audio id="bgm" src="audio/bgm.mp3" loop></audio>
+    <audio id="shootSfx" src="audio/shootSfx.m4a"></audio>
+    <audio id="reloadSfx" src="audio/reloadSfx.m4a"></audio>
+    <audio id="emptyAmmoSfx" src="audio/emptyAmmoSfx.m4a"></audio>
+
+    <!-- 載入中畫面 -->
+    <div id="loading-screen">連接伺服器並載入數據中...</div>
+    
+    <!-- 難度選擇選單 -->
+    <div id="start-menu">
+        <h1 style="color: #fbbf24; font-size: 40px; margin-bottom: 30px; text-shadow: 2px 2px 4px #000; text-align: center;">請選擇目標等級</h1>
+        <button class="diff-btn" onclick="window.startGame('S1')">S1 程度</button>
+        <button class="diff-btn" onclick="window.startGame('S2')">S2 程度</button>
+        <button class="diff-btn" onclick="window.startGame('S3')">S3 程度</button>
+    </div>
+
+    <!-- MCQ 答題彈出視窗 -->
+    <div id="math-overlay">
+        <div id="math-container" class="math-container">
+            <h2 id="math-header" style="margin-top: 0;"></h2>
+            <div id="math-timer-bg"><div id="math-timer-bar"></div></div>
+            <div id="math-question-content"></div>
+            <div class="mcq-options" id="math-options-container"></div>
+        </div>
+    </div>
+
+    <!-- 遊戲主畫布 -->
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- 左側專屬 UI 容器 -->
+    <div id="ui-container">
+        <div class="ui-box">
+            <div class="player-info-wrapper">
+                <canvas id="player-icon" width="45" height="45"></canvas>
+                <div style="flex:1;">
+                    <div id="hp-bar-bg"><div id="ui-hp-fill"></div></div>
+                    <div class="black-text" id="ui-hp-text">HP: 100</div>
+                    <div class="black-text" id="ui-wep-name">武裝: 尚未裝備</div>
+                    <div class="black-text" id="ui-ammo-text">彈藥: 0/0</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="ui-box">
+            <div style="text-align:center; color:#000; font-weight:bold; font-size:12px; margin-bottom:5px;">剩餘魔物目標</div>
+            <div class="monster-row"><canvas id="m-icon-1" width="24" height="24"></canvas><span class="monster-count" id="m-count-1">x 0</span></div>
+            <div class="monster-row"><canvas id="m-icon-2" width="24" height="24"></canvas><span class="monster-count" id="m-count-2">x 0</span></div>
+            <div class="monster-row"><canvas id="m-icon-3" width="24" height="24"></canvas><span class="monster-count" id="m-count-3">x 0</span></div>
+            <div class="monster-row"><canvas id="m-icon-4" width="24" height="24"></canvas><span class="monster-count" id="m-count-4">x 0</span></div>
+            <div class="monster-row"><canvas id="m-icon-5" width="24" height="24"></canvas><span class="monster-count" id="m-count-5">x 0</span></div>
+        </div>
+
+        <!-- 即時排行榜 -->
+        <div class="ui-box" id="leaderboard-box">
+            <h3>🏆 總排行榜 🏆</h3>
+            <ol id="leaderboard-list"><li>載入排行榜中...</li></ol>
+            <div id="submit-form">
+                <input type="text" id="lb-class" placeholder="班別 (例: 1A)">
+                <input type="text" id="lb-sid" placeholder="學號 (例: 01)">
+                <input type="text" id="lb-name" placeholder="名字">
+                <button onclick="window.submitScore()">上傳成績</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. 正確指向 js 資料夾內的腳本 (順序極度重要，請確保在 </body> 之前) -->
+    <!-- 假設你已經將 indices.js 也放進了 js 資料夾內。如果沒有，請改為 src="indices.js" -->
+    <script src="js/indices.js"></script> 
+    <script src="js/config.js"></script>  
+    <script src="js/ui.js"></script>      
+    <script src="js/engine.js"></script>  
 </body>
 </html>
