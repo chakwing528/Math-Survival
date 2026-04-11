@@ -3,10 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Math Survival - DSE MCQ V33</title>
+    <title>Math Survival - DSE MCQ V34</title>
     
+    <!-- 引入 MathJax 處理 LaTeX 數學排版 -->
     <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 
+    <!-- 題庫必需的輔助函數 (確保 indices.js 能獨立運作) -->
     <script>
         function getRandomInt(min, max) { return Math.floor(Math.random() * (max - min)) + min; }
         function getRandomExp() { let e = getRandomInt(-5, 6); return e === 0 ? 2 : e; }
@@ -23,6 +25,7 @@
         }
     </script>
 
+    <!-- ⬇️ 引入你的 DSE 題庫檔案 (請確保檔案在同一目錄) ⬇️ -->
     <script src="indices.js"></script>
 
     <style>
@@ -40,9 +43,9 @@
             color: #fbbf24; font-size: 32px; font-weight: bold; z-index: 1000;
         }
 
-        /* --- S1/S2/S3 難度選擇選單 --- */
+        /* --- S1/S2/S3 難度選擇選單 (修正 iframe offscreen Bug) --- */
         #start-menu {
-            position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background-color: rgba(15, 23, 42, 0.95); display: none; flex-direction: column;
             justify-content: center; align-items: center; z-index: 500; gap: 20px;
         }
@@ -55,13 +58,13 @@
 
         /* --- 全新 MCQ 數學題彈出視窗 --- */
         #math-overlay {
-            position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.85); z-index: 600; display: none;
             flex-direction: column; justify-content: center; align-items: center;
         }
         .math-container {
             background: #1e293b; padding: 30px; border-radius: 12px;
-            border: 4px solid #38bdf8; width: 85%; max-width: 600px;
+            border: 4px solid #38bdf8; width: 85%; max-width: 600px; max-height: 90%; overflow-y: auto;
             text-align: center; color: white; box-shadow: 0 0 20px rgba(0,0,0,0.5);
         }
         #math-timer-bg { width: 100%; height: 12px; background: #334155; margin-bottom: 20px; border-radius: 6px; overflow: hidden;}
@@ -108,14 +111,15 @@
     <div id="loading-screen">連接伺服器並載入數據中...</div>
     
     <div id="start-menu">
-        <h1 style="color: #fbbf24; font-size: 40px; margin-bottom: 30px; text-shadow: 2px 2px 4px #000;">請選擇目標等級</h1>
+        <h1 style="color: #fbbf24; font-size: 40px; margin-bottom: 30px; text-shadow: 2px 2px 4px #000; text-align: center;">請選擇目標等級</h1>
         <button class="diff-btn" onclick="startGame('S1')">S1 程度</button>
         <button class="diff-btn" onclick="startGame('S2')">S2 程度</button>
         <button class="diff-btn" onclick="startGame('S3')">S3 程度</button>
     </div>
 
     <div id="math-overlay">
-        <div class="math-container">
+        <!-- 修正: 加入了 missing 的 id="math-container" 避免 JS 發生 Null 錯誤 -->
+        <div id="math-container" class="math-container">
             <h2 id="math-header" style="margin-top: 0;"></h2>
             <div id="math-timer-bg"><div id="math-timer-bar"></div></div>
             <div id="math-question-content"></div>
@@ -205,7 +209,7 @@
     // --- 題庫與難度系統 ---
     let currentDifficulty = 'S1';
     let questionBank = [];
-    let currentMathType = ''; // 'UPGRADE' 或 'AMMO'
+    let currentMathType = ''; 
     let mathTimer = 0;
 
     let enemiesKilled = 0; let totalMonstersSpawned = 0; let TOTAL_MONSTERS = 19; 
@@ -271,7 +275,15 @@
     }
     setTimeout(drawHUDIcons, 100);
 
-    // --- 排行榜邏輯 ---
+    function initMonsterQueue() {
+        monsterQueue = []; TOTAL_MONSTERS = 0; monstersLeft = [0, 0, 0, 0, 0, 0];
+        for (let m of MONSTER_BASE) {
+            for(let i=0; i<m.count; i++) monsterQueue.push({...m});
+            TOTAL_MONSTERS += m.count; monstersLeft[m.tier] += m.count; 
+        }
+    }
+
+    // --- 排行榜邏輯 (緩存消除機制) ---
     function fetchLeaderboard() {
         if (!GAS_LEADERBOARD_URL) return;
         const timestamp = new Date().getTime();
@@ -299,6 +311,7 @@
         const sid = document.getElementById('lb-sid').value.trim();
         const name = document.getElementById('lb-name').value.trim();
         if (!cls || !sid || !name) { alert("請填寫班別、學號及名字！"); return; }
+
         if (!GAS_LEADERBOARD_URL) return;
 
         scoreSubmitted = true;
@@ -356,12 +369,14 @@
         isShooting = false; rightJoy.active = false; leftJoy.active = false;
         
         let headerEl = document.getElementById('math-header');
+        let containerEl = document.getElementById('math-container');
+        
         if (type === 'UPGRADE') {
             headerEl.textContent = '⚡ 武器進化程序 ⚡'; headerEl.style.color = '#eab308';
-            document.getElementById('math-container').style.borderColor = '#eab308';
+            containerEl.style.borderColor = '#eab308';
         } else {
             headerEl.textContent = '🔵 彈藥補給程序 🔵'; headerEl.style.color = '#38bdf8';
-            document.getElementById('math-container').style.borderColor = '#38bdf8';
+            containerEl.style.borderColor = '#38bdf8';
         }
 
         let lvlMap = { 'S1': '1', 'S2': '2', 'S3': '3' };
@@ -378,10 +393,8 @@
             qData = generateFallbackMCQ();
         }
 
-        // 渲染題目
         document.getElementById('math-question-content').innerHTML = qData.question;
         
-        // 渲染按鈕
         const optsContainer = document.getElementById('math-options-container');
         optsContainer.innerHTML = '';
         qData.options.forEach(opt => {
@@ -392,8 +405,7 @@
             optsContainer.appendChild(btn);
         });
 
-        // 渲染 LaTeX 並顯示
-        if (typeof MathJax !== 'undefined') MathJax.typesetPromise();
+        if (typeof MathJax !== 'undefined') MathJax.typesetPromise([document.getElementById('math-overlay')]);
         document.getElementById('math-overlay').style.display = 'flex';
         mathTimer = 600; // 10 秒
     }
@@ -445,7 +457,7 @@
     canvas.addEventListener('touchcancel', handleTouchEnd, {passive: false});
 
     function handleTouchStart(e) {
-        if(e.target !== canvas) return; 
+        if(e.target !== canvas) return; // 避免攔截 UI 點擊
         e.preventDefault(); initAudio();
         const touches = e.changedTouches;
 
@@ -537,6 +549,20 @@
         });
     }
 
+    function createParticles(x, y, color, count, speedStr = 5, z = 0, decay = null) {
+        for (let i = 0; i < count; i++) {
+            particles.push({
+                x: x, y: y, z: z,
+                vx: (Math.random() - 0.5) * speedStr, vy: (Math.random() - 0.5) * speedStr, vz: Math.random() * speedStr,
+                life: 1.0, decay: decay || (0.02 + Math.random() * 0.04), color: color, size: 2 + Math.random() * 4
+            });
+        }
+    }
+
+    function addFloatingText(text, x, y, color, size = 20) {
+        floatingTexts.push({ text, x, y, color, size, life: 1.0, dy: -1.5 });
+    }
+
     function spawnLootBox() {
         lootBoxes.push({
             x: Math.random() * (canvas.width - UI_BOUND - 100) + UI_BOUND + 50, y: Math.random() * (canvas.height - 200) + 100,
@@ -559,6 +585,7 @@
         if (gameState !== 'PLAYING' || monsterQueue.length === 0) return;
         let mData = monsterQueue.shift(); totalMonstersSpawned++;
         
+        // 敵人必定喺 UI_BOUND 之外生成
         let x = Math.random() < 0.5 ? UI_BOUND + 10 : canvas.width + 50;
         let y = Math.random() * canvas.height;
 
@@ -648,8 +675,10 @@
             mathTimer--;
             let pct = Math.max(0, (mathTimer / 600) * 100);
             let bar = document.getElementById('math-timer-bar');
-            bar.style.width = pct + '%';
-            bar.style.backgroundColor = mathTimer < 180 ? '#ef4444' : '#4ade80';
+            if (bar) {
+                bar.style.width = pct + '%';
+                bar.style.backgroundColor = mathTimer < 180 ? '#ef4444' : '#4ade80';
+            }
             
             if (mathTimer <= 0) {
                 closeMathOverlay(false);
@@ -818,7 +847,7 @@
         }
     }
 
-    // --- 渲染系統 ---
+    // --- 渲染系統 (偽 2.5D 美術) ---
     function draw() {
         if (gameState === 'START_MENU') {
             ctx.fillStyle = '#0f172a'; 
@@ -999,7 +1028,7 @@
             ctx.fillText('或按 [Enter] 重新挑戰', gameCenterX, canvas.height/2 + 100); ctx.globalAlpha = 1.0;
         }
 
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.5)'; ctx.font = 'bold 20px Arial'; ctx.textAlign = 'right'; ctx.fillText('V33', canvas.width - 20, canvas.height - 20);
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.5)'; ctx.font = 'bold 20px Arial'; ctx.textAlign = 'right'; ctx.fillText('V34', canvas.width - 20, canvas.height - 20);
     }
 
     async function loadGameData() {
