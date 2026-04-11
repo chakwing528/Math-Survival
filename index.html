@@ -9,7 +9,7 @@
     <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 
     <!-- ⬇️ 實際在 GitHub 上，請保留這行引入 indices.js ⬇️ -->
-    <!-- <script src="indices.js"></script> -->
+    <script src="js/topics/indices.js"></script>
 
     <style>
         body {
@@ -92,10 +92,10 @@
 </head>
 <body>
 
-    <audio id="bgm" src="bgm.mp3" loop></audio>
-    <audio id="shootSfx" src="shootSfx.m4a"></audio>
-    <audio id="reloadSfx" src="reloadSfx.m4a"></audio>
-    <audio id="emptyAmmoSfx" src="emptyAmmoSfx.m4a"></audio>
+    <audio id="bgm" src="audio/bgm.mp3" loop></audio>
+    <audio id="shootSfx" src="audio/shootSfx.m4a"></audio>
+    <audio id="reloadSfx" src="audio/reloadSfx.m4a"></audio>
+    <audio id="emptyAmmoSfx" src="audio/emptyAmmoSfx.m4a"></audio>
 
     <div id="loading-screen">連接伺服器並載入數據中...</div>
     
@@ -153,10 +153,9 @@
 
 <script>
 // ==============================================================================
-// 📁 FILE 1: config.js (請將以下代碼複製到你的 config.js)
+// CONFIGURATION & SETUP
 // ==============================================================================
 
-// --- 題庫輔助函數 (供備用題庫使用) ---
 function getRandomInt(min, max) { return Math.floor(Math.random() * (max - min)) + min; }
 function getRandomExp() { let e = getRandomInt(-5, 6); return e === 0 ? 2 : e; }
 function buildEq(steps) { return steps.map(s => s.text).join(" = "); }
@@ -188,7 +187,7 @@ function initAudio() {
 
 const UI_BOUND = 200; 
 
-// --- 控制系統變數 ---
+// --- Control System Variables ---
 let leftJoyBase = { x: UI_BOUND + 60, y: 120 }; 
 let leftJoy = { active: false, id: null, stick: {x:0, y:0}, dir: {x:0, y:0} };
 let rightJoy = { active: false, id: null, base: {x:0,y:0}, stick: {x:0,y:0}, dir: {x:0,y:0}, angle: 0 };
@@ -198,7 +197,7 @@ const keys = { w: false, a: false, s: false, d: false };
 let mouseX = canvas.width / 2; let mouseY = canvas.height / 2;
 let isShooting = false;
 
-// 視窗縮放
+// Window Resize Handling
 function resizeCanvas() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
@@ -208,7 +207,7 @@ function resizeCanvas() {
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
 
-// 全域狀態
+// Global State
 let gameState = 'START_MENU'; 
 let globalTime = 0; let shakeTime = 0; let bossAlarmTimer = 0;
 let currentDifficulty = 'S1';
@@ -217,12 +216,13 @@ let currentMathType = '';
 let mathTimer = 0;
 let scoreSubmitted = false;
 
-// 進度與實體陣列
+// Progression & Entity Arrays
 let enemiesKilled = 0; let totalMonstersSpawned = 0; let TOTAL_MONSTERS = 19; 
 let monstersLeft = [0, 0, 0, 0, 0, 0]; 
 let currentWave = 1;
 let lootBoxSpawnInterval = 480; let ammoBoxSpawnInterval = 180; 
 
+let monsterQueue = []; // Implemented missing variable
 let MONSTER_BASE = [
     {tier: 1, name: "一級怪物", count: 5, hp: 8, speed: 0.5, size: 22, color: '#ef4444'},
     {tier: 2, name: "二級怪物", count: 5, hp: 25, speed: 0.8, size: 28, color: '#f97316'},
@@ -251,15 +251,43 @@ let player = {
 
 let bullets = []; let enemies = []; let lootBoxes = []; let ammoBoxes = []; let particles = []; let floatingTexts = [];
 
-// 🚀 DOM 快取優化
+// DOM Caching Optimization
 const uiElements = {};
 let uiReady = false;
 
-// === FILE 1 END ===
+// ==============================================================================
+// VISUAL EFFECTS (Implemented Missing Functions)
+// ==============================================================================
 
+function createParticles(x, y, color, count, speed) {
+    for (let i = 0; i < count; i++) {
+        let angle = Math.random() * Math.PI * 2;
+        let v = Math.random() * speed;
+        particles.push({
+            x: x, y: y,
+            vx: Math.cos(angle) * v,
+            vy: Math.sin(angle) * v,
+            color: color,
+            size: Math.random() * 3 + 1,
+            life: 1.0,
+            decay: Math.random() * 0.05 + 0.02
+        });
+    }
+}
+
+function addFloatingText(text, x, y, color, size = 20) {
+    floatingTexts.push({
+        text: text,
+        x: x, y: y,
+        color: color,
+        size: size,
+        life: 1.0,
+        dy: -1.5
+    });
+}
 
 // ==============================================================================
-// 📁 FILE 2: ui.js (請將以下代碼複製到你的 ui.js)
+// UI & HUD MANAGEMENT
 // ==============================================================================
 
 function cacheUIElements() {
@@ -362,7 +390,6 @@ function renderLeaderboard(data) {
     
     data.forEach(item => {
         let li = document.createElement('li');
-        // 修正: 限制名字長度，防止排版跑位
         let safeName = item.name.length > 6 ? item.name.substring(0, 6) + '..' : item.name;
         li.textContent = `${item.cls} ${safeName} - ${item.score}分 (${item.diff})`;
         if (item.isMe) { li.style.backgroundColor = "rgba(46, 204, 113, 0.4)"; li.style.borderRadius = "4px"; }
@@ -524,7 +551,10 @@ function closeMathOverlay(success) {
     let sSfx = document.getElementById('shootSfx'); if (sSfx && !sSfx.paused) { sSfx.pause(); sSfx.currentTime = 0; }
 }
 
-// 事件處理綁定
+// ==============================================================================
+// INPUT HANDLING
+// ==============================================================================
+
 canvas.addEventListener('touchstart', handleTouchStart, {passive: false});
 canvas.addEventListener('touchmove', handleTouchMove, {passive: false});
 canvas.addEventListener('touchend', handleTouchEnd, {passive: false});
@@ -606,10 +636,9 @@ window.addEventListener('keydown', (e) => {
 });
 window.addEventListener('keyup', (e) => { if (gameState === 'PLAYING') { let key = e.key.toLowerCase(); if (keys.hasOwnProperty(key)) keys[key] = false; }});
 
-// === FILE 2 END ===
 
 // ==============================================================================
-// 📁 FILE 3: engine.js (請將以下代碼複製到你的 engine.js)
+// CORE ENGINE LOGIC
 // ==============================================================================
 
 function initMonsterQueue() {
