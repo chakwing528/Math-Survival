@@ -195,8 +195,8 @@
         </div>
     </div>
     
-    <!-- 嚴格遵守規則更新版本號碼至 V52 -->
-    <div id="version-tag">Math Survival V52</div>
+    <!-- 嚴格遵守規則更新版本號碼至 V56 -->
+    <div id="version-tag">Math Survival V56</div>
 
 <script>
 // ==============================================================================
@@ -710,12 +710,12 @@ function formatMCQ(questionStr, ans) {
 function generateLevel1Question() {
     let wl = Math.max(0, player.weaponLevel);
     // 基礎 10-50，隨著武器等級而提高數值範圍
-    let min = 10 + wl * 2;
-    let max = 50 + wl * 5;
+    let min = 1 + wl * 2;
+    let max = 30 + wl * 5;
     let A = getRandomInt(min, max);
     let B = getRandomInt(min, max);
     let isAdd = Math.random() > 0.5;
-    if (!isAdd && A < B) { let temp = A; A = B; B = temp; } // 保保證小四程度都是正數減法
+    if (!isAdd && A < B) { let temp = A; A = B; B = temp; } // 保證減法結果一定是整數 (此處確保為正整數)
     let ans = isAdd ? A + B : A - B;
     let op = isAdd ? '+' : '-';
     // 程度1 改為輸入題型
@@ -724,7 +724,8 @@ function generateLevel1Question() {
 
 function generateLevel2Question() {
     let wl = Math.max(0, player.weaponLevel);
-    let maxV = 10 + wl * 2;
+    let maxV = Math.floor(3 + wl * 1.5);
+    if (maxV < 3) maxV = 3;
     // 預設 8 種四則運算組合 (先乘除後加減原則)，確保整除和正數
     let patterns = [
         () => { let b=getRandomInt(2,maxV), c=getRandomInt(2,maxV), a=getRandomInt(1,maxV*2); return {q: `${a} + ${b} \\times ${c}`, a: a+b*c}; },
@@ -809,49 +810,146 @@ function triggerMath(type) {
         optsContainer.innerHTML = '';
         
         if (qData.isInput) {
-            // 動態產生手動輸入框介面
+            // 動態產生手動輸入數字鍵盤與顯示區
             optsContainer.style.display = 'flex';
             optsContainer.style.flexDirection = 'column';
             optsContainer.style.alignItems = 'center';
-            optsContainer.style.gap = '15px';
+            optsContainer.style.gap = '10px';
 
-            let inputField = document.createElement('input');
-            inputField.type = 'number';
-            inputField.id = 'math-num-input';
-            inputField.style = "font-size: 24px; padding: 10px; width: 200px; text-align: center; border-radius: 8px; border: 2px solid #94a3b8; background: #334155; color: white;";
-            
-            let submitBtn = document.createElement('button');
-            submitBtn.textContent = '確定';
-            submitBtn.style = "background: #3b82f6; color: white; border: 2px solid #94a3b8; padding: 12px 40px; font-size: 22px; font-weight: bold; border-radius: 8px; cursor: pointer; transition: 0.2s;";
-            
-            submitBtn.onmouseover = () => submitBtn.style.background = '#2563eb';
-            submitBtn.onmouseout = () => submitBtn.style.background = '#3b82f6';
-            
-            submitBtn.onclick = () => {
-                let userVal = parseFloat(inputField.value);
-                if (!isNaN(userVal)) {
-                    window.submitMCQ(userVal === parseFloat(qData.answer));
-                }
+            let currentInputValue = "";
+
+            // 顯示區
+            let inputDisplay = document.createElement('div');
+            inputDisplay.id = 'math-num-display';
+            inputDisplay.style = "font-size: 32px; padding: 10px; width: 240px; min-height: 45px; text-align: center; border-radius: 8px; border: 2px solid #94a3b8; background: #334155; color: #fbbf24; font-weight: bold; display: flex; justify-content: center; align-items: center; letter-spacing: 2px;";
+            inputDisplay.textContent = "";
+
+            // 數字鍵盤
+            let numpad = document.createElement('div');
+            numpad.style = "display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; width: 260px; margin-top: 5px;";
+
+            const buttons = ['7', '8', '9', '4', '5', '6', '1', '2', '3', '-', '0', '⌫'];
+
+            const updateDisplay = () => {
+                inputDisplay.textContent = currentInputValue;
             };
 
-            inputField.addEventListener('keypress', function (e) {
-                if (e.key === 'Enter') submitBtn.click();
+            buttons.forEach(btnText => {
+                let btn = document.createElement('button');
+                btn.textContent = btnText;
+                btn.style = "background: #475569; color: white; border: 2px solid #64748b; padding: 12px; font-size: 24px; font-weight: bold; border-radius: 8px; cursor: pointer; transition: 0.2s;";
+                btn.onmouseover = () => btn.style.background = '#64748b';
+                btn.onmouseout = () => btn.style.background = '#475569';
+                btn.onclick = () => {
+                    if (gameState !== 'MATH_TIME') return;
+                    if (btnText === '⌫') {
+                        currentInputValue = currentInputValue.slice(0, -1);
+                    } else if (btnText === '-') {
+                        if (currentInputValue.startsWith('-')) {
+                            currentInputValue = currentInputValue.substring(1);
+                        } else {
+                            currentInputValue = '-' + currentInputValue;
+                        }
+                    } else {
+                        if (currentInputValue.length < 8) currentInputValue += btnText;
+                    }
+                    updateDisplay();
+                };
+                numpad.appendChild(btn);
             });
 
-            optsContainer.appendChild(inputField);
+            // 確定按鈕
+            let submitBtn = document.createElement('button');
+            submitBtn.textContent = '確定';
+            submitBtn.style = "background: #3b82f6; color: white; border: 2px solid #94a3b8; padding: 12px 40px; font-size: 24px; font-weight: bold; border-radius: 8px; cursor: pointer; transition: 0.2s; width: 260px; margin-top: 5px;";
+            submitBtn.onmouseover = () => submitBtn.style.background = '#2563eb';
+            submitBtn.onmouseout = () => submitBtn.style.background = '#3b82f6';
+            submitBtn.onclick = () => {
+                if (gameState !== 'MATH_TIME') return;
+                gameState = 'MATH_ANSWERED'; // 暫停時間與禁用輸入
+                submitBtn.disabled = true;
+
+                let userVal = parseFloat(currentInputValue);
+                let correctAns = parseFloat(qData.answer);
+                let isCorrect = (!isNaN(userVal) && userVal === correctAns);
+
+                if (isCorrect) {
+                    inputDisplay.style.color = '#4ade80';
+                    inputDisplay.style.borderColor = '#4ade80';
+                    inputDisplay.style.backgroundColor = 'rgba(74, 222, 128, 0.1)';
+                } else {
+                    inputDisplay.style.color = '#ef4444';
+                    inputDisplay.style.borderColor = '#ef4444';
+                    inputDisplay.style.backgroundColor = 'rgba(239, 68, 68, 0.1)';
+                    inputDisplay.innerHTML = `<span style="text-decoration: line-through; margin-right: 15px;">${isNaN(userVal) ? '?' : userVal}</span> <span style="color:#4ade80">${correctAns}</span>`;
+                }
+
+                setTimeout(() => {
+                    window.submitMCQ(isCorrect);
+                }, 1200);
+            };
+
+            // 電腦實體鍵盤輸入支援
+            if (window.mathKeydownHandler) {
+                window.removeEventListener('keydown', window.mathKeydownHandler);
+            }
+            window.mathKeydownHandler = function(e) {
+                if (gameState !== 'MATH_TIME') return;
+                if (e.key >= '0' && e.key <= '9') {
+                    if (currentInputValue.length < 8) currentInputValue += e.key;
+                    updateDisplay();
+                } else if (e.key === 'Backspace') {
+                    currentInputValue = currentInputValue.slice(0, -1);
+                    updateDisplay();
+                } else if (e.key === '-') {
+                    if (currentInputValue.startsWith('-')) currentInputValue = currentInputValue.substring(1);
+                    else currentInputValue = '-' + currentInputValue;
+                    updateDisplay();
+                } else if (e.key === 'Enter') {
+                    submitBtn.click();
+                }
+            };
+            window.addEventListener('keydown', window.mathKeydownHandler);
+
+            optsContainer.appendChild(inputDisplay);
+            optsContainer.appendChild(numpad);
             optsContainer.appendChild(submitBtn);
 
-            // 自動對焦以供玩家即時打字輸入
-            setTimeout(() => { if (inputField) inputField.focus(); }, 100);
-
         } else {
-            // 恢復原版選擇題 (MC) 佈局
+            // 恢復原版選擇題 (MC) 佈局，並加入反饋與停頓
             optsContainer.style.display = 'grid'; 
+            let optionElements = [];
             qData.options.forEach(opt => {
                 let btn = document.createElement('div');
                 btn.className = 'mcq-btn';
-                btn.innerHTML = `<span class="mcq-label">${opt.id}.</span> <span>${opt.text}</span>`;
-                btn.onclick = () => window.submitMCQ(opt.isCorrect);
+                btn.innerHTML = `<span class="mcq-label" style="color:inherit;">${opt.id}.</span> <span>${opt.text}</span>`;
+                optionElements.push({btn: btn, isCorrect: opt.isCorrect});
+                
+                btn.onclick = () => {
+                    if (gameState !== 'MATH_TIME') return;
+                    gameState = 'MATH_ANSWERED'; // 暫停時間與禁用點擊
+                    
+                    if (opt.isCorrect) {
+                        btn.style.backgroundColor = 'rgba(74, 222, 128, 0.2)';
+                        btn.style.borderColor = '#4ade80';
+                        btn.style.color = '#4ade80';
+                    } else {
+                        btn.style.backgroundColor = 'rgba(239, 68, 68, 0.2)';
+                        btn.style.borderColor = '#ef4444';
+                        btn.style.color = '#ef4444';
+                        
+                        let correctItem = optionElements.find(item => item.isCorrect);
+                        if (correctItem) {
+                            correctItem.btn.style.backgroundColor = 'rgba(74, 222, 128, 0.2)';
+                            correctItem.btn.style.borderColor = '#4ade80';
+                            correctItem.btn.style.color = '#4ade80';
+                        }
+                    }
+
+                    setTimeout(() => {
+                        window.submitMCQ(opt.isCorrect);
+                    }, 1200);
+                };
                 optsContainer.appendChild(btn);
             });
         }
@@ -899,6 +997,10 @@ window.submitMCQ = function(isCorrect) {
 }
 
 function closeMathOverlay(success) {
+    if (window.mathKeydownHandler) {
+        window.removeEventListener('keydown', window.mathKeydownHandler);
+        window.mathKeydownHandler = null;
+    }
     let overlay = document.getElementById('math-overlay');
     if (overlay) overlay.style.display = 'none';
     shakeTime = success ? 0 : 15;
@@ -1105,21 +1207,23 @@ function update() {
 
     if (gameState === 'START_MENU') return;
 
-    if (gameState === 'MATH_TIME') {
-        mathTimer--;
-        
+    if (gameState === 'MATH_TIME' || gameState === 'MATH_ANSWERED') {
         // 玩家回答問題時，所有補充包暫停扣除時間 (透過推移生成時間來凍結壽命計算)
         for (let i = 0; i < lootBoxes.length; i++) lootBoxes[i].spawnTime++;
         for (let i = 0; i < ammoBoxes.length; i++) ammoBoxes[i].spawnTime++;
 
-        let pct = Math.max(0, (mathTimer / 600) * 100);
-        if (uiElements.mathTimerBar) {
-            uiElements.mathTimerBar.style.width = pct + '%';
-            uiElements.mathTimerBar.style.backgroundColor = mathTimer < 180 ? '#ef4444' : '#4ade80';
-        }
-        if (mathTimer <= 0) {
-            closeMathOverlay(false);
-            addFloatingText("⏳ 時間到！寶箱已損毀。", player.x, player.y - 40, '#ef4444');
+        if (gameState === 'MATH_TIME') {
+            mathTimer--;
+            let pct = Math.max(0, (mathTimer / 600) * 100);
+            if (uiElements.mathTimerBar) {
+                uiElements.mathTimerBar.style.width = pct + '%';
+                uiElements.mathTimerBar.style.backgroundColor = mathTimer < 180 ? '#ef4444' : '#4ade80';
+            }
+            if (mathTimer <= 0) {
+                gameState = 'MATH_ANSWERED'; // 防止超時後鍵盤繼續輸入
+                closeMathOverlay(false);
+                addFloatingText("⏳ 時間到！寶箱已損毀。", player.x, player.y - 40, '#ef4444');
+            }
         }
     }
 
