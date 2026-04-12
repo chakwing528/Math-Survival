@@ -195,8 +195,8 @@
         </div>
     </div>
     
-    <!-- 嚴格遵守規則更新版本號碼至 V51 -->
-    <div id="version-tag">Math Survival V51</div>
+    <!-- 嚴格遵守規則更新版本號碼至 V52 -->
+    <div id="version-tag">Math Survival V52</div>
 
 <script>
 // ==============================================================================
@@ -659,6 +659,22 @@ window.returnToMenu = function() {
     scoreSubmitted = false;
 }
 
+// 支援自行填寫答案的新格式
+function formatInput(questionStr, ans) {
+    return {
+        isInput: true,
+        answer: ans,
+        question: `<div style="font-size:16px;color:#cbd5e1;margin-bottom:10px;">請計算以下結果：</div><div style="font-size:28px;font-weight:bold;">\\( \\displaystyle ${questionStr} = ? \\)</div>`
+    };
+}
+
+function generateFallbackInput() {
+    let maxVal = 10 + (Math.max(0, player.weaponLevel) * 10);
+    let num1 = getRandomInt(5, maxVal); let num2 = getRandomInt(5, maxVal);
+    let ans = num1 + num2;
+    return formatInput(`${num1} + ${num2}`, ans);
+}
+
 function generateFallbackMCQ() {
     let maxVal = 10 + (Math.max(0, player.weaponLevel) * 10);
     let num1 = getRandomInt(5, maxVal); let num2 = getRandomInt(5, maxVal);
@@ -702,7 +718,8 @@ function generateLevel1Question() {
     if (!isAdd && A < B) { let temp = A; A = B; B = temp; } // 保保證小四程度都是正數減法
     let ans = isAdd ? A + B : A - B;
     let op = isAdd ? '+' : '-';
-    return formatMCQ(`${A} ${op} ${B}`, ans);
+    // 程度1 改為輸入題型
+    return formatInput(`${A} ${op} ${B}`, ans);
 }
 
 function generateLevel2Question() {
@@ -720,7 +737,8 @@ function generateLevel2Question() {
         () => { let b=getRandomInt(2,10), a=b*getRandomInt(2,maxV), c=getRandomInt(1,a/b-1); return {q: `${a} \\div ${b} - ${c}`, a: a/b-c}; }
     ];
     let p = patterns[getRandomInt(0, patterns.length)]();
-    return formatMCQ(p.q, p.a);
+    // 程度2 改為輸入題型
+    return formatInput(p.q, p.a);
 }
 
 function triggerMath(type) {
@@ -755,7 +773,7 @@ function triggerMath(type) {
             qData = generateLevel2Question();
         } else if (diffStr === '3') {
             if (questionsSolved < 3) {
-                // 程度 3：前三題出簡單加減法 (此處借用程度1的出題)
+                // 程度 3：前三題出簡單加減法 (此處借用程度1的出題，故也是輸入題型)
                 qData = generateLevel1Question();
             } else if (typeof generateIndicesQuestions === 'function') {
                 qData = generateIndicesQuestions(1, 1)[0];
@@ -789,13 +807,54 @@ function triggerMath(type) {
     const optsContainer = document.getElementById('math-options-container');
     if (optsContainer) {
         optsContainer.innerHTML = '';
-        qData.options.forEach(opt => {
-            let btn = document.createElement('div');
-            btn.className = 'mcq-btn';
-            btn.innerHTML = `<span class="mcq-label">${opt.id}.</span> <span>${opt.text}</span>`;
-            btn.onclick = () => window.submitMCQ(opt.isCorrect);
-            optsContainer.appendChild(btn);
-        });
+        
+        if (qData.isInput) {
+            // 動態產生手動輸入框介面
+            optsContainer.style.display = 'flex';
+            optsContainer.style.flexDirection = 'column';
+            optsContainer.style.alignItems = 'center';
+            optsContainer.style.gap = '15px';
+
+            let inputField = document.createElement('input');
+            inputField.type = 'number';
+            inputField.id = 'math-num-input';
+            inputField.style = "font-size: 24px; padding: 10px; width: 200px; text-align: center; border-radius: 8px; border: 2px solid #94a3b8; background: #334155; color: white;";
+            
+            let submitBtn = document.createElement('button');
+            submitBtn.textContent = '確定';
+            submitBtn.style = "background: #3b82f6; color: white; border: 2px solid #94a3b8; padding: 12px 40px; font-size: 22px; font-weight: bold; border-radius: 8px; cursor: pointer; transition: 0.2s;";
+            
+            submitBtn.onmouseover = () => submitBtn.style.background = '#2563eb';
+            submitBtn.onmouseout = () => submitBtn.style.background = '#3b82f6';
+            
+            submitBtn.onclick = () => {
+                let userVal = parseFloat(inputField.value);
+                if (!isNaN(userVal)) {
+                    window.submitMCQ(userVal === parseFloat(qData.answer));
+                }
+            };
+
+            inputField.addEventListener('keypress', function (e) {
+                if (e.key === 'Enter') submitBtn.click();
+            });
+
+            optsContainer.appendChild(inputField);
+            optsContainer.appendChild(submitBtn);
+
+            // 自動對焦以供玩家即時打字輸入
+            setTimeout(() => { if (inputField) inputField.focus(); }, 100);
+
+        } else {
+            // 恢復原版選擇題 (MC) 佈局
+            optsContainer.style.display = 'grid'; 
+            qData.options.forEach(opt => {
+                let btn = document.createElement('div');
+                btn.className = 'mcq-btn';
+                btn.innerHTML = `<span class="mcq-label">${opt.id}.</span> <span>${opt.text}</span>`;
+                btn.onclick = () => window.submitMCQ(opt.isCorrect);
+                optsContainer.appendChild(btn);
+            });
+        }
     }
 
     let overlay = document.getElementById('math-overlay');
@@ -1370,12 +1429,10 @@ function draw() {
 
     let gameCenterX = UI_BOUND + (canvas.width - UI_BOUND) / 2;
 
-    // --- 繪製正上方目前程度與倍率 (加入課題名稱) ---
+    // --- 繪製正上方目前程度與倍率 (加入課題名稱並分2行顯示) ---
     if (gameState === 'PLAYING') {
         ctx.save();
         ctx.textAlign = 'center';
-        ctx.textBaseline = 'top';
-        ctx.font = 'bold 24px Arial';
         
         let multObj = { '1': '1.0', '2': '1.2', '3': '1.4', '4': '1.6', '5': '1.8' };
         let diffLabels = {
@@ -1387,12 +1444,25 @@ function draw() {
         };
         let currentMult = multObj[currentDifficulty] || '1.0';
         let currentLabel = diffLabels[currentDifficulty] || '';
-        let topText = `程度 ${currentDifficulty}：${currentLabel} (分數 x${currentMult})`;
         
+        let line1Text = `程度 ${currentDifficulty} (分數 x${currentMult})`;
+        let line2Text = currentLabel;
+        
+        // 第一行 (程度與分數倍大，字體較大)
+        ctx.textBaseline = 'top';
+        ctx.font = 'bold 24px Arial';
         ctx.fillStyle = 'rgba(0, 0, 0, 0.7)'; // 黑色陰影
-        ctx.fillText(topText, gameCenterX + 2, 22);
+        ctx.fillText(line1Text, gameCenterX + 2, 22);
         ctx.fillStyle = '#fbbf24'; // 黃色文字
-        ctx.fillText(topText, gameCenterX, 20);
+        ctx.fillText(line1Text, gameCenterX, 20);
+
+        // 第二行 (該程度內容敘述，字體較小)
+        ctx.font = 'bold 16px Arial';
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)'; // 黑色陰影
+        ctx.fillText(line2Text, gameCenterX + 2, 52);
+        ctx.fillStyle = '#e2e8f0'; // 白色偏灰文字
+        ctx.fillText(line2Text, gameCenterX, 50);
+
         ctx.restore();
     }
 
