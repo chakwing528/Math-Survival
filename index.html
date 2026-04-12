@@ -17,11 +17,27 @@
     <style>
         body {
             margin: 0; padding: 0; overflow: hidden;
-            background-color: #0f172a; color: white;
+            background-color: #000000; /* 電腦版外圍留黑邊 */
+            color: white;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             user-select: none; -webkit-user-select: none; touch-action: none;
         }
-        #gameCanvas { display: block; width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; z-index: 1; }
+
+        /* --- 遊戲核心固定比例容器 --- */
+        #game-wrapper {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 1280px;
+            height: 720px;
+            transform: translate(-50%, -50%);
+            transform-origin: center center;
+            background-color: #0f172a;
+            overflow: hidden;
+            box-shadow: 0 0 30px rgba(255, 255, 255, 0.05); /* 電腦版質感邊框 */
+        }
+
+        #gameCanvas { display: block; width: 1280px; height: 720px; position: absolute; top: 0; left: 0; z-index: 1; }
         
         #loading-screen {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
@@ -29,7 +45,7 @@
             color: #fbbf24; font-size: 32px; font-weight: bold; z-index: 1000;
         }
 
-        /* --- 裝置橫向鎖死介面 --- */
+        /* --- 裝置橫向鎖死介面 (以備不時之需保留) --- */
         #portrait-lock {
             display: none;
             position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
@@ -121,10 +137,9 @@
             align-items: center; 
             gap: 12px; 
             position: absolute; 
-            top: 52%; /* 向下移，避免與分數文字重疊 */
-            left: calc(250px + (100vw - 250px) / 2); 
-            transform: translate(-50%, 0); /* 起點從 52% 往下延展 */
-            transform-origin: top center;
+            top: 52%; 
+            left: calc(250px + (1280px - 250px) / 2); /* 完美定位置中 */
+            transform: translate(-50%, 0); 
             background: rgba(30, 41, 59, 0.95); 
             padding: 25px; 
             border-radius: 12px;
@@ -161,94 +176,96 @@
         </div>
     </div>
 
+    <!-- 遊戲核心固定比例容器 -->
+    <div id="game-wrapper">
+        <div id="loading-screen">連接伺服器並載入數據中...</div>
+        
+        <div id="start-menu">
+            <div id="start-menu-content" style="display:flex; flex-direction:column; align-items:center; gap:12px;">
+                <h1 style="color: #fbbf24; font-size: 35px; margin-bottom: 15px; text-shadow: 2px 2px 4px #000; text-align: center;">請選擇目標程度</h1>
+                
+                <button class="diff-btn" onclick="window.startGame('1')">
+                    程度 1
+                    <span style="font-size: 14px; font-weight: normal; display: block; margin-top: 4px; color: #e2e8f0;">10-50 整數加減運算<br><span style="color:#fbbf24; font-weight:bold;">(分數 x1.0)</span></span>
+                </button>
+                <button class="diff-btn" onclick="window.startGame('2')">
+                    程度 2
+                    <span style="font-size: 14px; font-weight: normal; display: block; margin-top: 4px; color: #e2e8f0;">整數四則混合運算 (先乘除後加減)<br><span style="color:#fbbf24; font-weight:bold;">(分數 x1.2)</span></span>
+                </button>
+                <button class="diff-btn" onclick="window.startGame('3')">
+                    程度 3
+                    <span style="font-size: 14px; font-weight: normal; display: block; margin-top: 4px; color: #e2e8f0;">加減混合 及 基礎指數<br><span style="color:#fbbf24; font-weight:bold;">(分數 x1.4)</span></span>
+                </button>
+                <button class="diff-btn" onclick="window.startGame('4')">
+                    程度 4
+                    <span style="font-size: 14px; font-weight: normal; display: block; margin-top: 4px; color: #e2e8f0;">捨入、展開、因式分解、指數<br>(基礎隨機) <span style="color:#fbbf24; font-weight:bold;">(分數 x1.6)</span></span>
+                </button>
+                <button class="diff-btn" onclick="window.startGame('5')">
+                    程度 5
+                    <span style="font-size: 14px; font-weight: normal; display: block; margin-top: 4px; color: #e2e8f0;">捨入、展開、因式分解、指數<br>(進階隨機) <span style="color:#fbbf24; font-weight:bold;">(分數 x1.8)</span></span>
+            </button>
+            </div>
+        </div>
+
+        <div id="math-overlay">
+            <div id="math-container" class="math-container">
+                <h2 id="math-header" style="margin-top: 0;"></h2>
+                <div id="math-timer-bg"><div id="math-timer-bar"></div></div>
+                <div id="math-question-content"></div>
+                <div class="mcq-options" id="math-options-container"></div>
+            </div>
+        </div>
+
+        <canvas id="gameCanvas"></canvas>
+
+        <div id="ui-container">
+            <div class="ui-box">
+                <div class="player-info-wrapper">
+                    <canvas id="player-icon" width="55" height="55"></canvas>
+                    <div style="flex:1;">
+                        <div id="hp-bar-bg"><div id="ui-hp-fill"></div></div>
+                        <div class="black-text" id="ui-hp-text">HP: 100</div>
+                        <div class="black-text" id="ui-wep-name">尚未裝備</div>
+                        <div class="black-text" id="ui-ammo-text">彈藥: 0/0</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="ui-box">
+                <div style="text-align:center; color:#000; font-weight:bold; font-size:13px; margin-bottom:5px;">擊殺進度 (尚未擊斃: <span id="ui-left-text">0</span>)</div>
+                <div id="kill-bar-bg"><div id="ui-kill-fill"></div></div>
+                
+                <div style="text-align:center; color:#000; font-weight:bold; font-size:13px; margin:6px 0 4px 0;">剩餘魔物目標</div>
+                <div class="monster-row"><canvas id="m-icon-1" width="40" height="40"></canvas><span class="monster-count" id="m-count-1">x 0</span></div>
+                <div class="monster-row"><canvas id="m-icon-2" width="40" height="40"></canvas><span class="monster-count" id="m-count-2">x 0</span></div>
+                <div class="monster-row"><canvas id="m-icon-3" width="40" height="40"></canvas><span class="monster-count" id="m-count-3">x 0</span></div>
+                <div class="monster-row"><canvas id="m-icon-4" width="40" height="40"></canvas><span class="monster-count" id="m-count-4">x 0</span></div>
+                <div class="monster-row"><canvas id="m-icon-5" width="40" height="40"></canvas><span class="monster-count" id="m-count-5">x 0</span></div>
+            </div>
+
+            <div class="ui-box" id="leaderboard-box">
+                <h3>🏆 總排行榜 🏆</h3>
+                <ol id="leaderboard-list"><li>載入排行榜中...</li></ol>
+            </div>
+        </div>
+        
+        <div id="submit-form">
+            <h3 style="margin: 0; color: #fbbf24; font-size: 20px;">上傳遊戲成績</h3>
+            <input type="text" id="lb-class" placeholder="班別 (例: 1A) *必填">
+            <input type="text" id="lb-sid" placeholder="學號 (例: 01) *必填">
+            <input type="text" id="lb-name" placeholder="名字 (選填，預設為學號)">
+            <button onclick="window.submitScore()">上傳成績</button>
+            <button class="skip-btn" onclick="window.returnToMenu()">略過並重玩</button>
+        </div>
+
+        <!-- 嚴格遵守規則更新版本號碼至 V62 -->
+        <div id="version-tag">Math Survival V62</div>
+    </div> <!-- 結束 game-wrapper -->
+
     <audio id="bgm" src="audio/bgm.mp3" loop></audio>
     <audio id="shootSfx" src="audio/shootSfx.m4a"></audio>
     <audio id="reloadSfx" src="audio/reloadSfx.m4a"></audio>
     <audio id="emptyAmmoSfx" src="audio/emptyAmmoSfx.m4a"></audio>
-
-    <div id="loading-screen">連接伺服器並載入數據中...</div>
-    
-    <div id="start-menu">
-        <div id="start-menu-content" style="display:flex; flex-direction:column; align-items:center; gap:12px;">
-            <h1 style="color: #fbbf24; font-size: 35px; margin-bottom: 15px; text-shadow: 2px 2px 4px #000; text-align: center;">請選擇目標程度</h1>
-            
-            <button class="diff-btn" onclick="window.startGame('1')">
-                程度 1
-                <span style="font-size: 14px; font-weight: normal; display: block; margin-top: 4px; color: #e2e8f0;">10-50 整數加減運算<br><span style="color:#fbbf24; font-weight:bold;">(分數 x1.0)</span></span>
-            </button>
-            <button class="diff-btn" onclick="window.startGame('2')">
-                程度 2
-                <span style="font-size: 14px; font-weight: normal; display: block; margin-top: 4px; color: #e2e8f0;">整數四則混合運算 (先乘除後加減)<br><span style="color:#fbbf24; font-weight:bold;">(分數 x1.2)</span></span>
-            </button>
-            <button class="diff-btn" onclick="window.startGame('3')">
-                程度 3
-                <span style="font-size: 14px; font-weight: normal; display: block; margin-top: 4px; color: #e2e8f0;">加減混合 及 基礎指數<br><span style="color:#fbbf24; font-weight:bold;">(分數 x1.4)</span></span>
-            </button>
-            <button class="diff-btn" onclick="window.startGame('4')">
-                程度 4
-                <span style="font-size: 14px; font-weight: normal; display: block; margin-top: 4px; color: #e2e8f0;">捨入、展開、因式分解、指數<br>(基礎隨機) <span style="color:#fbbf24; font-weight:bold;">(分數 x1.6)</span></span>
-            </button>
-            <button class="diff-btn" onclick="window.startGame('5')">
-                程度 5
-                <span style="font-size: 14px; font-weight: normal; display: block; margin-top: 4px; color: #e2e8f0;">捨入、展開、因式分解、指數<br>(進階隨機) <span style="color:#fbbf24; font-weight:bold;">(分數 x1.8)</span></span>
-        </button>
-        </div>
-    </div>
-
-    <div id="math-overlay">
-        <div id="math-container" class="math-container">
-            <h2 id="math-header" style="margin-top: 0;"></h2>
-            <div id="math-timer-bg"><div id="math-timer-bar"></div></div>
-            <div id="math-question-content"></div>
-            <div class="mcq-options" id="math-options-container"></div>
-        </div>
-    </div>
-
-    <canvas id="gameCanvas"></canvas>
-
-    <div id="ui-container">
-        <div class="ui-box">
-            <div class="player-info-wrapper">
-                <canvas id="player-icon" width="55" height="55"></canvas>
-                <div style="flex:1;">
-                    <div id="hp-bar-bg"><div id="ui-hp-fill"></div></div>
-                    <div class="black-text" id="ui-hp-text">HP: 100</div>
-                    <div class="black-text" id="ui-wep-name">尚未裝備</div>
-                    <div class="black-text" id="ui-ammo-text">彈藥: 0/0</div>
-                </div>
-            </div>
-        </div>
-
-        <div class="ui-box">
-            <div style="text-align:center; color:#000; font-weight:bold; font-size:13px; margin-bottom:5px;">擊殺進度 (尚未擊斃: <span id="ui-left-text">0</span>)</div>
-            <div id="kill-bar-bg"><div id="ui-kill-fill"></div></div>
-            
-            <div style="text-align:center; color:#000; font-weight:bold; font-size:13px; margin:6px 0 4px 0;">剩餘魔物目標</div>
-            <!-- 加大畫布為 40x40 確保小螢幕裝得下 -->
-            <div class="monster-row"><canvas id="m-icon-1" width="40" height="40"></canvas><span class="monster-count" id="m-count-1">x 0</span></div>
-            <div class="monster-row"><canvas id="m-icon-2" width="40" height="40"></canvas><span class="monster-count" id="m-count-2">x 0</span></div>
-            <div class="monster-row"><canvas id="m-icon-3" width="40" height="40"></canvas><span class="monster-count" id="m-count-3">x 0</span></div>
-            <div class="monster-row"><canvas id="m-icon-4" width="40" height="40"></canvas><span class="monster-count" id="m-count-4">x 0</span></div>
-            <div class="monster-row"><canvas id="m-icon-5" width="40" height="40"></canvas><span class="monster-count" id="m-count-5">x 0</span></div>
-        </div>
-
-        <div class="ui-box" id="leaderboard-box">
-            <h3>🏆 總排行榜 🏆</h3>
-            <ol id="leaderboard-list"><li>載入排行榜中...</li></ol>
-        </div>
-    </div>
-    
-    <div id="submit-form">
-        <h3 style="margin: 0; color: #fbbf24; font-size: 20px;">上傳遊戲成績</h3>
-        <input type="text" id="lb-class" placeholder="班別 (例: 1A) *必填">
-        <input type="text" id="lb-sid" placeholder="學號 (例: 01) *必填">
-        <input type="text" id="lb-name" placeholder="名字 (選填，預設為學號)">
-        <button onclick="window.submitScore()">上傳成績</button>
-        <button class="skip-btn" onclick="window.returnToMenu()">略過並重玩</button>
-    </div>
-
-    <!-- 嚴格遵守規則更新版本號碼至 V61 -->
-    <div id="version-tag">Math Survival V61</div>
 
 <script>
 // ==============================================================================
@@ -329,10 +346,9 @@ document.addEventListener("visibilitychange", () => {
 
 const UI_BOUND = 250; 
 
-// --- 全域縮放系統與動態邏輯解析度 ---
-let globalScale = 1;
-let logicalWidth = window.innerWidth;
-let logicalHeight = window.innerHeight;
+// --- 全域縮放系統與動態邏輯解析度 (電腦版專屬固定 1280x720 比例) ---
+const LOGICAL_WIDTH = 1280;
+const LOGICAL_HEIGHT = 720;
 
 // --- Control System Variables (Single Joystick + Auto Aim) ---
 let leftJoyBase = { x: UI_BOUND + 60, y: 120 }; 
@@ -342,78 +358,39 @@ const joyRadius = 50;
 const keys = { w: false, a: false, s: false, d: false };
 let isShooting = false;
 
-// 動態縮放處理 - 高清適配
+// 動態縮放處理 - 電腦版完美縮放
 function resizeCanvas() {
+    let wrapper = document.getElementById('game-wrapper');
+    // 計算出完全適合目前視窗大小的縮放比例，維持 16:9
+    let scale = Math.min(window.innerWidth / LOGICAL_WIDTH, window.innerHeight / LOGICAL_HEIGHT);
+    wrapper.style.transform = `translate(-50%, -50%) scale(${scale})`;
+
     let dpr = window.devicePixelRatio || 1;
-    logicalWidth = window.innerWidth;
-    logicalHeight = window.innerHeight;
     
-    // 設定物理像素大小
-    canvas.width = logicalWidth * dpr;
-    canvas.height = logicalHeight * dpr;
+    // 設定實體像素以維持 Retina 清晰度
+    canvas.width = LOGICAL_WIDTH * dpr;
+    canvas.height = LOGICAL_HEIGHT * dpr;
     
-    // 將 Canvas 縮放為邏輯像素大小 (確保 Retina 清晰度)
     ctx.resetTransform();
     ctx.scale(dpr, dpr);
 
-    // 計算全域縮放比例 (基於標準 1180x820 解析度)
-    let scaleX = window.innerWidth / 1180;
-    let scaleY = window.innerHeight / 820;
-    globalScale = Math.min(scaleX, scaleY);
-    globalScale = Math.max(0.4, Math.min(globalScale, 2.5));
-    
-    // 將邏輯座標轉換以維持遊戲視野比例
-    logicalWidth = logicalWidth / globalScale;
-    logicalHeight = logicalHeight / globalScale;
-
-    // 套用縮放至 UI 面板
-    let uiContainer = document.getElementById('ui-container');
-    if (uiContainer) {
-        uiContainer.style.transform = `scale(${globalScale})`;
-        uiContainer.style.transformOrigin = 'top left';
-        uiContainer.style.height = `${logicalHeight - 20}px`; 
-    }
-    
-    let mathContainer = document.getElementById('math-container');
-    if (mathContainer) {
-        mathContainer.style.transform = `scale(${globalScale})`;
-        mathContainer.style.transformOrigin = 'center center';
-    }
-
-    let startMenuContent = document.getElementById('start-menu-content');
-    if (startMenuContent) {
-        startMenuContent.style.transform = `scale(${globalScale})`;
-        startMenuContent.style.transformOrigin = 'center center';
-    }
-
-    let portraitLockContent = document.getElementById('portrait-lock-content');
-    if (portraitLockContent) {
-        portraitLockContent.style.transform = `scale(${globalScale})`;
-        portraitLockContent.style.transformOrigin = 'center center';
-    }
-
-    let versionTag = document.getElementById('version-tag');
-    if(versionTag) {
-        versionTag.style.transform = `scale(${globalScale})`;
-        versionTag.style.transformOrigin = 'bottom left';
-    }
-
-    // 將上傳表單動態定位至中央並縮放
-    let submitForm = document.getElementById('submit-form');
-    if (submitForm) {
-        let scaledUiBound = UI_BOUND * globalScale;
-        let centerX = scaledUiBound + (window.innerWidth - scaledUiBound) / 2;
-        submitForm.style.left = `${centerX}px`;
-        submitForm.style.transform = `translate(-50%, 0) scale(${globalScale})`;
-        submitForm.style.transformOrigin = 'top center';
-    }
-
-    // 清理搖桿位置
-    leftJoyBase = { x: UI_BOUND + 60, y: logicalHeight - 100 };
+    // 更新搖桿位置至邏輯座標底端
+    leftJoyBase = { x: UI_BOUND + 60, y: LOGICAL_HEIGHT - 100 };
     if (!leftJoy.active) leftJoy.stick = { x: leftJoyBase.x, y: leftJoyBase.y };
 }
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
+
+// 轉換視窗滑鼠/觸控座標為遊戲邏輯座標
+function getLogicalPos(clientX, clientY) {
+    let wrapper = document.getElementById('game-wrapper');
+    let rect = wrapper.getBoundingClientRect();
+    let scale = Math.min(window.innerWidth / LOGICAL_WIDTH, window.innerHeight / LOGICAL_HEIGHT);
+    return {
+        x: (clientX - rect.left) / scale,
+        y: (clientY - rect.top) / scale
+    };
+}
 
 // Global State
 let gameState = 'START_MENU'; 
@@ -676,7 +653,7 @@ function drawHUDIcons() {
         mCtx.clearRect(0,0,mC.width,mC.height);
         
         mCtx.save();
-        mCtx.translate(24, 28); mCtx.scale(2.2, 2.2); 
+        mCtx.translate(20, 20); mCtx.scale(1.8, 1.8); 
         
         drawMonsterEntity(mCtx, 14, mTypes[i].color, mTypes[i].tier, 0, true);
         
@@ -1091,22 +1068,22 @@ window.submitMCQ = function(isCorrect) {
             if (player.weaponLevel === -1) {
                 player.weaponLevel = 0; player.speed = WEAPONS[0].playerSpeed;
                 player.currentMagazine = WEAPONS[0].magCapacity || 30; player.totalAmmo += WEAPONS[0].reloadAmmo || 30;
-                addFloatingText(`解鎖: ${WEAPONS[0].name}!`, logicalWidth/2, logicalHeight/4, '#fbbf24', 35);
+                addFloatingText(`解鎖: ${WEAPONS[0].name}!`, LOGICAL_WIDTH/2, LOGICAL_HEIGHT/4, '#fbbf24', 35);
             } else if (player.weaponLevel < WEAPONS.length - 1) {
                 player.weaponLevel++; player.speed = WEAPONS[player.weaponLevel].playerSpeed;
                 let ammoToAdd = WEAPONS[player.weaponLevel].reloadAmmo || 30; player.totalAmmo += ammoToAdd;
-                addFloatingText(`解鎖: ${WEAPONS[player.weaponLevel].name}!`, logicalWidth/2, logicalHeight/4, '#fbbf24', 35);
-                addFloatingText(`+${ammoToAdd} 總彈藥`, logicalWidth/2, logicalHeight/4 + 40, '#000000', 25);
+                addFloatingText(`解鎖: ${WEAPONS[player.weaponLevel].name}!`, LOGICAL_WIDTH/2, LOGICAL_HEIGHT/4, '#fbbf24', 35);
+                addFloatingText(`+${ammoToAdd} 總彈藥`, LOGICAL_WIDTH/2, LOGICAL_HEIGHT/4 + 40, '#000000', 25);
             } else {
                 let ammoToAdd = WEAPONS[player.weaponLevel].reloadAmmo || 30; player.totalAmmo += ammoToAdd;
-                addFloatingText(`等級上限！ +${ammoToAdd} 總彈藥`, logicalWidth/2, logicalHeight/4, '#fbbf24', 35);
+                addFloatingText(`等級上限！ +${ammoToAdd} 總彈藥`, LOGICAL_WIDTH/2, LOGICAL_HEIGHT/4, '#fbbf24', 35);
             }
             player.hp = Math.min(player.maxHp, player.hp + 50); 
             createParticles(player.x, player.y, '#4ade80', 60, 10); 
         } else if (currentMathType === 'AMMO') {
             let ammoToAdd = (player.weaponLevel >= 0 && WEAPONS[player.weaponLevel].ammoBoxRefill) ? WEAPONS[player.weaponLevel].ammoBoxRefill : 30;
             player.totalAmmo += ammoToAdd;
-            addFloatingText(`+${ammoToAdd} 總彈藥`, logicalWidth/2, logicalHeight/4 + 40, '#38bdf8', 25);
+            addFloatingText(`+${ammoToAdd} 總彈藥`, LOGICAL_WIDTH/2, LOGICAL_HEIGHT/4 + 40, '#38bdf8', 25);
             createParticles(player.x, player.y, '#38bdf8', 50, 10); 
         }
         closeMathOverlay(true);
@@ -1130,7 +1107,7 @@ function closeMathOverlay(success) {
 }
 
 // ==============================================================================
-// INPUT HANDLING (Single Joystick Floating System)
+// INPUT HANDLING
 // ==============================================================================
 
 canvas.addEventListener('touchstart', handleTouchStart, {passive: false});
@@ -1144,16 +1121,15 @@ function handleTouchStart(e) {
     const touches = e.changedTouches;
     for (let i = 0; i < touches.length; i++) {
         let t = touches[i]; 
-        // 不再除以 globalScale，因為原生對應邏輯座標
-        let tx = t.clientX; 
-        let ty = t.clientY;
+        let pos = getLogicalPos(t.clientX, t.clientY);
+        let tx = pos.x; 
+        let ty = pos.y;
         
         if (gameState === 'GAME_OVER' || gameState === 'VICTORY') { 
             if (scoreSubmitted || (document.getElementById('submit-form') && document.getElementById('submit-form').style.display === 'none')) window.returnToMenu(); 
             return; 
         }
         if (gameState === 'PLAYING') {
-            // 單搖桿系統：在畫面任何畫布區域觸碰即生成移動搖桿
             if (!leftJoy.active) {
                 leftJoy.active = true; leftJoy.id = t.identifier; 
                 leftJoyBase = { x: tx, y: ty };
@@ -1168,8 +1144,9 @@ function handleTouchMove(e) {
     e.preventDefault(); const touches = e.changedTouches;
     for (let i = 0; i < touches.length; i++) {
         let t = touches[i]; 
-        let tx = t.clientX; 
-        let ty = t.clientY;
+        let pos = getLogicalPos(t.clientX, t.clientY);
+        let tx = pos.x; 
+        let ty = pos.y;
         
         if (leftJoy.active && t.identifier === leftJoy.id) {
             let dx = tx - leftJoyBase.x; 
@@ -1197,6 +1174,11 @@ function handleTouchEnd(e) {
     }
 }
 
+window.addEventListener('mousemove', (e) => { 
+    let pos = getLogicalPos(e.clientX, e.clientY);
+    mouseX = pos.x; 
+    mouseY = pos.y; 
+});
 window.addEventListener('mousedown', (e) => {
     if(e.target !== canvas) return;
     initAudio();
@@ -1236,19 +1218,19 @@ function fireBullet(angle, weapon, customSpeed) {
 
 function spawnLootBox() {
     lootBoxes.push({
-        x: Math.random() * (logicalWidth - UI_BOUND - 100) + UI_BOUND + 50, y: Math.random() * (logicalHeight - 200) + 100,
+        x: Math.random() * (LOGICAL_WIDTH - UI_BOUND - 100) + UI_BOUND + 50, y: Math.random() * (LOGICAL_HEIGHT - 200) + 100,
         size: 35, pulse: 0, spawnTime: globalTime 
     });
-    addFloatingText("武器升級箱降落！", logicalWidth/2, 150, '#eab308', 30);
+    addFloatingText("武器升級箱降落！", LOGICAL_WIDTH/2, 150, '#eab308', 30);
 }
 
 function spawnAmmoBox() {
     if (ammoBoxes.length < 3) {
         ammoBoxes.push({
-            x: Math.random() * (logicalWidth - UI_BOUND - 100) + UI_BOUND + 50, y: Math.random() * (logicalHeight - 200) + 100,
+            x: Math.random() * (LOGICAL_WIDTH - UI_BOUND - 100) + UI_BOUND + 50, y: Math.random() * (LOGICAL_HEIGHT - 200) + 100,
             size: 28, pulse: 0, spawnTime: globalTime 
         });
-        addFloatingText("彈藥補給包降落！", logicalWidth/2, 120, '#38bdf8', 26);
+        addFloatingText("彈藥補給包降落！", LOGICAL_WIDTH/2, 120, '#38bdf8', 26);
     }
 }
 
@@ -1256,8 +1238,8 @@ function spawnEnemy() {
     if (gameState !== 'PLAYING' || monsterQueue.length === 0) return;
     let mData = monsterQueue.shift(); totalMonstersSpawned++;
     
-    let x = Math.random() < 0.5 ? UI_BOUND + 10 : logicalWidth + 50;
-    let y = Math.random() * logicalHeight;
+    let x = Math.random() < 0.5 ? UI_BOUND + 10 : LOGICAL_WIDTH + 50;
+    let y = Math.random() * LOGICAL_HEIGHT;
 
     enemies.push({ 
         x: x, y: y, size: mData.size, color: mData.color, speed: mData.speed, 
@@ -1266,7 +1248,7 @@ function spawnEnemy() {
     
     if (mData.tier === 5) {
         bossAlarmTimer = 120;
-        addFloatingText("⚠️ 萬血首領來襲！ ⚠️", logicalWidth/2, 100, '#ef4444', 50);
+        addFloatingText("⚠️ 萬血首領來襲！ ⚠️", LOGICAL_WIDTH/2, 100, '#ef4444', 50);
     }
 }
 
@@ -1287,7 +1269,7 @@ function resetGame() {
     player.angle = 0;
     
     enemiesKilled = 0; totalMonstersSpawned = 0; questionsSolved = 0;
-    player.x = UI_BOUND + (logicalWidth - UI_BOUND)/2; player.y = logicalHeight / 2;
+    player.x = UI_BOUND + (LOGICAL_WIDTH - UI_BOUND)/2; player.y = LOGICAL_HEIGHT / 2;
     bullets = []; enemies = []; lootBoxes = []; ammoBoxes = []; particles = []; floatingTexts = [];
     isShooting = false; keys.w = keys.a = keys.s = keys.d = false;
     leftJoy.active = false;
@@ -1393,8 +1375,8 @@ function update() {
     }
     
     if (!isNaN(dx) && !isNaN(dy)) { player.x += dx; player.y += dy; }
-    player.x = Math.max(UI_BOUND + player.radius, Math.min(logicalWidth - player.radius, player.x));
-    player.y = Math.max(player.radius, Math.min(logicalHeight - player.radius, player.y));
+    player.x = Math.max(UI_BOUND + player.radius, Math.min(LOGICAL_WIDTH - player.radius, player.x));
+    player.y = Math.max(player.radius, Math.min(LOGICAL_HEIGHT - player.radius, player.y));
 
     // 全自動智能瞄準 (Auto-Aim Logic)
     let closestEnemy = null;
@@ -1424,7 +1406,6 @@ function update() {
 
     if (isShooting) {
         if (player.weaponLevel === -1) {
-            // 這個區塊其實已被自動瞄準前的判斷擋住，但作為保險保留
             if (globalTime - player.lastFireTime >= 30) {
                 addFloatingText("請先拾取升級箱獲取武器！", player.x, player.y - 40, '#ef4444');
                 let emptySfx = document.getElementById('emptyAmmoSfx'); 
@@ -1469,7 +1450,7 @@ function update() {
     for (let i = bullets.length - 1; i >= 0; i--) {
         let b = bullets[i]; b.x += b.vx; b.y += b.vy;
         if (Math.random() < 0.3) createParticles(b.x, b.y, b.color, 1, 1);
-        if (b.x < 0 || b.x > logicalWidth || b.y < 0 || b.y > logicalHeight) bullets.splice(i, 1);
+        if (b.x < 0 || b.x > LOGICAL_WIDTH || b.y < 0 || b.y > LOGICAL_HEIGHT) bullets.splice(i, 1);
     }
 
     for (let i = enemies.length - 1; i >= 0; i--) {
@@ -1533,14 +1514,14 @@ function update() {
 function draw() {
     if (gameState === 'START_MENU') {
         ctx.fillStyle = '#0f172a'; 
-        ctx.fillRect(0, 0, logicalWidth, logicalHeight);
+        ctx.fillRect(0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT);
         return;
     }
 
     ctx.save();
     
     ctx.fillStyle = '#d2b48c'; 
-    ctx.fillRect(0, 0, logicalWidth, logicalHeight);
+    ctx.fillRect(0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT);
     
     if (shakeTime > 0) {
         let mag = (shakeTime / 10) * 8; 
@@ -1548,13 +1529,13 @@ function draw() {
     }
 
     ctx.strokeStyle = 'rgba(139, 69, 19, 0.15)'; ctx.lineWidth = 2;
-    for(let i=0; i<logicalWidth; i+=80) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, logicalHeight); ctx.stroke(); }
-    for(let i=0; i<logicalHeight; i+=80) { ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(logicalWidth, i); ctx.stroke(); }
+    for(let i=0; i<LOGICAL_WIDTH; i+=80) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, LOGICAL_HEIGHT); ctx.stroke(); }
+    for(let i=0; i<LOGICAL_HEIGHT; i+=80) { ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(LOGICAL_WIDTH, i); ctx.stroke(); }
 
     if (bossAlarmTimer > 0) {
         let alpha = Math.abs(Math.sin(bossAlarmTimer * 0.1)) * 0.4;
         ctx.fillStyle = `rgba(220, 38, 38, ${alpha})`;
-        ctx.fillRect(0, 0, logicalWidth, logicalHeight);
+        ctx.fillRect(0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT);
     }
 
     let drawables = [];
@@ -1675,7 +1656,7 @@ function draw() {
     }
     ctx.globalAlpha = 1.0;
 
-    let gameCenterX = UI_BOUND + (logicalWidth - UI_BOUND) / 2;
+    let gameCenterX = UI_BOUND + (LOGICAL_WIDTH - UI_BOUND) / 2;
 
     // --- 繪製正上方目前程度與倍率 (加入課題名稱並分2行顯示) ---
     if (gameState === 'PLAYING') {
@@ -1725,31 +1706,31 @@ function draw() {
     }
 
     if (gameState === 'GAME_OVER' || gameState === 'VICTORY') {
-        ctx.fillStyle = 'rgba(15, 23, 42, 0.9)'; ctx.fillRect(0, 0, logicalWidth, logicalHeight);
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.9)'; ctx.fillRect(0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT);
         ctx.textAlign = 'center';
         
         let mult = { '1': 1, '2': 1.2, '3': 1.4, '4': 1.6, '5': 1.8 }[currentDifficulty] || 1;
         let finalScore = Math.round(enemiesKilled * mult);
 
         if (gameState === 'VICTORY') {
-            ctx.fillStyle = 'black'; ctx.font = 'bold 60px Arial'; ctx.fillText('MISSION ACCOMPLISHED!', gameCenterX + 3, logicalHeight/2 - 147); // Fake shadow
-            ctx.fillStyle = '#fbbf24'; ctx.fillText('MISSION ACCOMPLISHED!', gameCenterX, logicalHeight/2 - 150);
+            ctx.fillStyle = 'black'; ctx.font = 'bold 60px Arial'; ctx.fillText('MISSION ACCOMPLISHED!', gameCenterX + 3, LOGICAL_HEIGHT/2 - 147); // Fake shadow
+            ctx.fillStyle = '#fbbf24'; ctx.fillText('MISSION ACCOMPLISHED!', gameCenterX, LOGICAL_HEIGHT/2 - 150);
             ctx.fillStyle = 'white'; ctx.font = 'bold 24px Arial'; 
             let finalWepName = player.weaponLevel >= 0 ? WEAPONS[player.weaponLevel].name : '無';
-            ctx.fillText(`成功擊殺終極 Boss！ 最終武器: ${finalWepName}`, gameCenterX, logicalHeight/2 - 80);
+            ctx.fillText(`成功擊殺終極 Boss！ 最終武器: ${finalWepName}`, gameCenterX, LOGICAL_HEIGHT/2 - 80);
             // 顯示計算公式
-            ctx.fillText(`總得分: ${enemiesKilled} x ${mult} = ${finalScore}分`, gameCenterX, logicalHeight/2 - 45);
+            ctx.fillText(`總得分: ${enemiesKilled} x ${mult} = ${finalScore}分`, gameCenterX, LOGICAL_HEIGHT/2 - 45);
         } else {
-            ctx.fillStyle = 'black'; ctx.font = 'bold 80px Arial'; ctx.fillText('YOU DIED', gameCenterX + 4, logicalHeight/2 - 146);
-            ctx.fillStyle = '#ef4444'; ctx.fillText('YOU DIED', gameCenterX, logicalHeight/2 - 150);
+            ctx.fillStyle = 'black'; ctx.font = 'bold 80px Arial'; ctx.fillText('YOU DIED', gameCenterX + 4, LOGICAL_HEIGHT/2 - 146);
+            ctx.fillStyle = '#ef4444'; ctx.fillText('YOU DIED', gameCenterX, LOGICAL_HEIGHT/2 - 150);
             ctx.fillStyle = 'white'; ctx.font = 'bold 28px Arial';
             // 顯示計算公式
-            ctx.fillText(`擊殺數: ${enemiesKilled} / ${TOTAL_MONSTERS} (總得分: ${enemiesKilled} x ${mult} = ${finalScore}分)`, gameCenterX, logicalHeight/2 - 80);
+            ctx.fillText(`擊殺數: ${enemiesKilled} / ${TOTAL_MONSTERS} (總得分: ${enemiesKilled} x ${mult} = ${finalScore}分)`, gameCenterX, LOGICAL_HEIGHT/2 - 80);
         }
         
         ctx.globalAlpha = (globalTime % 60 < 30) ? 1 : 0.5; ctx.fillStyle = '#94a3b8'; ctx.font = '24px Arial';
-        ctx.fillText('<< 請在左下方輸入資料上傳排行榜 >>', gameCenterX, logicalHeight/2 + 250); 
-        ctx.fillText('或按 [Enter] 返回主選單', gameCenterX, logicalHeight/2 + 290); ctx.globalAlpha = 1.0;
+        ctx.fillText('<< 請在左下方輸入資料上傳排行榜 >>', gameCenterX, LOGICAL_HEIGHT/2 + 250); 
+        ctx.fillText('或按 [Enter] 返回主選單', gameCenterX, LOGICAL_HEIGHT/2 + 290); ctx.globalAlpha = 1.0;
     }
     
     ctx.restore(); // 恢復畫布的全域縮放
