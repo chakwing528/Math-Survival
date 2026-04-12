@@ -1,214 +1,1736 @@
-// js/topics/expansion.js
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Math Survival - Optimized & Modular</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 
-// ==========================================
-// 恆等式展開專用錯誤提示訊息
-// ==========================================
-const msgExp1 = `<div class="text-red-600 font-bold text-lg mb-1">❗ 忘記了中間項 2ab</div>`;
-const msgExp2 = `<div class="text-red-600 font-bold text-lg mb-1">❗ 展開符號發生錯誤</div>`;
-const msgExp3 = `<div class="text-red-600 font-bold text-lg mb-1">❗ 係數平方計算錯誤</div>`;
+    <script src="js/topics/indices.js"></script>
+    <script src="js/topics/expansion.js"></script>
+    <script src="js/topics/factorization.js"></script>
+    <script src="js/topics/rounding.js"></script>
 
-// ==========================================
-// 題目生成器：恆等式的展開 (Expansion of Identities)
-// ==========================================
-function generateExpansionQuestions(num, levelPref) {
-    const bank = [];
-    const singleVars = ['x', 'y', 'a', 'b', 'm', 'n']; 
-    const varPairs = [['x', 'y'], ['a', 'b'], ['m', 'n'], ['p', 'q']];
-
-    // 輔助函數：從 Google Sheet 動態設定中取得難度標題與說明
-    function getLevelInfo(levelId, defaultTitle) {
-        let title = defaultTitle;
-        let desc = "";
-        
-        // 1. 先從系統預設備用設定中讀取
-        if (typeof fallbackConfigs !== 'undefined' && fallbackConfigs['expansion']) {
-            let lvl = fallbackConfigs['expansion'].levels.find(l => l.id === levelId);
-            if (lvl) {
-                if (lvl.title) title = lvl.title;
-                if (lvl.desc) desc = lvl.desc;
-            }
-        }
-        
-        // 2. 若 Google Sheet 有成功載入資料，則覆寫為最新設定
-        if (typeof dynamicTopicConfig !== 'undefined' && dynamicTopicConfig.length > 0) {
-            let custom = dynamicTopicConfig.find(c => c.topic === 'expansion' && c.levelId === levelId);
-            if (custom) {
-                if (custom.title) title = custom.title;
-                if (custom.desc) desc = custom.desc;
-            }
-        }
-        return { title, desc };
-    }
-
-    // 輔助函數：格式化 (c1 v1 + c2 v2)
-    function fmtBinomial(c1, v1, c2, v2) {
-        let r = "";
-        if (c1 === 1) r += v1;
-        else if (c1 === -1) r += "-" + v1;
-        else r += c1 + v1;
-        
-        let absC2 = Math.abs(c2);
-        let term2 = "";
-        if (absC2 === 1 && v2 !== "") term2 = v2;
-        else term2 = absC2 + v2;
-
-        if (c2 > 0) r += " + " + term2;
-        else if (c2 < 0) r += " - " + term2;
-        
-        return r;
-    }
-
-    // 輔助函數：格式化 A v1^2 + B v1 v2 + C v2^2
-    function fmtPoly2_2var(A, B, C, v1, v2) {
-        let r = "";
-        let v1_sq = v1 ? v1 + "^2" : "";
-        if (A === 1) r += v1_sq || "1";
-        else if (A === -1) r += "-" + (v1_sq || "1");
-        else if (A !== 0) r += A + v1_sq;
-        
-        let v1v2 = v1 + v2;
-        if (B === 1) r += r ? ` + ${v1v2}` : `${v1v2}`;
-        else if (B === -1) r += r ? ` - ${v1v2}` : `-${v1v2}`;
-        else if (B > 0) r += r ? ` + ${B}${v1v2}` : `${B}${v1v2}`;
-        else if (B < 0) r += r ? ` - ${Math.abs(B)}${v1v2}` : `${B}${v1v2}`;
-        
-        let v2_sq = v2 ? v2 + "^2" : "";
-        if (C === 1) r += r ? ` + ${v2_sq || "1"}` : `${v2_sq || "1"}`;
-        else if (C === -1) r += r ? ` - ${v2_sq || "1"}` : `-${v2_sq || "1"}`;
-        else if (C > 0) r += r ? ` + ${C}${v2_sq}` : `${C}${v2_sq}`;
-        else if (C < 0) r += r ? ` - ${Math.abs(C)}${v2_sq}` : `${C}${v2_sq}`;
-        
-        return r || "0";
-    }
-
-    for (let i = 0; i < num; i++) {
-        let levelType = levelPref;
-        if (levelPref === 'mixed') {
-            const types = ['1', '2', '3'];
-            levelType = types[getRandomInt(0, types.length)];
-        } else {
-            levelType = String(levelPref);
-        }
-        
-        let qObj = { id: i + 1, topic: "恆等式的展開 (Expansion)" };
-        let questionMathStr = "";
-        
-        let type = getRandomInt(0, 2); // 0: 完全平方, 1: 平方差
-        let c1 = 1, c2 = 1, v1 = 'x', v2 = '';
-
-        // 產生隨機數 A (作為常數項或第二變數係數)：1至10，正負隨機
-        let randA = getRandomInt(1, 11) * (Math.random() > 0.5 ? 1 : -1);
-
-        if (levelType === '1') {
-            let info = getLevelInfo('L1', "⭐ 程度 1");
-            qObj.level = info.title;
-            qObj.desc = info.desc;
-            c1 = 1;
-            c2 = randA;
-            v1 = singleVars[getRandomInt(0, singleVars.length)];
-        } else if (levelType === '2') {
-            let info = getLevelInfo('L2', "⭐⭐ 程度 2");
-            qObj.level = info.title;
-            qObj.desc = info.desc;
-            // 確保 X 的係數 (c1) 絕對為 1-5 的正整數，杜絕出現負數
-            c1 = getRandomInt(1, 6); 
-            c2 = randA;              
-            v1 = singleVars[getRandomInt(0, singleVars.length)];
-        } else {
-            let info = getLevelInfo('L3', "⭐⭐⭐ 程度 3");
-            qObj.level = info.title;
-            qObj.desc = info.desc;
-            // 確保第一變數的係數 (c1) 絕對為 1-5 的正整數
-            c1 = getRandomInt(1, 6); 
-            c2 = randA;              
-            let pair = varPairs[getRandomInt(0, varPairs.length)];
-            v1 = pair[0];
-            v2 = pair[1];            // 啟動雙變數模式
+    <style>
+        body {
+            margin: 0; padding: 0; overflow: hidden;
+            background-color: #000000; /* 電腦版外圍留黑邊 */
+            color: white;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            user-select: none; -webkit-user-select: none; touch-action: none;
         }
 
-        let correctStr = "";
-        let steps = [];
-        let options = [];
-        let wSet = new Set();
-        
-        let term1Str = c1 === 1 ? v1 : c1 + v1;
-        let B_str = (Math.abs(c2) === 1 && v2 !== "") ? v2 : Math.abs(c2) + v2;
-
-        if (type === 0) {
-            // 完全平方: (c1 v1 + c2 v2)^2
-            questionMathStr = `(${fmtBinomial(c1, v1, c2, v2)})^2`;
-            correctStr = fmtPoly2_2var(c1*c1, 2*c1*c2, c2*c2, v1, v2);
-            
-            steps = [
-                { text: `(${fmtBinomial(c1, v1, c2, v2)})^2`, hide: false },
-                { text: `(${term1Str})^2 ${c2 > 0 ? '+' : '-'} 2(${term1Str})(${B_str}) + (${B_str})^2`, hide: true },
-                { text: correctStr, hide: false }
-            ];
-            
-            options.push({text: `\\( \\displaystyle ${correctStr} \\)`, isCorrect: true, hint: wrapHint(msgCorrect, buildEq(steps))});
-            wSet.add(correctStr);
-
-            // 錯誤 1：忘記中間項 2ab
-            let w1 = fmtPoly2_2var(c1*c1, 0, c2*c2, v1, v2);
-            if (!wSet.has(w1)) { options.push({text: `\\( \\displaystyle ${w1} \\)`, isCorrect: false, hint: wrapHint(msgExp1, buildEq(steps))}); wSet.add(w1); }
-
-            // 錯誤 2：中間項正負號錯誤
-            let w2 = fmtPoly2_2var(c1*c1, -2*c1*c2, c2*c2, v1, v2);
-            if (!wSet.has(w2)) { options.push({text: `\\( \\displaystyle ${w2} \\)`, isCorrect: false, hint: wrapHint(msgExp2, buildEq(steps))}); wSet.add(w2); }
-
-            // 錯誤 3：係數忘記平方或漏乘2
-            let w3 = fmtPoly2_2var(c1, 2*c1*c2, c2, v1, v2);
-            if ((c1 === 1 && Math.abs(c2) === 1) || wSet.has(w3)) w3 = fmtPoly2_2var(c1*c1, c1*c2, c2*c2, v1, v2); 
-            if (!wSet.has(w3)) { options.push({text: `\\( \\displaystyle ${w3} \\)`, isCorrect: false, hint: wrapHint(msgExp3, buildEq(steps))}); wSet.add(w3); }
-            
-        } else {
-            // 平方差: (c1 v1 + c2 v2)(c1 v1 - c2 v2)
-            questionMathStr = `(${fmtBinomial(c1, v1, Math.abs(c2), v2)})(${fmtBinomial(c1, v1, -Math.abs(c2), v2)})`;
-            correctStr = fmtPoly2_2var(c1*c1, 0, -c2*c2, v1, v2);
-            
-            steps = [
-                { text: `(${fmtBinomial(c1, v1, Math.abs(c2), v2)})(${fmtBinomial(c1, v1, -Math.abs(c2), v2)})`, hide: false },
-                { text: `(${term1Str})^2 - (${B_str})^2`, hide: true },
-                { text: correctStr, hide: false }
-            ];
-            
-            options.push({text: `\\( \\displaystyle ${correctStr} \\)`, isCorrect: true, hint: wrapHint(msgCorrect, buildEq(steps))});
-            wSet.add(correctStr);
-
-            // 錯誤 1：符號錯誤 (減號寫成加號)
-            let w1 = fmtPoly2_2var(c1*c1, 0, c2*c2, v1, v2);
-            if (!wSet.has(w1)) { options.push({text: `\\( \\displaystyle ${w1} \\)`, isCorrect: false, hint: wrapHint(msgExp2, buildEq(steps))}); wSet.add(w1); }
-
-            // 錯誤 2：係數忘記平方
-            let w2 = fmtPoly2_2var(c1, 0, -Math.abs(c2), v1, v2);
-            if ((c1 === 1 && Math.abs(c2) === 1) || wSet.has(w2)) w2 = fmtPoly2_2var(c1*c1, -2*c1*Math.abs(c2), -c2*c2, v1, v2);
-            if (!wSet.has(w2)) { options.push({text: `\\( \\displaystyle ${w2} \\)`, isCorrect: false, hint: wrapHint(msgExp3, buildEq(steps))}); wSet.add(w2); }
-
-            // 錯誤 3：與完全平方混淆
-            let w3 = fmtPoly2_2var(c1*c1, -2*c1*Math.abs(c2), c2*c2, v1, v2);
-            if (!wSet.has(w3)) { options.push({text: `\\( \\displaystyle ${w3} \\)`, isCorrect: false, hint: wrapHint(msgExp1, buildEq(steps))}); wSet.add(w3); }
+        /* --- 遊戲核心固定比例容器 --- */
+        #game-wrapper {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 1280px;
+            height: 720px;
+            transform: translate(-50%, -50%);
+            transform-origin: center center;
+            background-color: #0f172a;
+            overflow: hidden;
+            box-shadow: 0 0 30px rgba(255, 255, 255, 0.05); /* 電腦版質感邊框 */
         }
 
-        // 確保選項滿 4 個，生成動態干擾項
-        while (options.length < 4) {
-            let fakeC = c2*c2 + getRandomInt(1, 5) * (Math.random() > 0.5 ? 1 : -1);
-            if (fakeC <= 0) fakeC = Math.abs(c2*c2) + 1; // 避免 0 或負數導致格式異常
-            let wFake = type === 0 ? fmtPoly2_2var(c1*c1, 2*c1*c2, fakeC, v1, v2) : fmtPoly2_2var(c1*c1, 0, -fakeC, v1, v2);
-            
-            let optText = `\\( \\displaystyle ${wFake} \\)`;
-            if (!options.some(o => o.text === optText)) {
-                options.push({text: optText, isCorrect: false, hint: wrapHint(msgExp2, buildEq(steps))});
-            }
+        #gameCanvas { display: block; width: 1280px; height: 720px; position: absolute; top: 0; left: 0; z-index: 1; }
+        
+        #loading-screen {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: #1e293b; display: flex; justify-content: center; align-items: center;
+            color: #fbbf24; font-size: 32px; font-weight: bold; z-index: 1000;
         }
 
-        qObj.options = shuffleArray(options).map((opt, idx) => ({...opt, id: String.fromCharCode(65 + idx)}));
-        qObj.question = `
-        <div class="mb-4 text-base sm:text-lg text-slate-600">展開以下數式：</div>
-        <div class="text-xl sm:text-2xl font-bold text-indigo-700 py-4 overflow-x-auto math-scroll whitespace-nowrap w-full">
-            \\( \\displaystyle ${questionMathStr} \\)
-        </div>`;
+        /* --- 裝置橫向鎖死介面 --- */
+        #portrait-lock {
+            display: none;
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background-color: #0f172a; z-index: 999999;
+            flex-direction: column; justify-content: center; align-items: center;
+            color: #fbbf24; text-align: center;
+        }
+        @media screen and (orientation: portrait) {
+            #portrait-lock { display: flex; }
+        }
+
+        #start-menu {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(15, 23, 42, 0.95); display: none; flex-direction: column;
+            justify-content: center; align-items: center; z-index: 500; gap: 12px;
+        }
+        .diff-btn {
+            background: #3b82f6; color: white; border: 2px solid #94a3b8; padding: 12px 20px;
+            font-size: 22px; font-weight: bold; border-radius: 10px; cursor: pointer; width: 280px;
+            transition: background 0.2s; line-height: 1.2;
+        }
+        .diff-btn:hover { background: #2563eb; }
+
+        #math-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); z-index: 600; display: none;
+            flex-direction: column; justify-content: center; align-items: center;
+        }
+        .math-container {
+            background: #1e293b; padding: 30px; border-radius: 12px;
+            border: 4px solid #38bdf8; width: 85%; max-width: 600px; max-height: 90%; overflow-y: auto;
+            text-align: center; color: white; box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        }
+        #math-timer-bg { width: 100%; height: 12px; background: #334155; margin-bottom: 20px; border-radius: 6px; overflow: hidden;}
+        #math-timer-bar { height: 100%; background: #4ade80; width: 100%; transition: width 0.1s linear, background-color 0.3s; }
+        #math-question-content { font-size: 20px; margin-bottom: 25px; overflow-x: auto; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px;}
+        .mcq-options { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .mcq-btn {
+            background: #334155; border: 2px solid #64748b; padding: 15px;
+            border-radius: 8px; color: white; font-size: 20px; cursor: pointer;
+            transition: 0.2s; display: flex; align-items: center; justify-content: flex-start; gap: 15px;
+        }
+        .mcq-btn:hover { background: #475569; border-color: #fbbf24; }
+        .mcq-label { color: #fbbf24; font-weight: bold; font-size: 24px; }
+
+        /* --- 原生響應式排版 UI --- */
+        #ui-container {
+            position: absolute; top: 10px; left: 10px; bottom: 10px; width: 220px; 
+            display: flex; flex-direction: column; gap: 8px; z-index: 10; pointer-events: none;
+        }
+        .ui-box { 
+            background: rgba(241, 245, 249, 0.30); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+            border: 2px solid rgba(148, 163, 184, 0.6); border-radius: 8px; padding: 8px; 
+            pointer-events: auto; flex-shrink: 0;
+        }
+        .player-info-wrapper { display: flex; align-items: center; gap: 10px; }
+        #hp-bar-bg { width: 100%; height: 12px; background: #cbd5e1; border: 2px solid #475569; margin-bottom: 6px; }
+        #ui-hp-fill { height: 100%; background: #22c55e; width: 100%; }
         
-        bank.push(qObj);
-    }
-    return bank;
+        #kill-bar-bg { width: 100%; height: 10px; background: #cbd5e1; border: 2px solid #475569; margin-bottom: 4px; border-radius: 4px; overflow: hidden; }
+        #ui-kill-fill { height: 100%; background: #f59e0b; width: 0%; transition: width 0.2s; }
+
+        .black-text { color: #000000; font-weight: bold; font-size: 14px; line-height: 1.5; }
+        .monster-row { display: flex; align-items: center; justify-content: flex-start; padding-left: 30px; gap: 15px; margin-bottom: 0px; }
+        .monster-count { color: #000000; font-weight: bold; font-size: 16px; }
+        
+        #leaderboard-box { flex: 1 1 auto; display: flex; flex-direction: column; overflow: hidden; min-height: 80px; }
+        #leaderboard-box h3 { margin: 0 0 8px 0; color: #000; text-align: center; font-size: 15px; }
+        #leaderboard-list { 
+            margin: 0; padding: 0; list-style-type: none;
+            color: #000; font-weight: bold; font-size: 12px; 
+            overflow-y: auto; max-height: 100%; 
+        }
+        /* 自動對齊的網格排版 */
+        #leaderboard-list li { 
+            display: grid; 
+            grid-template-columns: 22px 35px 1fr 38px 25px; 
+            gap: 4px; 
+            margin-bottom: 4px; 
+            padding: 2px 0; 
+            align-items: center; 
+        }
+        #leaderboard-list li span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        /* --- 中央彈出的上傳成績表單 --- */
+        #submit-form { 
+            display: none; 
+            flex-direction: column; 
+            align-items: center; 
+            gap: 12px; 
+            position: absolute; 
+            top: 52%; 
+            left: calc(250px + (1280px - 250px) / 2); /* 完美定位置中 */
+            transform: translate(-50%, 0); 
+            background: rgba(30, 41, 59, 0.95); 
+            padding: 25px; 
+            border-radius: 12px;
+            border: 2px solid #fbbf24; 
+            z-index: 1000; 
+            width: 320px; 
+            box-shadow: 0 0 20px rgba(0,0,0,0.8);
+        }
+        #submit-form input { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #94a3b8; text-align: center; font-size: 16px; box-sizing: border-box; background: #334155; color: white; margin: 0; }
+        #submit-form button { background: #3b82f6; color: white; border: none; padding: 12px; border-radius: 6px; cursor: pointer; width: 100%; font-weight: bold; font-size: 16px; box-sizing: border-box; margin: 0; transition: 0.2s; }
+        #submit-form button:hover { background: #2563eb; }
+        #submit-form .skip-btn { background: #64748b; }
+        #submit-form .skip-btn:hover { background: #475569; }
+
+        /* 版本號標籤 - 左下角 */
+        #version-tag {
+            position: absolute; bottom: 5px; left: 240px; color: rgba(0, 0, 0, 0.7);
+            font-size: 12px; font-weight: bold; z-index: 100; pointer-events: none;
+            text-shadow: 0.5px 0.5px 1px rgba(255,255,255,0.5);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="portrait-lock">
+        <div id="portrait-lock-content" style="display:flex; flex-direction:column; align-items:center;">
+            <svg viewBox="0 0 24 24" width="80" height="80" stroke="#fbbf24" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 20px;">
+                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+                <path d="M3 3v5h5"></path>
+            </svg>
+            <p style="margin: 0; font-size: 36px; font-weight: bold;">請把裝置轉為橫向</p>
+            <p style="margin: 15px 0 0 0; font-size: 20px; color: #cbd5e1;">進入遊戲前，請將您的 iPad 或手機橫放</p>
+        </div>
+    </div>
+
+    <div id="game-wrapper">
+        <div id="loading-screen">連接伺服器並載入數據中...</div>
+        
+        <div id="start-menu">
+            <div id="start-menu-content" style="display:flex; flex-direction:column; align-items:center; gap:12px;">
+                <h1 style="color: #fbbf24; font-size: 35px; margin-bottom: 15px; text-shadow: 2px 2px 4px #000; text-align: center;">請選擇目標程度</h1>
+                
+                <button class="diff-btn" onclick="window.startGame('1')">
+                    程度 1
+                    <span style="font-size: 14px; font-weight: normal; display: block; margin-top: 4px; color: #e2e8f0;">10-50 整數加減運算<br><span style="color:#fbbf24; font-weight:bold;">(分數 x1.0)</span></span>
+                </button>
+                <button class="diff-btn" onclick="window.startGame('2')">
+                    程度 2
+                    <span style="font-size: 14px; font-weight: normal; display: block; margin-top: 4px; color: #e2e8f0;">整數四則混合運算 (先乘除後加減)<br><span style="color:#fbbf24; font-weight:bold;">(分數 x1.2)</span></span>
+                </button>
+                <button class="diff-btn" onclick="window.startGame('3')">
+                    程度 3
+                    <span style="font-size: 14px; font-weight: normal; display: block; margin-top: 4px; color: #e2e8f0;">加減混合 及 基礎指數<br><span style="color:#fbbf24; font-weight:bold;">(分數 x1.4)</span></span>
+                </button>
+                <button class="diff-btn" onclick="window.startGame('4')">
+                    程度 4
+                    <span style="font-size: 14px; font-weight: normal; display: block; margin-top: 4px; color: #e2e8f0;">捨入、展開、因式分解、指數<br>(基礎隨機) <span style="color:#fbbf24; font-weight:bold;">(分數 x1.6)</span></span>
+                </button>
+                <button class="diff-btn" onclick="window.startGame('5')">
+                    程度 5
+                    <span style="font-size: 14px; font-weight: normal; display: block; margin-top: 4px; color: #e2e8f0;">捨入、展開、因式分解、指數<br>(進階隨機) <span style="color:#fbbf24; font-weight:bold;">(分數 x1.8)</span></span>
+            </button>
+            </div>
+        </div>
+
+        <div id="math-overlay">
+            <div id="math-container" class="math-container">
+                <h2 id="math-header" style="margin-top: 0;"></h2>
+                <div id="math-timer-bg"><div id="math-timer-bar"></div></div>
+                <div id="math-question-content"></div>
+                <div class="mcq-options" id="math-options-container"></div>
+            </div>
+        </div>
+
+        <canvas id="gameCanvas"></canvas>
+
+        <div id="ui-container">
+            <div class="ui-box">
+                <div class="player-info-wrapper">
+                    <canvas id="player-icon" width="110" height="110" style="width: 55px; height: 55px;"></canvas>
+                    <div style="flex:1;">
+                        <div id="hp-bar-bg"><div id="ui-hp-fill"></div></div>
+                        <div class="black-text" id="ui-hp-text">HP: 100</div>
+                        <div class="black-text" id="ui-wep-name">尚未裝備</div>
+                        <div class="black-text" id="ui-ammo-text">彈藥: 0/0</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="ui-box">
+                <div style="text-align:center; color:#000; font-weight:bold; font-size:13px; margin-bottom:5px;">擊殺進度 (尚未擊斃: <span id="ui-left-text">0</span>)</div>
+                <div id="kill-bar-bg"><div id="ui-kill-fill"></div></div>
+                
+                <div style="text-align:center; color:#000; font-weight:bold; font-size:13px; margin:6px 0 4px 0;">剩餘魔物目標</div>
+                <div class="monster-row"><canvas id="m-icon-1" width="80" height="80" style="width: 40px; height: 40px;"></canvas><span class="monster-count" id="m-count-1">x 0</span></div>
+                <div class="monster-row"><canvas id="m-icon-2" width="80" height="80" style="width: 40px; height: 40px;"></canvas><span class="monster-count" id="m-count-2">x 0</span></div>
+                <div class="monster-row"><canvas id="m-icon-3" width="80" height="80" style="width: 40px; height: 40px;"></canvas><span class="monster-count" id="m-count-3">x 0</span></div>
+                <div class="monster-row"><canvas id="m-icon-4" width="80" height="80" style="width: 40px; height: 40px;"></canvas><span class="monster-count" id="m-count-4">x 0</span></div>
+                <div class="monster-row"><canvas id="m-icon-5" width="80" height="80" style="width: 40px; height: 40px;"></canvas><span class="monster-count" id="m-count-5">x 0</span></div>
+            </div>
+
+            <div class="ui-box" id="leaderboard-box">
+                <h3>🏆 總排行榜 🏆</h3>
+                <ol id="leaderboard-list"><li>載入排行榜中...</li></ol>
+            </div>
+        </div>
+        
+        <div id="submit-form">
+            <h3 style="margin: 0; color: #fbbf24; font-size: 20px;">上傳遊戲成績</h3>
+            <input type="text" id="lb-class" placeholder="班別 (例: 1A) *必填">
+            <input type="text" id="lb-sid" placeholder="學號 (例: 01) *必填">
+            <input type="text" id="lb-name" placeholder="名字 (選填，預設為學號)">
+            <button onclick="window.submitScore()">上傳成績</button>
+            <button class="skip-btn" onclick="window.returnToMenu()">略過並重玩</button>
+        </div>
+
+        <div id="version-tag">Math Survival V66</div>
+    </div> <audio id="bgm" src="audio/bgm.mp3" loop></audio>
+    <audio id="shootSfx" src="audio/shootSfx.m4a"></audio>
+    <audio id="reloadSfx" src="audio/reloadSfx.m4a"></audio>
+    <audio id="emptyAmmoSfx" src="audio/emptyAmmoSfx.m4a"></audio>
+
+<script>
+// ==============================================================================
+// CONFIGURATION & SETUP
+// ==============================================================================
+
+function getRandomInt(min, max) { return Math.floor(Math.random() * (max - min)) + min; }
+function getRandomExp() { let e = getRandomInt(-5, 6); return e === 0 ? 2 : e; }
+function buildEq(steps) { return steps.map(s => s.text).join(" = "); }
+function wrapHint(msg, eq) { return `${msg}<br>\\( \\displaystyle ${eq} \\)`; }
+const msgCorrect = "<span style='color:green'>正確！</span>";
+function shuffleArray(array) { 
+    let arr = [...array];
+    for (let i = arr.length - 1; i > 0; i--) { 
+        const j = Math.floor(Math.random() * (i + 1)); 
+        [arr[i], arr[j]] = [arr[j], arr[i]]; 
+    } 
+    return arr; 
 }
+
+const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyhAYaMKRTbD_VyHDe-MZZ5OBZVdsvY2l9qcKWq8TuliBKptbhLpQsHbc4wdyKmX24Cvg/exec"; 
+const GAS_LEADERBOARD_URL = GAS_WEB_APP_URL; 
+
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+let audioInitialized = false;
+function initAudio() {
+    if (!audioInitialized) {
+        let bgm = document.getElementById('bgm');
+        if(bgm) { 
+            bgm.volume = 0.4; 
+            bgm.loop = true; // 強制設定循環播放
+            bgm.play().catch(e=>{}); 
+        }
+        
+        // 預載並解鎖所有音效，避免第一次點擊時延遲
+        let sfxIds = ['shootSfx', 'reloadSfx', 'emptyAmmoSfx'];
+        sfxIds.forEach(id => {
+            let sfx = document.getElementById(id);
+            if (sfx) {
+                sfx.volume = 0; // 暫時靜音
+                let p = sfx.play();
+                if (p !== undefined) {
+                    p.then(() => {
+                        sfx.pause();
+                        sfx.currentTime = 0;
+                        sfx.volume = 1; // 恢復音量
+                    }).catch(()=>{ sfx.volume = 1; });
+                } else {
+                    sfx.volume = 1;
+                }
+            }
+        });
+        
+        audioInitialized = true;
+    }
+}
+
+// 監聽網頁可見性變化，退出或切換分頁時自動暫停音效
+document.addEventListener("visibilitychange", () => {
+    let audios = ['bgm', 'shootSfx', 'reloadSfx', 'emptyAmmoSfx'];
+    if (document.hidden) {
+        audios.forEach(id => {
+            let el = document.getElementById(id);
+            if (el) el.pause();
+        });
+    } else {
+        if (audioInitialized && gameState !== 'START_MENU') {
+            let bgm = document.getElementById('bgm');
+            if (bgm) {
+                bgm.loop = true; // 確保重回畫面時依然設定為循環
+                bgm.play().catch(e=>{});
+            }
+        }
+    }
+});
+
+const UI_BOUND = 250; 
+
+// --- 全域縮放系統與動態邏輯解析度 (電腦版專屬固定 1280x720 比例) ---
+const LOGICAL_WIDTH = 1280;
+const LOGICAL_HEIGHT = 720;
+
+// --- Control System Variables ---
+let leftJoyBase = { x: UI_BOUND + 60, y: 120 }; 
+let leftJoy = { active: false, id: null, stick: {x:0, y:0}, dir: {x:0, y:0} };
+const joyRadius = 50;
+
+const keys = { w: false, a: false, s: false, d: false };
+let isShooting = false;
+let mouseX = LOGICAL_WIDTH / 2; 
+let mouseY = LOGICAL_HEIGHT / 2;
+
+// 動態縮放處理 - 電腦版完美縮放
+function resizeCanvas() {
+    let wrapper = document.getElementById('game-wrapper');
+    // 計算出完全適合目前視窗大小的縮放比例，維持 16:9
+    let scale = Math.min(window.innerWidth / LOGICAL_WIDTH, window.innerHeight / LOGICAL_HEIGHT);
+    wrapper.style.transform = `translate(-50%, -50%) scale(${scale})`;
+
+    let dpr = window.devicePixelRatio || 1;
+    
+    // 設定實體像素以維持 Retina 清晰度
+    canvas.width = LOGICAL_WIDTH * dpr;
+    canvas.height = LOGICAL_HEIGHT * dpr;
+    
+    ctx.resetTransform();
+    ctx.scale(dpr, dpr);
+
+    // 更新搖桿位置至邏輯座標底端
+    leftJoyBase = { x: UI_BOUND + 60, y: LOGICAL_HEIGHT - 100 };
+    if (!leftJoy.active) leftJoy.stick = { x: leftJoyBase.x, y: leftJoyBase.y };
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+// 轉換視窗滑鼠/觸控座標為遊戲邏輯座標
+function getLogicalPos(clientX, clientY) {
+    let wrapper = document.getElementById('game-wrapper');
+    let rect = wrapper.getBoundingClientRect();
+    let scale = Math.min(window.innerWidth / LOGICAL_WIDTH, window.innerHeight / LOGICAL_HEIGHT);
+    return {
+        x: (clientX - rect.left) / scale,
+        y: (clientY - rect.top) / scale
+    };
+}
+
+// Global State
+let gameState = 'START_MENU'; 
+let globalTime = 0; let shakeTime = 0; let bossAlarmTimer = 0;
+let currentDifficulty = '1';
+let questionBank = [];
+let currentMathType = ''; 
+let mathTimer = 0;
+let scoreSubmitted = false;
+let questionsSolved = 0;
+
+// Progression & Entity Arrays
+let enemiesKilled = 0; let totalMonstersSpawned = 0; let TOTAL_MONSTERS = 19; 
+let monstersLeft = [0, 0, 0, 0, 0, 0]; 
+let currentWave = 1;
+let lootBoxSpawnInterval = 480; let ammoBoxSpawnInterval = 180; 
+
+let monsterQueue = []; 
+let MONSTER_BASE = [
+    {tier: 1, name: "一級怪物", count: 5, hp: 8, speed: 0.5, size: 22, color: '#ef4444'},
+    {tier: 2, name: "二級怪物", count: 5, hp: 25, speed: 0.8, size: 28, color: '#f97316'},
+    {tier: 3, name: "三級怪物", count: 5, hp: 200, speed: 1.0, size: 35, color: '#eab308'},
+    {tier: 4, name: "四級怪物", count: 3, hp: 500, speed: 1.2, size: 45, color: '#84cc16'},
+    {tier: 5, name: "五級首領", count: 1, hp: 1500, speed: 1.5, size: 70, color: '#a855f7'}
+];
+
+const WEAPONS = [
+    { level: 1, name: "Lv.1 基礎手槍", damage: 1, bullets: 1, fireRate: 15, playerSpeed: 4, reloadAmmo: 30, magCapacity: 30, ammoBoxRefill: 30, color: '#fde047', glow: '#ca8a04', recoil: 4, speed: 12 },
+    { level: 2, name: "Lv.2 雙發衝鋒", damage: 1.5, bullets: 2, fireRate: 12, playerSpeed: 5, reloadAmmo: 30, magCapacity: 30, ammoBoxRefill: 30, color: '#60a5fa', glow: '#2563eb', recoil: 5, speed: 14 },
+    { level: 3, name: "Lv.3 散彈速射", damage: 2.25, bullets: 3, fireRate: 10, playerSpeed: 6, reloadAmmo: 40, magCapacity: 30, ammoBoxRefill: 30, color: '#34d399', glow: '#059669', recoil: 6, speed: 16 },
+    { level: 4, name: "Lv.4 脈衝步槍", damage: 3.4, bullets: 4, fireRate: 8, playerSpeed: 7, reloadAmmo: 40, magCapacity: 30, ammoBoxRefill: 30, color: '#f472b6', glow: '#db2777', recoil: 7, speed: 18 },
+    { level: 5, name: "Lv.5 穿甲重砲", damage: 5.1, bullets: 1, fireRate: 6, playerSpeed: 8, reloadAmmo: 50, magCapacity: 30, ammoBoxRefill: 30, color: '#a78bfa', glow: '#7c3aed', recoil: 8, speed: 20, penetrate: true },
+    { level: 6, name: "Lv.6 散射激光", damage: 7.6, bullets: 5, fireRate: 4, playerSpeed: 9, reloadAmmo: 50, magCapacity: 30, ammoBoxRefill: 30, color: '#fb923c', glow: '#ea580c', recoil: 10, speed: 22 },
+    { level: 7, name: "Lv.7 電漿風暴", damage: 11.4, bullets: 3, fireRate: 3, playerSpeed: 10, reloadAmmo: 60, magCapacity: 30, ammoBoxRefill: 30, color: '#38bdf8', glow: '#0284c7', recoil: 12, speed: 25, penetrate: true },
+    { level: 8, name: "Lv.8 終極殲滅射線", damage: 17.1, bullets: 7, fireRate: 2, playerSpeed: 10, reloadAmmo: 60, magCapacity: 30, ammoBoxRefill: 30, color: '#ffffff', glow: '#fef08a', recoil: 14, speed: 28, penetrate: true },
+    { level: 9, name: "Lv.MAX 神話武器", damage: 25.6, bullets: 9, fireRate: 1, playerSpeed: 10, reloadAmmo: 100, magCapacity: 30, ammoBoxRefill: 30, color: '#ef4444', glow: '#b91c1c', recoil: 16, speed: 30, penetrate: true }
+];
+
+let player = {
+    x: UI_BOUND + 100, y: 0, radius: 20, color: '#3b82f6', speed: 4, hp: 100, maxHp: 100,
+    weaponLevel: -1, currentMagazine: 0, totalAmmo: 0,       
+    isReloading: false, reloadTimer: 0, angle: 0, recoilOffset: 0, lastFireTime: 0, isMoving: false
+};
+
+let bullets = []; let enemies = []; let lootBoxes = []; let ammoBoxes = []; let particles = []; let floatingTexts = [];
+
+// DOM Caching Optimization
+const uiElements = {};
+let uiReady = false;
+
+// ==============================================================================
+// VISUAL EFFECTS (Implemented Missing Functions)
+// ==============================================================================
+
+function createParticles(x, y, color, count, speed) {
+    for (let i = 0; i < count; i++) {
+        let angle = Math.random() * Math.PI * 2;
+        let v = Math.random() * speed;
+        particles.push({
+            x: x, y: y,
+            vx: Math.cos(angle) * v,
+            vy: Math.sin(angle) * v,
+            color: color,
+            size: Math.random() * 3 + 1,
+            life: 1.0,
+            decay: Math.random() * 0.05 + 0.02
+        });
+    }
+}
+
+function addFloatingText(text, x, y, color, size = 20) {
+    floatingTexts.push({
+        text: text,
+        x: x, y: y,
+        color: color,
+        size: size,
+        life: 1.0,
+        dy: -1.5
+    });
+}
+
+// ==============================================================================
+// UI & HUD MANAGEMENT
+// ==============================================================================
+
+// 新增魔怪外觀繪製模組，統一 HUD 與遊戲內的顯示樣式
+function drawMonsterEntity(ctx, eSize, color, tier, visualY, isFacingRight) {
+    let eyeOffsetX = isFacingRight ? eSize*0.15 : -eSize*0.15;
+    
+    // 基礎身體
+    ctx.fillStyle = color; ctx.beginPath(); 
+    if (tier >= 4) {
+        // 等別 4 以上為鋸齒狀底部
+        ctx.arc(0, visualY - eSize*0.4, eSize*0.45, Math.PI, 0); 
+        ctx.lineTo(eSize*0.45, visualY + eSize*0.1);
+        ctx.lineTo(eSize*0.2, visualY - eSize*0.05);
+        ctx.lineTo(0, visualY + eSize*0.1);
+        ctx.lineTo(-eSize*0.2, visualY - eSize*0.05);
+        ctx.lineTo(-eSize*0.45, visualY + eSize*0.1);
+    } else {
+        // 一般平滑底部
+        ctx.arc(0, visualY - eSize*0.4, eSize*0.45, Math.PI, 0); 
+        ctx.lineTo(eSize*0.45, visualY + eSize*0.1); 
+        ctx.lineTo(-eSize*0.45, visualY + eSize*0.1); 
+    }
+    ctx.fill();
+    ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(0,0,0,0.4)'; ctx.stroke();
+
+    // 各等級專屬造型裝飾
+    if (tier === 1) {
+        // Lv1: 基礎小怪
+        ctx.fillStyle = 'white';
+        ctx.beginPath(); ctx.arc(eyeOffsetX - eSize*0.15, visualY - eSize*0.3, eSize*0.08, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(eyeOffsetX + eSize*0.15, visualY - eSize*0.3, eSize*0.08, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = 'black'; 
+        ctx.beginPath(); ctx.arc(eyeOffsetX - eSize*0.15 + (isFacingRight?1:-1), visualY - eSize*0.3, eSize*0.04, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(eyeOffsetX + eSize*0.15 + (isFacingRight?1:-1), visualY - eSize*0.3, eSize*0.04, 0, Math.PI*2); ctx.fill();
+    } else if (tier === 2) {
+        // Lv2: 憤怒的角怪
+        ctx.fillStyle = 'white';
+        ctx.beginPath(); ctx.arc(eyeOffsetX - eSize*0.15, visualY - eSize*0.3, eSize*0.08, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(eyeOffsetX + eSize*0.15, visualY - eSize*0.3, eSize*0.08, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = 'black'; 
+        ctx.beginPath(); ctx.arc(eyeOffsetX - eSize*0.15 + (isFacingRight?1:-1), visualY - eSize*0.3, eSize*0.04, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(eyeOffsetX + eSize*0.15 + (isFacingRight?1:-1), visualY - eSize*0.3, eSize*0.04, 0, Math.PI*2); ctx.fill();
+        // 憤怒眉毛
+        ctx.lineWidth = 2; ctx.strokeStyle = 'black'; ctx.beginPath();
+        ctx.moveTo(eyeOffsetX - eSize*0.3, visualY - eSize*0.45); ctx.lineTo(eyeOffsetX - eSize*0.05, visualY - eSize*0.35);
+        ctx.moveTo(eyeOffsetX + eSize*0.3, visualY - eSize*0.45); ctx.lineTo(eyeOffsetX + eSize*0.05, visualY - eSize*0.35);
+        ctx.stroke();
+        // 頭頂尖角
+        ctx.fillStyle = '#fef08a'; ctx.beginPath(); ctx.moveTo(-eSize*0.1, visualY - eSize*0.8); ctx.lineTo(eSize*0.1, visualY - eSize*0.8); ctx.lineTo(0, visualY - eSize*1.1); ctx.fill();
+        ctx.lineWidth = 1; ctx.stroke();
+    } else if (tier === 3) {
+        // Lv3: 機械護甲怪
+        ctx.fillStyle = '#334155'; ctx.fillRect(-eSize*0.35, visualY - eSize*0.4, eSize*0.7, eSize*0.25);
+        ctx.fillStyle = '#38bdf8'; ctx.fillRect(-eSize*0.2, visualY - eSize*0.32, eSize*0.4, eSize*0.08);
+        // 兩側護甲刺
+        ctx.fillStyle = '#94a3b8'; ctx.beginPath(); 
+        ctx.moveTo(-eSize*0.45, visualY - eSize*0.2); ctx.lineTo(-eSize*0.7, visualY - eSize*0.3); ctx.lineTo(-eSize*0.45, visualY - eSize*0.4);
+        ctx.moveTo(eSize*0.45, visualY - eSize*0.2); ctx.lineTo(eSize*0.7, visualY - eSize*0.3); ctx.lineTo(eSize*0.45, visualY - eSize*0.4);
+        ctx.fill(); ctx.stroke();
+    } else if (tier === 4) {
+        // Lv4: 異形四眼怪
+        ctx.fillStyle = 'black'; 
+        ctx.beginPath(); ctx.arc(eyeOffsetX - eSize*0.15, visualY - eSize*0.25, eSize*0.08, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(eyeOffsetX + eSize*0.15, visualY - eSize*0.25, eSize*0.08, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(eyeOffsetX - eSize*0.1, visualY - eSize*0.5, eSize*0.05, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(eyeOffsetX + eSize*0.1, visualY - eSize*0.5, eSize*0.05, 0, Math.PI*2); ctx.fill();
+        // 發紅發光瞳孔
+        ctx.fillStyle = '#ef4444';
+        ctx.beginPath(); ctx.arc(eyeOffsetX - eSize*0.15, visualY - eSize*0.25, eSize*0.03, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(eyeOffsetX + eSize*0.15, visualY - eSize*0.25, eSize*0.03, 0, Math.PI*2); ctx.fill();
+    } else if (tier === 5) {
+        // Lv5: 終極王冠魔首領
+        // 王冠
+        ctx.fillStyle = '#334155';
+        ctx.beginPath(); ctx.moveTo(-eSize*0.2, visualY - eSize*0.4); ctx.lineTo(-eSize*0.5, visualY - eSize*0.7); ctx.lineTo(-eSize*0.3, visualY - eSize*0.3); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(eSize*0.2, visualY - eSize*0.4); ctx.lineTo(eSize*0.5, visualY - eSize*0.7); ctx.lineTo(eSize*0.3, visualY - eSize*0.3); ctx.fill();
+        ctx.fillStyle = '#fbbf24'; 
+        ctx.beginPath(); ctx.moveTo(-eSize*0.6, visualY - eSize*0.5); ctx.lineTo(-eSize*0.8, visualY - eSize*0.8); ctx.lineTo(0, visualY - eSize*0.6); ctx.lineTo(eSize*0.8, visualY - eSize*0.8); ctx.lineTo(eSize*0.6, visualY - eSize*0.5); ctx.fill();
+        // 血紅雙眼
+        ctx.fillStyle = '#ef4444';
+        ctx.beginPath(); ctx.arc(eyeOffsetX - eSize*0.15, visualY - eSize*0.25, eSize*0.1, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(eyeOffsetX + eSize*0.15, visualY - eSize*0.25, eSize*0.1, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = 'black'; 
+        ctx.beginPath(); ctx.arc(eyeOffsetX - eSize*0.15, visualY - eSize*0.25, eSize*0.04, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(eyeOffsetX + eSize*0.15, visualY - eSize*0.25, eSize*0.04, 0, Math.PI*2); ctx.fill();
+        // 銳利巨齒
+        ctx.fillStyle = 'black';
+        ctx.beginPath(); ctx.arc(0, visualY + eSize*0.05, eSize*0.2, 0, Math.PI); ctx.fill();
+        ctx.fillStyle = 'white';
+        ctx.beginPath(); ctx.moveTo(-eSize*0.15, visualY + eSize*0.05); ctx.lineTo(-eSize*0.05, visualY+eSize*0.15); ctx.lineTo(0, visualY + eSize*0.05); ctx.lineTo(eSize*0.05, visualY+eSize*0.15); ctx.lineTo(eSize*0.15, visualY + eSize*0.05); ctx.fill();
+    }
+}
+
+function cacheUIElements() {
+    uiElements.hpFill = document.getElementById('ui-hp-fill');
+    uiElements.hpText = document.getElementById('ui-hp-text');
+    uiElements.wepName = document.getElementById('ui-wep-name');
+    uiElements.ammoText = document.getElementById('ui-ammo-text');
+    uiElements.killFill = document.getElementById('ui-kill-fill');
+    uiElements.leftText = document.getElementById('ui-left-text');
+    uiElements.mathTimerBar = document.getElementById('math-timer-bar');
+    uiElements.mCounts = [];
+    for(let i=1; i<=5; i++) uiElements.mCounts[i] = document.getElementById(`m-count-${i}`);
+    uiReady = true;
+}
+
+let lastHUDState = { hp: -1, weapon: -2, ammo: -1, total: -1, reloading: null, mCounts: [-1,-1,-1,-1,-1,-1], kills: -1 };
+
+function updateHTMLHUD() {
+    if (!uiReady) cacheUIElements();
+    if (!uiElements.hpFill) return; 
+
+    if (lastHUDState.hp !== player.hp) {
+        uiElements.hpFill.style.width = (Math.max(0, player.hp) / player.maxHp * 100) + '%';
+        uiElements.hpText.textContent = `HP: ${Math.max(0, player.hp)}`;
+        lastHUDState.hp = player.hp;
+    }
+    
+    // 更新擊殺進度條
+    if (lastHUDState.kills !== enemiesKilled) {
+        if (uiElements.killFill && TOTAL_MONSTERS > 0) {
+            let percentage = (enemiesKilled / TOTAL_MONSTERS) * 100;
+            uiElements.killFill.style.width = Math.min(100, percentage) + '%';
+            uiElements.leftText.textContent = Math.max(0, TOTAL_MONSTERS - enemiesKilled);
+        }
+        lastHUDState.kills = enemiesKilled;
+    }
+    
+    let ammoChanged = lastHUDState.ammo !== player.currentMagazine || lastHUDState.total !== player.totalAmmo || lastHUDState.reloading !== player.isReloading;
+    let wepChanged = lastHUDState.weapon !== player.weaponLevel;
+
+    if (wepChanged || ammoChanged) {
+        if (player.weaponLevel >= 0) {
+            if (wepChanged) {
+                let currWep = WEAPONS[player.weaponLevel];
+                if (currWep) uiElements.wepName.textContent = `${currWep.name}`;
+            }
+            if (ammoChanged) {
+                if (player.isReloading) uiElements.ammoText.textContent = `換彈中...`;
+                else uiElements.ammoText.textContent = `彈藥: ${player.currentMagazine}/${player.totalAmmo}`;
+            }
+        } else {
+            if (wepChanged) uiElements.wepName.textContent = `尚未裝備`;
+            if (ammoChanged) uiElements.ammoText.textContent = `彈藥: 0/0`;
+        }
+        lastHUDState.weapon = player.weaponLevel; lastHUDState.ammo = player.currentMagazine;
+        lastHUDState.total = player.totalAmmo; lastHUDState.reloading = player.isReloading;
+    }
+
+    for(let i=1; i<=5; i++) {
+        if (uiElements.mCounts[i] && lastHUDState.mCounts[i] !== monstersLeft[i]) {
+            uiElements.mCounts[i].textContent = `x ${Math.max(0, monstersLeft[i])}`;
+            lastHUDState.mCounts[i] = monstersLeft[i];
+        }
+    }
+}
+
+// 高清渲染修復：雙倍尺寸畫布與偏移量調整，防止魔怪圖示裁剪與起格
+function drawHUDIcons() {
+    let pC = document.getElementById('player-icon'); 
+    if(!pC) return;
+    let pCtx = pC.getContext('2d');
+    pCtx.clearRect(0,0,pC.width,pC.height);
+    pCtx.save();
+    pCtx.translate(55, 64); pCtx.scale(1.8, 1.8); 
+    pCtx.fillStyle = '#dc2626'; pCtx.beginPath(); pCtx.moveTo(-9, -7); pCtx.lineTo(-15, 15); pCtx.lineTo(15, 15); pCtx.lineTo(9, -7); pCtx.fill();
+    pCtx.fillStyle = '#1d4ed8'; pCtx.fillRect(-9, -11, 18, 22); 
+    pCtx.fillStyle = '#94a3b8'; pCtx.fillRect(-10, -11, 20, 12); 
+    pCtx.fillStyle = '#fcd34d'; pCtx.beginPath(); pCtx.arc(0, -18, 12, 0, Math.PI*2); pCtx.fill();
+    pCtx.fillStyle = '#cbd5e1'; pCtx.beginPath(); pCtx.arc(0, -21, 13, Math.PI, 0); pCtx.fill(); pCtx.fillRect(-13, -21, 26, 4); 
+    pCtx.fillStyle = '#b91c1c'; pCtx.fillRect(-2, -36, 4, 9);
+    pCtx.fillStyle = '#1e293b'; pCtx.beginPath(); pCtx.arc(-4, -17, 2, 0, Math.PI*2); pCtx.fill(); pCtx.beginPath(); pCtx.arc(4, -17, 2, 0, Math.PI*2); pCtx.fill();
+    pCtx.restore();
+
+    let mTypes = [{ tier: 1, color: '#ef4444' }, { tier: 2, color: '#f97316' }, { tier: 3, color: '#eab308' }, { tier: 4, color: '#84cc16' }, { tier: 5, color: '#a855f7' }];
+    for (let i=0; i<5; i++) {
+        let mC = document.getElementById(`m-icon-${i+1}`); 
+        if(!mC) continue;
+        let mCtx = mC.getContext('2d');
+        mCtx.clearRect(0,0,mC.width,mC.height);
+        
+        mCtx.save();
+        // 畫布為 80x80，中心向下偏移至 48，預留頂部王冠與角的空間
+        mCtx.translate(40, 48); mCtx.scale(2.5, 2.5); 
+        drawMonsterEntity(mCtx, 12, mTypes[i].color, mTypes[i].tier, 0, true);
+        mCtx.restore();
+    }
+}
+setTimeout(drawHUDIcons, 100);
+
+function fetchLeaderboard() {
+    if (!GAS_LEADERBOARD_URL) return;
+    const timestamp = new Date().getTime();
+    fetch(`${GAS_LEADERBOARD_URL}?action=getLeaderboard&t=${timestamp}`)
+        .then(res => res.json())
+        .then(data => renderLeaderboard(data))
+        .catch(e => console.log("LB 獲取失敗", e));
+}
+
+// 每 5 秒自動更新排行榜
+setInterval(() => {
+    if (GAS_LEADERBOARD_URL) fetchLeaderboard();
+}, 5000);
+
+function renderLeaderboard(data) {
+    const list = document.getElementById('leaderboard-list');
+    if(!list) return;
+    list.innerHTML = "";
+    if (!data || data.length === 0) { list.innerHTML = "<li>暫無數據</li>"; return; }
+    
+    data.forEach((item, index) => {
+        let li = document.createElement('li');
+        let safeName = item.name.length > 6 ? item.name.substring(0, 6) + '..' : item.name;
+        // 將 "程度 X" 縮寫為 "L X" 或是 "LX" 以節省空間
+        let shortDiff = item.diff.replace("程度 ", "L");
+        
+        // 嚴格自動對齊：使用設定好的 Grid 系統
+        li.innerHTML = `
+            <span>${index + 1}.</span>
+            <span>${item.cls}</span>
+            <span>${safeName}</span>
+            <span style="text-align:right;">${item.score}分</span>
+            <span style="text-align:right; color:#475569;">(${shortDiff})</span>
+        `;
+        
+        if (item.isMe) { li.style.backgroundColor = "rgba(46, 204, 113, 0.4)"; li.style.borderRadius = "4px"; }
+        list.appendChild(li);
+    });
+}
+
+window.submitScore = async function() {
+    const cls = document.getElementById('lb-class').value.trim();
+    const sid = document.getElementById('lb-sid').value.trim();
+    let name = document.getElementById('lb-name').value.trim();
+    
+    if (!cls || !sid) { alert("請填寫班別及學號！"); return; }
+    if (!name) name = sid; // 如果沒有填寫名字，預設為學號
+
+    if (!GAS_LEADERBOARD_URL) return;
+
+    scoreSubmitted = true;
+    document.getElementById('submit-form').style.display = 'none';
+    document.getElementById('leaderboard-list').innerHTML = "<li>上傳中並更新排行榜...</li>";
+
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('zh-HK');
+    const timeStr = now.toLocaleTimeString('zh-HK');
+    const diff = "程度 " + currentDifficulty; 
+    
+    // 依據不同程度乘上倍率
+    let mult = { '1': 1, '2': 1.2, '3': 1.4, '4': 1.6, '5': 1.8 }[currentDifficulty] || 1;
+    const score = Math.round(enemiesKilled * mult);
+    const timestamp = now.getTime();
+
+    const addUrl = `${GAS_LEADERBOARD_URL}?action=addScore&date=${encodeURIComponent(dateStr)}&time=${encodeURIComponent(timeStr)}&diff=${encodeURIComponent(diff)}&cls=${encodeURIComponent(cls)}&sid=${encodeURIComponent(sid)}&name=${encodeURIComponent(name)}&score=${score}&t=${timestamp}`;
+    fetch(addUrl).catch(e => console.log("LB 上傳延遲", e));
+
+    try {
+        let res = await fetch(`${GAS_LEADERBOARD_URL}?action=getLeaderboard&t=${timestamp}`);
+        let data = await res.json();
+        data.push({ diff: diff, cls: cls, name: name, score: score, isMe: true });
+        data.sort((a, b) => b.score - a.score);
+        renderLeaderboard(data);
+    } catch(e) {
+        renderLeaderboard([{ diff: diff, cls: cls, name: name, score: score, isMe: true }]);
+    }
+}
+
+window.startGame = function(level) {
+    currentDifficulty = level;
+    let menu = document.getElementById('start-menu');
+    if (menu) menu.style.display = 'none';
+    resetGame();
+}
+
+window.returnToMenu = function() {
+    let form = document.getElementById('submit-form');
+    if (form) form.style.display = 'none';
+    let menu = document.getElementById('start-menu');
+    if (menu) menu.style.display = 'flex';
+    gameState = 'START_MENU';
+    scoreSubmitted = false;
+}
+
+// 支援自行填寫答案的新格式
+function formatInput(questionStr, ans) {
+    return {
+        isInput: true,
+        answer: ans,
+        question: `<div style="font-size:16px;color:#cbd5e1;margin-bottom:10px;">請計算以下結果：</div><div style="font-size:28px;font-weight:bold;">\\( \\displaystyle ${questionStr} = ? \\)</div>`
+    };
+}
+
+function generateFallbackInput() {
+    let wl = Math.max(0, player.weaponLevel);
+    // 當外部題庫讀取失敗時，改為使用雙位數乘法作為後備輸入題
+    let num1 = getRandomInt(11, 20 + wl * 2); 
+    let num2 = getRandomInt(2, 9);
+    let ans = num1 * num2;
+    return formatInput(`${num1} \\times ${num2}`, ans);
+}
+
+function generateLevel1Question() {
+    let wl = Math.max(0, player.weaponLevel);
+    // 基礎 10-50，隨著武器等級而提高數值範圍
+    let min = 1 + wl * 2;
+    let max = 30 + wl * 5;
+    let A = getRandomInt(min, max);
+    let B = getRandomInt(min, max);
+    let isAdd = Math.random() > 0.5;
+    if (!isAdd && A < B) { let temp = A; A = B; B = temp; } // 保證減法結果一定是整數 (此處確保為正整數)
+    let ans = isAdd ? A + B : A - B;
+    let op = isAdd ? '+' : '-';
+    // 程度1 改為輸入題型
+    return formatInput(`${A} ${op} ${B}`, ans);
+}
+
+function generateLevel2Question() {
+    let wl = Math.max(0, player.weaponLevel);
+    let maxV = Math.floor(3 + wl * 1.5);
+    if (maxV < 3) maxV = 3;
+    // 預設 8 種四則運算組合 (先乘除後加減原則)，確保整除和正數
+    let patterns = [
+        () => { let b=getRandomInt(2,maxV), c=getRandomInt(2,maxV), a=getRandomInt(1,maxV*2); return {q: `${a} + ${b} \\times ${c}`, a: a+b*c}; },
+        () => { let b=getRandomInt(2,maxV), c=getRandomInt(2,maxV), a=getRandomInt(b*c+1, b*c+20); return {q: `${a} - ${b} \\times ${c}`, a: a-b*c}; },
+        () => { let a=getRandomInt(2,maxV), b=getRandomInt(2,maxV), c=getRandomInt(1,maxV*2); return {q: `${a} \\times ${b} + ${c}`, a: a*b+c}; },
+        () => { let a=getRandomInt(2,maxV), b=getRandomInt(2,maxV), c=getRandomInt(1,a*b-1); return {q: `${a} \\times ${b} - ${c}`, a: a*b-c}; },
+        () => { let c=getRandomInt(2,10), b=c*getRandomInt(2,maxV), a=getRandomInt(1,maxV*2); return {q: `${a} + ${b} \\div ${c}`, a: a+b/c}; },
+        () => { let c=getRandomInt(2,10), b=c*getRandomInt(2,maxV), a=getRandomInt(b/c+1, b/c+20); return {q: `${a} - ${b} \\div ${c}`, a: a-b/c}; },
+        () => { let b=getRandomInt(2,10), a=b*getRandomInt(2,maxV), c=getRandomInt(1,maxV*2); return {q: `${a} \\div ${b} + ${c}`, a: a/b+c}; },
+        () => { let b=getRandomInt(2,10), a=b*getRandomInt(2,maxV), c=getRandomInt(1,a/b-1); return {q: `${a} \\div ${b} - ${c}`, a: a/b-c}; }
+    ];
+    let p = patterns[getRandomInt(0, patterns.length)]();
+    // 程度2 改為輸入題型
+    return formatInput(p.q, p.a);
+}
+
+function triggerMath(type) {
+    currentMathType = type;
+    gameState = 'MATH_TIME';
+    isShooting = false; leftJoy.active = false;
+    
+    // 玩家回答問題時，馬上停止射擊聲音
+    let sSfx = document.getElementById('shootSfx'); 
+    if (sSfx && !sSfx.paused) { sSfx.pause(); sSfx.currentTime = 0; }
+    
+    let headerEl = document.getElementById('math-header');
+    let containerEl = document.getElementById('math-container');
+    
+    if (headerEl && containerEl) {
+        if (type === 'UPGRADE') {
+            headerEl.textContent = '⚡ 武器進化程序 ⚡'; headerEl.style.color = '#eab308';
+            containerEl.style.borderColor = '#eab308';
+        } else {
+            headerEl.textContent = '🔵 彈藥補給程序 🔵'; headerEl.style.color = '#38bdf8';
+            containerEl.style.borderColor = '#38bdf8';
+        }
+    }
+
+    let qData;
+    let diffStr = currentDifficulty; 
+
+    try {
+        if (diffStr === '1') {
+            qData = generateLevel1Question();
+        } else if (diffStr === '2') {
+            qData = generateLevel2Question();
+        } else if (diffStr === '3') {
+            if (questionsSolved < 3) {
+                // 程度 3：前三題出簡單加減法 (此處借用程度1的出題，故也是輸入題型)
+                qData = generateLevel1Question();
+            } else if (typeof generateIndicesQuestions === 'function') {
+                qData = generateIndicesQuestions(1, 1)[0];
+            } else {
+                qData = generateFallbackInput();
+            }
+        } else if (diffStr === '4' || diffStr === '5') {
+            let level = diffStr === '4' ? 1 : 2;
+            
+            let topics = ['rounding', 'expansion', 'factorization', 'indices'];
+            let t = topics[getRandomInt(0, topics.length)];
+            
+            // 隨機抽取 4 種題庫中的一題
+            if (t === 'rounding' && typeof generateRoundingQuestions === 'function') qData = generateRoundingQuestions(1, level)[0];
+            else if (t === 'expansion' && typeof generateExpansionQuestions === 'function') qData = generateExpansionQuestions(1, level)[0];
+            else if (t === 'factorization' && typeof generateFactorizationQuestions === 'function') qData = generateFactorizationQuestions(1, level)[0];
+            else if (t === 'indices' && typeof generateIndicesQuestions === 'function') qData = generateIndicesQuestions(1, level)[0];
+            else qData = generateFallbackInput();
+        } else {
+            qData = generateFallbackInput();
+        }
+    } catch(e) { 
+        // 在 Console 印出警告，幫助尋找哪一個題庫發生問題
+        console.error("警告：外部進階題庫讀取失敗 (難度 " + diffStr + ")，已自動切換至後備輸入題。請檢查 JS 檔案。", e); 
+        qData = generateFallbackInput(); 
+    }
+    
+    if (!qData) qData = generateFallbackInput();
+
+    let contentEl = document.getElementById('math-question-content');
+    if (contentEl) contentEl.innerHTML = qData.question;
+    
+    const optsContainer = document.getElementById('math-options-container');
+    if (optsContainer) {
+        optsContainer.innerHTML = '';
+        
+        if (qData.isInput) {
+            // 動態產生手動輸入數字鍵盤與顯示區
+            optsContainer.style.display = 'flex';
+            optsContainer.style.flexDirection = 'column';
+            optsContainer.style.alignItems = 'center';
+            optsContainer.style.gap = '10px';
+
+            let currentInputValue = "";
+
+            // 顯示區
+            let inputDisplay = document.createElement('div');
+            inputDisplay.id = 'math-num-display';
+            inputDisplay.style = "font-size: 32px; padding: 10px; width: 240px; min-height: 45px; text-align: center; border-radius: 8px; border: 2px solid #94a3b8; background: #334155; color: #fbbf24; font-weight: bold; display: flex; justify-content: center; align-items: center; letter-spacing: 2px;";
+            inputDisplay.textContent = "";
+
+            // 數字鍵盤
+            let numpad = document.createElement('div');
+            numpad.style = "display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; width: 260px; margin-top: 5px;";
+
+            const buttons = ['7', '8', '9', '4', '5', '6', '1', '2', '3', '-', '0', '⌫'];
+
+            const updateDisplay = () => {
+                inputDisplay.textContent = currentInputValue;
+            };
+
+            buttons.forEach(btnText => {
+                let btn = document.createElement('button');
+                btn.textContent = btnText;
+                btn.style = "background: #475569; color: white; border: 2px solid #64748b; padding: 12px; font-size: 24px; font-weight: bold; border-radius: 8px; cursor: pointer; transition: 0.2s;";
+                btn.onmouseover = () => btn.style.background = '#64748b';
+                btn.onmouseout = () => btn.style.background = '#475569';
+                btn.onclick = () => {
+                    if (gameState !== 'MATH_TIME') return;
+                    if (btnText === '⌫') {
+                        currentInputValue = currentInputValue.slice(0, -1);
+                    } else if (btnText === '-') {
+                        if (currentInputValue.startsWith('-')) {
+                            currentInputValue = currentInputValue.substring(1);
+                        } else {
+                            currentInputValue = '-' + currentInputValue;
+                        }
+                    } else {
+                        if (currentInputValue.length < 8) currentInputValue += btnText;
+                    }
+                    updateDisplay();
+                };
+                numpad.appendChild(btn);
+            });
+
+            // 確定按鈕
+            let submitBtn = document.createElement('button');
+            submitBtn.textContent = '確定';
+            submitBtn.style = "background: #3b82f6; color: white; border: 2px solid #94a3b8; padding: 12px 40px; font-size: 24px; font-weight: bold; border-radius: 8px; cursor: pointer; transition: 0.2s; width: 260px; margin-top: 5px;";
+            submitBtn.onmouseover = () => submitBtn.style.background = '#2563eb';
+            submitBtn.onmouseout = () => submitBtn.style.background = '#3b82f6';
+            submitBtn.onclick = () => {
+                if (gameState !== 'MATH_TIME') return;
+                gameState = 'MATH_ANSWERED'; // 暫停時間與禁用輸入
+                submitBtn.disabled = true;
+
+                let userVal = parseFloat(currentInputValue);
+                let correctAns = parseFloat(qData.answer);
+                let isCorrect = (!isNaN(userVal) && userVal === correctAns);
+
+                if (isCorrect) {
+                    inputDisplay.style.color = '#4ade80';
+                    inputDisplay.style.borderColor = '#4ade80';
+                    inputDisplay.style.backgroundColor = 'rgba(74, 222, 128, 0.1)';
+                } else {
+                    inputDisplay.style.color = '#ef4444';
+                    inputDisplay.style.borderColor = '#ef4444';
+                    inputDisplay.style.backgroundColor = 'rgba(239, 68, 68, 0.1)';
+                    inputDisplay.innerHTML = `<span style="text-decoration: line-through; margin-right: 15px;">${isNaN(userVal) ? '?' : userVal}</span> <span style="color:#4ade80">${correctAns}</span>`;
+                }
+
+                setTimeout(() => {
+                    window.submitMCQ(isCorrect);
+                }, 1200);
+            };
+
+            // 電腦實體鍵盤輸入支援
+            if (window.mathKeydownHandler) {
+                window.removeEventListener('keydown', window.mathKeydownHandler);
+            }
+            window.mathKeydownHandler = function(e) {
+                if (gameState !== 'MATH_TIME') return;
+                if (e.key >= '0' && e.key <= '9') {
+                    if (currentInputValue.length < 8) currentInputValue += e.key;
+                    updateDisplay();
+                } else if (e.key === 'Backspace') {
+                    currentInputValue = currentInputValue.slice(0, -1);
+                    updateDisplay();
+                } else if (e.key === '-') {
+                    if (currentInputValue.startsWith('-')) currentInputValue = currentInputValue.substring(1);
+                    else currentInputValue = '-' + currentInputValue;
+                    updateDisplay();
+                } else if (e.key === 'Enter') {
+                    submitBtn.click();
+                }
+            };
+            window.addEventListener('keydown', window.mathKeydownHandler);
+
+            optsContainer.appendChild(inputDisplay);
+            optsContainer.appendChild(numpad);
+            optsContainer.appendChild(submitBtn);
+
+        } else {
+            // 恢復原版選擇題 (MC) 佈局，並加入反饋與停頓
+            optsContainer.style.display = 'grid'; 
+            let optionElements = [];
+            qData.options.forEach(opt => {
+                let btn = document.createElement('div');
+                btn.className = 'mcq-btn';
+                btn.innerHTML = `<span class="mcq-label" style="color:inherit;">${opt.id}.</span> <span>${opt.text}</span>`;
+                optionElements.push({btn: btn, isCorrect: opt.isCorrect});
+                
+                btn.onclick = () => {
+                    if (gameState !== 'MATH_TIME') return;
+                    gameState = 'MATH_ANSWERED'; // 暫停時間與禁用點擊
+                    
+                    if (opt.isCorrect) {
+                        btn.style.backgroundColor = 'rgba(74, 222, 128, 0.2)';
+                        btn.style.borderColor = '#4ade80';
+                        btn.style.color = '#4ade80';
+                    } else {
+                        btn.style.backgroundColor = 'rgba(239, 68, 68, 0.2)';
+                        btn.style.borderColor = '#ef4444';
+                        btn.style.color = '#ef4444';
+                        
+                        let correctItem = optionElements.find(item => item.isCorrect);
+                        if (correctItem) {
+                            correctItem.btn.style.backgroundColor = 'rgba(74, 222, 128, 0.2)';
+                            correctItem.btn.style.borderColor = '#4ade80';
+                            correctItem.btn.style.color = '#4ade80';
+                        }
+                    }
+
+                    setTimeout(() => {
+                        window.submitMCQ(opt.isCorrect);
+                    }, 1200);
+                };
+                optsContainer.appendChild(btn);
+            });
+        }
+    }
+
+    let overlay = document.getElementById('math-overlay');
+    if (overlay) {
+        if (typeof MathJax !== 'undefined') MathJax.typesetPromise([overlay]).catch(e => console.log(e));
+        overlay.style.display = 'flex';
+    }
+    
+    mathTimer = 600; // 10 秒
+}
+
+window.submitMCQ = function(isCorrect) {
+    if (isCorrect) {
+        questionsSolved++;
+        if (currentMathType === 'UPGRADE') {
+            if (player.weaponLevel === -1) {
+                player.weaponLevel = 0; player.speed = WEAPONS[0].playerSpeed;
+                player.currentMagazine = WEAPONS[0].magCapacity || 30; player.totalAmmo += WEAPONS[0].reloadAmmo || 30;
+                addFloatingText(`解鎖: ${WEAPONS[0].name}!`, LOGICAL_WIDTH/2, LOGICAL_HEIGHT/4, '#fbbf24', 35);
+            } else if (player.weaponLevel < WEAPONS.length - 1) {
+                player.weaponLevel++; player.speed = WEAPONS[player.weaponLevel].playerSpeed;
+                let ammoToAdd = WEAPONS[player.weaponLevel].reloadAmmo || 30; player.totalAmmo += ammoToAdd;
+                addFloatingText(`解鎖: ${WEAPONS[player.weaponLevel].name}!`, LOGICAL_WIDTH/2, LOGICAL_HEIGHT/4, '#fbbf24', 35);
+                addFloatingText(`+${ammoToAdd} 總彈藥`, LOGICAL_WIDTH/2, LOGICAL_HEIGHT/4 + 40, '#000000', 25);
+            } else {
+                let ammoToAdd = WEAPONS[player.weaponLevel].reloadAmmo || 30; player.totalAmmo += ammoToAdd;
+                addFloatingText(`等級上限！ +${ammoToAdd} 總彈藥`, LOGICAL_WIDTH/2, LOGICAL_HEIGHT/4, '#fbbf24', 35);
+            }
+            player.hp = Math.min(player.maxHp, player.hp + 50); 
+            createParticles(player.x, player.y, '#4ade80', 60, 10); 
+        } else if (currentMathType === 'AMMO') {
+            let ammoToAdd = (player.weaponLevel >= 0 && WEAPONS[player.weaponLevel].ammoBoxRefill) ? WEAPONS[player.weaponLevel].ammoBoxRefill : 30;
+            player.totalAmmo += ammoToAdd;
+            addFloatingText(`+${ammoToAdd} 總彈藥`, LOGICAL_WIDTH/2, LOGICAL_HEIGHT/4 + 40, '#38bdf8', 25);
+            createParticles(player.x, player.y, '#38bdf8', 50, 10); 
+        }
+        closeMathOverlay(true);
+    } else {
+        addFloatingText("❌ 答錯了！寶箱損毀", player.x, player.y - 40, '#ef4444');
+        closeMathOverlay(false);
+    }
+}
+
+function closeMathOverlay(success) {
+    if (window.mathKeydownHandler) {
+        window.removeEventListener('keydown', window.mathKeydownHandler);
+        window.mathKeydownHandler = null;
+    }
+    let overlay = document.getElementById('math-overlay');
+    if (overlay) overlay.style.display = 'none';
+    shakeTime = success ? 0 : 15;
+    gameState = 'PLAYING'; 
+    isShooting = false; leftJoy.active = false; keys.w = keys.a = keys.s = keys.d = false; 
+    let sSfx = document.getElementById('shootSfx'); if (sSfx && !sSfx.paused) { sSfx.pause(); sSfx.currentTime = 0; }
+}
+
+// ==============================================================================
+// INPUT HANDLING
+// ==============================================================================
+
+canvas.addEventListener('touchstart', handleTouchStart, {passive: false});
+canvas.addEventListener('touchmove', handleTouchMove, {passive: false});
+canvas.addEventListener('touchend', handleTouchEnd, {passive: false});
+canvas.addEventListener('touchcancel', handleTouchEnd, {passive: false});
+
+function handleTouchStart(e) {
+    if(e.target !== canvas) return; 
+    e.preventDefault(); initAudio();
+    const touches = e.changedTouches;
+    for (let i = 0; i < touches.length; i++) {
+        let t = touches[i]; 
+        let pos = getLogicalPos(t.clientX, t.clientY);
+        let tx = pos.x; 
+        let ty = pos.y;
+        
+        if (gameState === 'GAME_OVER' || gameState === 'VICTORY') { 
+            if (scoreSubmitted || (document.getElementById('submit-form') && document.getElementById('submit-form').style.display === 'none')) window.returnToMenu(); 
+            return; 
+        }
+        if (gameState === 'PLAYING') {
+            if (!leftJoy.active) {
+                leftJoy.active = true; leftJoy.id = t.identifier; 
+                leftJoyBase = { x: tx, y: ty };
+                leftJoy.stick = { x: tx, y: ty };
+                leftJoy.dir = { x: 0, y: 0 };
+            }
+        }
+    }
+}
+
+function handleTouchMove(e) {
+    e.preventDefault(); const touches = e.changedTouches;
+    for (let i = 0; i < touches.length; i++) {
+        let t = touches[i]; 
+        let pos = getLogicalPos(t.clientX, t.clientY);
+        let tx = pos.x; 
+        let ty = pos.y;
+        
+        if (leftJoy.active && t.identifier === leftJoy.id) {
+            let dx = tx - leftJoyBase.x; 
+            let dy = ty - leftJoyBase.y; 
+            let dist = Math.sqrt(dx*dx + dy*dy);
+            let angle = Math.atan2(dy, dx) || 0;
+            
+            if (dist > joyRadius) {
+                leftJoy.stick.x = leftJoyBase.x + Math.cos(angle) * joyRadius; 
+                leftJoy.stick.y = leftJoyBase.y + Math.sin(angle) * joyRadius; 
+                leftJoy.dir.x = Math.cos(angle); leftJoy.dir.y = Math.sin(angle);
+            } else {
+                leftJoy.stick.x = tx; leftJoy.stick.y = ty; 
+                leftJoy.dir.x = dist > 0 ? dx / joyRadius : 0; leftJoy.dir.y = dist > 0 ? dy / joyRadius : 0;
+            }
+        }
+    }
+}
+
+function handleTouchEnd(e) {
+    e.preventDefault(); const touches = e.changedTouches;
+    for (let i = 0; i < touches.length; i++) {
+        let t = touches[i];
+        if (leftJoy.active && t.identifier === leftJoy.id) { leftJoy.active = false; leftJoy.dir = {x:0, y:0}; }
+    }
+}
+
+window.addEventListener('mousemove', (e) => { 
+    let pos = getLogicalPos(e.clientX, e.clientY);
+    mouseX = pos.x; 
+    mouseY = pos.y; 
+});
+window.addEventListener('mousedown', (e) => {
+    if(e.target !== canvas) return;
+    initAudio();
+    if (gameState === 'GAME_OVER' || gameState === 'VICTORY') {
+        if (scoreSubmitted || (document.getElementById('submit-form') && document.getElementById('submit-form').style.display === 'none')) window.returnToMenu(); 
+    } else if (gameState === 'PLAYING') {
+        isShooting = true;
+    }
+});
+window.addEventListener('mouseup', () => { 
+    isShooting = false; 
+});
+window.addEventListener('keydown', (e) => {
+    initAudio();
+    if (gameState === 'PLAYING') { let key = e.key.toLowerCase(); if (keys.hasOwnProperty(key)) keys[key] = true; } 
+    else if (gameState === 'GAME_OVER' || gameState === 'VICTORY') { 
+        if (e.key === 'Enter') { if (scoreSubmitted || (document.getElementById('submit-form') && document.getElementById('submit-form').style.display === 'none')) window.returnToMenu(); }
+    }
+});
+window.addEventListener('keyup', (e) => { if (gameState === 'PLAYING') { let key = e.key.toLowerCase(); if (keys.hasOwnProperty(key)) keys[key] = false; }});
+
+
+// ==============================================================================
+// CORE ENGINE LOGIC
+// ==============================================================================
+
+function initMonsterQueue() {
+    monsterQueue = []; TOTAL_MONSTERS = 0; monstersLeft = [0, 0, 0, 0, 0, 0];
+    for (let m of MONSTER_BASE) {
+        for(let i=0; i<m.count; i++) monsterQueue.push({...m});
+        TOTAL_MONSTERS += m.count; monstersLeft[m.tier] += m.count; 
+    }
+}
+
+function fireBullet(angle, weapon, customSpeed) {
+    bullets.push({
+        x: player.x + Math.cos(player.angle || 0) * 30, y: player.y + Math.sin(player.angle || 0) * 30, 
+        vx: Math.cos(angle || 0) * customSpeed, vy: Math.sin(angle || 0) * customSpeed,
+        radius: weapon.size || 4, color: weapon.color, glow: weapon.glow, damage: weapon.damage, penetrate: weapon.penetrate, hitEnemies: []
+    });
+}
+
+function spawnLootBox() {
+    lootBoxes.push({
+        x: Math.random() * (LOGICAL_WIDTH - UI_BOUND - 100) + UI_BOUND + 50, y: Math.random() * (LOGICAL_HEIGHT - 200) + 100,
+        size: 35, pulse: 0, spawnTime: globalTime 
+    });
+    addFloatingText("武器升級箱降落！", LOGICAL_WIDTH/2, 150, '#eab308', 30);
+}
+
+function spawnAmmoBox() {
+    if (ammoBoxes.length < 3) {
+        ammoBoxes.push({
+            x: Math.random() * (LOGICAL_WIDTH - UI_BOUND - 100) + UI_BOUND + 50, y: Math.random() * (LOGICAL_HEIGHT - 200) + 100,
+            size: 28, pulse: 0, spawnTime: globalTime 
+        });
+        addFloatingText("彈藥補給包降落！", LOGICAL_WIDTH/2, 120, '#38bdf8', 26);
+    }
+}
+
+function spawnEnemy() {
+    if (gameState !== 'PLAYING' || monsterQueue.length === 0) return;
+    let mData = monsterQueue.shift(); totalMonstersSpawned++;
+    
+    let x = Math.random() < 0.5 ? UI_BOUND + 10 : LOGICAL_WIDTH + 50;
+    let y = Math.random() * LOGICAL_HEIGHT;
+
+    enemies.push({ 
+        x: x, y: y, size: mData.size, color: mData.color, speed: mData.speed, 
+        hp: mData.hp, maxHp: mData.hp, tier: mData.tier, name: mData.name, bobPhase: Math.random() * Math.PI * 2 
+    });
+    
+    if (mData.tier === 5) {
+        bossAlarmTimer = 120;
+        addFloatingText("⚠️ 萬血首領來襲！ ⚠️", LOGICAL_WIDTH/2, 100, '#ef4444', 50);
+    }
+}
+
+function triggerGameOver(isVictory) {
+    gameState = isVictory ? 'VICTORY' : 'GAME_OVER';
+    let form = document.getElementById('submit-form');
+    if (form) form.style.display = 'flex';
+    scoreSubmitted = false;
+}
+
+function resetGame() {
+    player.weaponLevel = -1;
+    player.hp = player.maxHp; 
+    player.speed = 4; 
+    player.currentMagazine = 0; 
+    player.totalAmmo = 0; 
+    player.isReloading = false; player.reloadTimer = 0;
+    player.angle = 0;
+    
+    enemiesKilled = 0; totalMonstersSpawned = 0; questionsSolved = 0;
+    player.x = UI_BOUND + (LOGICAL_WIDTH - UI_BOUND)/2; player.y = LOGICAL_HEIGHT / 2;
+    bullets = []; enemies = []; lootBoxes = []; ammoBoxes = []; particles = []; floatingTexts = [];
+    isShooting = false; keys.w = keys.a = keys.s = keys.d = false;
+    leftJoy.active = false;
+    player.lastFireTime = 0; globalTime = 0; bossAlarmTimer = 0; currentWave = 1;
+    
+    let form = document.getElementById('submit-form');
+    if (form) form.style.display = 'none';
+    
+    initMonsterQueue(); fetchLeaderboard();
+    gameState = 'PLAYING';
+    
+    // 初始化進度條，清空UI顯示
+    lastHUDState.kills = -1;
+    
+    spawnLootBox();
+}
+
+function checkCollision(obj1, obj2, dist) {
+    let dx = obj1.x - obj2.x; let dy = obj1.y - obj2.y; return Math.sqrt(dx*dx + dy*dy) <= dist;
+}
+
+function startReload() {
+    if (player.weaponLevel === -1) return;
+    let cap = WEAPONS[player.weaponLevel].magCapacity || 30;
+    if (player.totalAmmo > 0 && player.currentMagazine < cap && !player.isReloading) {
+        player.isReloading = true;
+        player.reloadTimer = 30; 
+        let rSfx = document.getElementById('reloadSfx');
+        if (rSfx) { rSfx.currentTime = 0; rSfx.play().catch(e=>{}); }
+    }
+}
+
+function update() {
+    globalTime++;
+    updateHTMLHUD();
+
+    if (gameState === 'START_MENU') return;
+
+    if (gameState === 'MATH_TIME' || gameState === 'MATH_ANSWERED') {
+        // 玩家回答問題時，所有補充包暫停扣除時間 (透過推移生成時間來凍結壽命計算)
+        for (let i = 0; i < lootBoxes.length; i++) lootBoxes[i].spawnTime++;
+        for (let i = 0; i < ammoBoxes.length; i++) ammoBoxes[i].spawnTime++;
+
+        if (gameState === 'MATH_TIME') {
+            mathTimer--;
+            let pct = Math.max(0, (mathTimer / 600) * 100);
+            if (uiElements.mathTimerBar) {
+                uiElements.mathTimerBar.style.width = pct + '%';
+                uiElements.mathTimerBar.style.backgroundColor = mathTimer < 180 ? '#ef4444' : '#4ade80';
+            }
+            if (mathTimer <= 0) {
+                gameState = 'MATH_ANSWERED'; // 防止超時後鍵盤繼續輸入
+                closeMathOverlay(false);
+                addFloatingText("⏳ 時間到！寶箱已損毀。", player.x, player.y - 40, '#ef4444');
+            }
+        }
+    }
+
+    if (player.recoilOffset > 0) player.recoilOffset *= 0.8; 
+    if (bossAlarmTimer > 0) bossAlarmTimer--;
+
+    for (let i = particles.length - 1; i >= 0; i--) {
+        particles[i].x += particles[i].vx; particles[i].y += particles[i].vy;
+        particles[i].life -= particles[i].decay;
+        if (particles[i].life <= 0) particles.splice(i, 1);
+    }
+    for (let i = floatingTexts.length - 1; i >= 0; i--) {
+        floatingTexts[i].y += floatingTexts[i].dy; floatingTexts[i].life -= 0.02;
+        if (floatingTexts[i].life <= 0) floatingTexts.splice(i, 1);
+    }
+
+    if (gameState !== 'PLAYING') return;
+
+    if (player.isReloading && player.weaponLevel >= 0) {
+        player.reloadTimer--;
+        if (player.reloadTimer <= 0) {
+            let cap = WEAPONS[player.weaponLevel].magCapacity || 30;
+            let bulletsNeeded = cap - player.currentMagazine;
+            let bulletsToReload = Math.min(bulletsNeeded, player.totalAmmo);
+            player.currentMagazine += bulletsToReload;
+            player.totalAmmo -= bulletsToReload;
+            player.isReloading = false;
+        }
+    }
+
+    if (player.weaponLevel >= 0 && globalTime % ammoBoxSpawnInterval === 0) spawnAmmoBox(); 
+    if (globalTime % lootBoxSpawnInterval === 0) spawnLootBox(); 
+    
+    if (monsterQueue.length > 0) { 
+        if (enemies.length < 4 || globalTime % 180 === 0) spawnEnemy(); 
+    }
+
+    let dx = 0, dy = 0; let safeSpeed = player.speed || 4; 
+    if (leftJoy.active) { dx = leftJoy.dir.x * safeSpeed; dy = leftJoy.dir.y * safeSpeed; } 
+    else {
+        if (keys.w) dy -= safeSpeed; if (keys.s) dy += safeSpeed;
+        if (keys.a) dx -= safeSpeed; if (keys.d) dx += safeSpeed;
+    }
+    
+    player.isMoving = (dx !== 0 || dy !== 0);
+    if (dx !== 0 && dy !== 0 && !leftJoy.active) { 
+        let len = Math.sqrt(dx*dx + dy*dy); dx = (dx / len) * safeSpeed; dy = (dy / len) * safeSpeed; 
+    }
+    
+    if (!isNaN(dx) && !isNaN(dy)) { player.x += dx; player.y += dy; }
+    player.x = Math.max(UI_BOUND + player.radius, Math.min(LOGICAL_WIDTH - player.radius, player.x));
+    player.y = Math.max(player.radius, Math.min(LOGICAL_HEIGHT - player.radius, player.y));
+
+    // 游標精準跟隨瞄準 (Mouse Aiming)
+    if (!('ontouchstart' in window) || !leftJoy.active) { 
+        player.angle = Math.atan2(mouseY - player.y, mouseX - player.x) || 0;
+    }
+
+    if (isShooting) {
+        if (player.weaponLevel === -1) {
+            if (globalTime - player.lastFireTime >= 30) {
+                addFloatingText("請先拾取升級箱獲取武器！", player.x, player.y - 40, '#ef4444');
+                let emptySfx = document.getElementById('emptyAmmoSfx'); 
+                if (emptySfx) { emptySfx.currentTime = 0; emptySfx.play().catch(e=>{}); }
+                player.lastFireTime = globalTime;
+            }
+            let sSfx = document.getElementById('shootSfx'); if (sSfx && !sSfx.paused) { sSfx.pause(); sSfx.currentTime = 0; }
+        } else {
+            const weapon = WEAPONS[player.weaponLevel];
+            if (globalTime - player.lastFireTime >= weapon.fireRate) {
+                if (player.currentMagazine > 0 && !player.isReloading) {
+                    let sSfx = document.getElementById('shootSfx');
+                    if (sSfx) { sSfx.currentTime = 0; sSfx.play().catch(e=>{}); }
+
+                    player.currentMagazine--; 
+                    for(let k=0; k<weapon.bullets; k++) {
+                        let speedOffset = weapon.speed - (k * 2.5); 
+                        if (speedOffset < 8) speedOffset = 8;
+                        let angleOffset = (player.angle || 0) + (Math.random() - 0.5) * 0.05; 
+                        fireBullet(angleOffset, weapon, speedOffset);
+                    }
+                    createParticles(player.x + Math.cos(player.angle || 0)*30, player.y + Math.sin(player.angle || 0)*30, weapon.color, weapon.level*2, weapon.level*1.5);
+                    shakeTime = Math.max(shakeTime, 2);
+                    player.recoilOffset = weapon.recoil; player.lastFireTime = globalTime;
+                } else if (player.currentMagazine <= 0 && player.totalAmmo > 0 && !player.isReloading) {
+                    startReload(); 
+                    let sSfx = document.getElementById('shootSfx'); if (sSfx && !sSfx.paused) { sSfx.pause(); sSfx.currentTime = 0; }
+                } else if (player.currentMagazine <= 0 && player.totalAmmo <= 0 && !player.isReloading) {
+                    if (globalTime - player.lastFireTime >= 30) {
+                        addFloatingText("彈藥耗盡！尋找補給箱！", player.x, player.y - 40, '#ef4444');
+                        let emptySfx = document.getElementById('emptyAmmoSfx'); if (emptySfx) { emptySfx.currentTime = 0; emptySfx.play().catch(e=>{}); }
+                        player.lastFireTime = globalTime;
+                    }
+                    let sSfx = document.getElementById('shootSfx'); if (sSfx && !sSfx.paused) { sSfx.pause(); sSfx.currentTime = 0; }
+                }
+            }
+        }
+    } else {
+        let sSfx = document.getElementById('shootSfx'); if (sSfx && !sSfx.paused) { sSfx.pause(); sSfx.currentTime = 0; }
+    }
+
+    for (let i = bullets.length - 1; i >= 0; i--) {
+        let b = bullets[i]; b.x += b.vx; b.y += b.vy;
+        if (Math.random() < 0.3) createParticles(b.x, b.y, b.color, 1, 1);
+        if (b.x < 0 || b.x > LOGICAL_WIDTH || b.y < 0 || b.y > LOGICAL_HEIGHT) bullets.splice(i, 1);
+    }
+
+    for (let i = enemies.length - 1; i >= 0; i--) {
+        let enemy = enemies[i];
+        let angleToPlayer = Math.atan2(player.y - enemy.y, player.x - enemy.x) || 0;
+        enemy.angle = angleToPlayer;
+        enemy.x += Math.cos(angleToPlayer) * enemy.speed; enemy.y += Math.sin(angleToPlayer) * enemy.speed;
+
+        if (checkCollision(player, enemy, player.radius + enemy.size/2)) {
+            let dmg = 10 + (enemy.tier * 5); 
+            player.hp -= dmg; shakeTime = 15;
+            createParticles(player.x, player.y, '#ef4444', 30, 8); 
+            addFloatingText(`-${dmg}`, player.x, player.y - 50, '#ef4444', 24);
+            enemy.x -= Math.cos(angleToPlayer) * 40; enemy.y -= Math.sin(angleToPlayer) * 40;
+            if (player.hp <= 0) { createParticles(player.x, player.y, '#ef4444', 100, 15); triggerGameOver(false); }
+            continue;
+        }
+
+        for (let j = bullets.length - 1; j >= 0; j--) {
+            let b = bullets[j];
+            if (b.penetrate && b.hitEnemies.includes(enemy)) continue;
+
+            if (checkCollision(enemy, b, enemy.size/2 + b.radius)) {
+                enemy.hp -= b.damage; 
+                createParticles(enemy.x, enemy.y, b.color, 6, 5); 
+                if (b.penetrate) b.hitEnemies.push(enemy); else bullets.splice(j, 1); 
+
+                if (enemy.hp <= 0) {
+                    createParticles(enemy.x, enemy.y, enemy.color, enemy.tier === 5 ? 100 : 40, 8); 
+                    monstersLeft[enemy.tier]--; 
+                    enemies.splice(i, 1); enemiesKilled++;
+                    if (enemiesKilled >= TOTAL_MONSTERS) triggerGameOver(true);
+                    break; 
+                }
+            }
+        }
+    }
+
+    for (let i = lootBoxes.length - 1; i >= 0; i--) {
+        if (globalTime - lootBoxes[i].spawnTime > 600) { createParticles(lootBoxes[i].x, lootBoxes[i].y, '#94a3b8', 25, 5); lootBoxes.splice(i, 1); continue; }
+        lootBoxes[i].pulse += 0.1;
+        if (checkCollision(player, lootBoxes[i], player.radius + lootBoxes[i].size/2)) {
+            createParticles(lootBoxes[i].x, lootBoxes[i].y, '#eab308', 40, 8);
+            lootBoxes.splice(i, 1); triggerMath('UPGRADE'); 
+            break;
+        }
+    }
+
+    for (let i = ammoBoxes.length - 1; i >= 0; i--) {
+        if (globalTime - ammoBoxes[i].spawnTime > 600) { createParticles(ammoBoxes[i].x, ammoBoxes[i].y, '#94a3b8', 25, 5); ammoBoxes.splice(i, 1); continue; }
+        ammoBoxes[i].pulse += 0.1;
+        if (checkCollision(player, ammoBoxes[i], player.radius + ammoBoxes[i].size/2)) {
+            createParticles(ammoBoxes[i].x, ammoBoxes[i].y, '#38bdf8', 40, 8);
+            ammoBoxes.splice(i, 1); triggerMath('AMMO'); 
+            break;
+        }
+    }
+}
+
+// 🚀 畫布效能極限優化：採用設備像素密度進行高清渲染
+function draw() {
+    if (gameState === 'START_MENU') {
+        ctx.fillStyle = '#0f172a'; 
+        ctx.fillRect(0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT);
+        return;
+    }
+
+    ctx.save();
+    
+    ctx.fillStyle = '#d2b48c'; 
+    ctx.fillRect(0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT);
+    
+    if (shakeTime > 0) {
+        let mag = (shakeTime / 10) * 8; 
+        ctx.translate((Math.random() - 0.5) * mag, (Math.random() - 0.5) * mag); shakeTime--;
+    }
+
+    ctx.strokeStyle = 'rgba(139, 69, 19, 0.15)'; ctx.lineWidth = 2;
+    for(let i=0; i<LOGICAL_WIDTH; i+=80) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, LOGICAL_HEIGHT); ctx.stroke(); }
+    for(let i=0; i<LOGICAL_HEIGHT; i+=80) { ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(LOGICAL_WIDTH, i); ctx.stroke(); }
+
+    if (bossAlarmTimer > 0) {
+        let alpha = Math.abs(Math.sin(bossAlarmTimer * 0.1)) * 0.4;
+        ctx.fillStyle = `rgba(220, 38, 38, ${alpha})`;
+        ctx.fillRect(0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT);
+    }
+
+    let drawables = [];
+    if (player.hp > 0) drawables.push({ type: 'player', y: player.y, obj: player });
+    for (let e of enemies) drawables.push({ type: 'enemy', y: e.y, obj: e });
+    for (let b of lootBoxes) drawables.push({ type: 'box', y: b.y, obj: b });
+    for (let a of ammoBoxes) drawables.push({ type: 'ammoBox', y: a.y, obj: a });
+    
+    drawables.sort((a, b) => a.y - b.y);
+
+    for (let item of drawables) {
+        if (item.type === 'box') {
+            let box = item.obj; let glow = Math.abs(Math.sin(box.pulse)) * 8; let timeLeft = 600 - (globalTime - box.spawnTime);
+            if (timeLeft < 180 && globalTime % 20 < 10) ctx.globalAlpha = 0.4;
+            ctx.save(); ctx.translate(box.x, box.y);
+            
+            // 優化: Fake Glow
+            ctx.fillStyle = 'rgba(234, 179, 8, 0.2)'; ctx.beginPath(); ctx.arc(0, -15, 30 + glow, 0, Math.PI*2); ctx.fill();
+
+            ctx.fillStyle = 'rgba(0,0,0,0.4)'; ctx.beginPath(); ctx.ellipse(0, 0, 24, 12, 0, 0, Math.PI*2); ctx.fill();
+            let visualY = -15 - glow;
+            ctx.fillStyle = '#78350f'; ctx.fillRect(-20, visualY - 15, 40, 30);
+            ctx.fillStyle = '#f59e0b'; ctx.fillRect(-22, visualY - 23, 44, 15);
+            ctx.fillStyle = '#fbbf24'; ctx.fillRect(-5, visualY - 10, 10, 10);
+            ctx.fillStyle = 'white'; ctx.font = 'bold 16px Arial'; ctx.textAlign = 'center'; ctx.fillText('UP', 0, visualY - 30);
+            ctx.strokeStyle = 'white'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(0, visualY - 50, 10, -Math.PI/2, -Math.PI/2 + (timeLeft/600) * Math.PI*2); ctx.stroke();
+            ctx.restore(); ctx.globalAlpha = 1.0;
+        } 
+        else if (item.type === 'ammoBox') {
+            let box = item.obj; let glow = Math.abs(Math.sin(box.pulse)) * 8; let timeLeft = 600 - (globalTime - box.spawnTime);
+            if (timeLeft < 180 && globalTime % 20 < 10) ctx.globalAlpha = 0.4;
+            ctx.save(); ctx.translate(box.x, box.y);
+
+            // 優化: Fake Glow
+            ctx.fillStyle = 'rgba(56, 189, 248, 0.2)'; ctx.beginPath(); ctx.arc(0, -15, 30 + glow, 0, Math.PI*2); ctx.fill();
+
+            ctx.fillStyle = 'rgba(0,0,0,0.4)'; ctx.beginPath(); ctx.ellipse(0, 0, 20, 10, 0, 0, Math.PI*2); ctx.fill();
+            let visualY = -15 - glow;
+            ctx.fillStyle = '#1d4ed8'; ctx.fillRect(-18, visualY - 12, 36, 24); 
+            ctx.fillStyle = '#3b82f6'; ctx.fillRect(-20, visualY - 20, 40, 12);
+            ctx.fillStyle = '#60a5fa'; ctx.fillRect(-5, visualY - 8, 10, 8);
+            ctx.fillStyle = 'white'; ctx.font = 'bold 12px Arial'; ctx.textAlign = 'center'; ctx.fillText('AMMO', 0, visualY - 25);
+            ctx.strokeStyle = 'white'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(0, visualY - 40, 8, -Math.PI/2, -Math.PI/2 + (timeLeft/600) * Math.PI*2); ctx.stroke();
+            ctx.restore(); ctx.globalAlpha = 1.0;
+        }
+        else if (item.type === 'enemy') {
+            let e = item.obj; let isFacingRight = player.x > e.x; let bob = Math.abs(Math.sin(globalTime * 0.1 * e.speed + (e.x*0.01))) * (e.size * 0.15);
+            ctx.save(); ctx.translate(e.x, e.y); 
+            ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.beginPath(); ctx.ellipse(0, 0, e.size*0.5, e.size*0.2, 0, 0, Math.PI*2); ctx.fill();
+            let visualY = -10 - bob;
+            
+            // 放大遊戲內魔怪的視覺比例 (乘以 1.4)，讓五個等級的特徵更明顯，同時維持碰撞判定不變
+            let visualSize = e.size * 1.4;
+            drawMonsterEntity(ctx, visualSize, e.color, e.tier, visualY, isFacingRight);
+            
+            // Fake shadow text for performance
+            ctx.fillStyle = 'black'; ctx.font = 'bold 16px Arial'; ctx.textAlign = 'center'; ctx.fillText(`Lv.${e.tier}`, 2, visualY - visualSize*0.9 - 8);
+            ctx.fillStyle = 'white'; ctx.fillText(`Lv.${e.tier}`, 0, visualY - visualSize*0.9 - 10);
+            
+            let hpBarWidth = e.tier === 5 ? 100 : 50; ctx.fillStyle = '#334155'; ctx.fillRect(-hpBarWidth/2, visualY - visualSize*0.7 - 15, hpBarWidth, 8);
+            ctx.fillStyle = '#ef4444'; ctx.fillRect(-hpBarWidth/2, visualY - visualSize*0.7 - 15, hpBarWidth * (e.hp / e.maxHp), 8);
+            ctx.restore();
+        }
+        else if (item.type === 'player') {
+            let p = item.obj; let isFacingRight = (player.angle > -Math.PI/2 && player.angle < Math.PI/2); let bob = p.isMoving ? Math.sin(globalTime * 0.5) * 4 : 0;
+            ctx.save(); ctx.translate(p.x, p.y);
+            ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.beginPath(); ctx.ellipse(0, 0, p.radius*1.2, p.radius*0.5, 0, 0, Math.PI*2); ctx.fill();
+            let visualY = -10 + bob; 
+            
+            let gunDrawLogic = () => {
+                if (player.weaponLevel === -1) return;
+                let wepColor = WEAPONS[player.weaponLevel] ? WEAPONS[player.weaponLevel].color : '#fff';
+                ctx.save(); ctx.translate(0, visualY - 5); ctx.rotate(p.angle || 0);
+                if (Math.abs(p.angle) > Math.PI/2) ctx.scale(1, -1);
+                ctx.fillStyle = '#1e293b'; ctx.fillRect(0 - p.recoilOffset, -4, 25, 8); 
+                ctx.fillStyle = '#475569'; ctx.fillRect(10 - p.recoilOffset, -2, 15, 4); 
+                ctx.fillStyle = wepColor; ctx.fillRect(25 - p.recoilOffset, -3, 6, 6); ctx.restore();
+            };
+            
+            let aimUp = Math.sin(p.angle || 0) < 0; if (aimUp) gunDrawLogic();
+            ctx.fillStyle = '#dc2626'; ctx.beginPath(); ctx.moveTo(-12, visualY - 10); ctx.lineTo(-20, visualY + 20); ctx.lineTo(20, visualY + 20); ctx.lineTo(12, visualY - 10); ctx.fill();
+            let legSwing = p.isMoving ? Math.sin(globalTime * 0.8) * 8 : 0;
+            ctx.fillStyle = '#475569'; ctx.fillRect(-8, visualY + 15 - legSwing, 6, 12); ctx.fillRect(2, visualY + 15 + legSwing, 6, 12);
+            ctx.fillStyle = '#1d4ed8'; ctx.fillRect(-12, visualY - 15, 24, 30); 
+            ctx.fillStyle = '#94a3b8'; ctx.fillRect(-14, visualY - 15, 28, 16); 
+            ctx.fillStyle = '#fcd34d'; ctx.beginPath(); ctx.arc(0, visualY - 25, 16, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#cbd5e1'; ctx.beginPath(); ctx.arc(0, visualY - 28, 17, Math.PI, 0); ctx.fill(); ctx.fillRect(-18, visualY - 28, 36, 6); 
+            ctx.fillStyle = '#b91c1c'; ctx.fillRect(-3, visualY - 48, 6, 12);
+            let eyeX = Math.cos(p.angle || 0) * 3; let eyeY = Math.sin(p.angle || 0) * 3;
+            ctx.fillStyle = '#1e293b'; ctx.beginPath(); ctx.arc(-5 + eyeX, visualY - 23 + eyeY, 3, 0, Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.arc(5 + eyeX, visualY - 23 + eyeY, 3, 0, Math.PI*2); ctx.fill();
+            
+            if (player.weaponLevel >= 0) {
+                ctx.fillStyle = '#fcd34d'; ctx.beginPath(); ctx.arc(Math.cos(p.angle || 0)*10 - p.recoilOffset, visualY - 5 + Math.sin(p.angle || 0)*10, 5, 0, Math.PI*2); ctx.fill();
+            }
+            
+            if (!aimUp) gunDrawLogic(); 
+            ctx.restore();
+        }
+    }
+
+    for (let b of bullets) {
+        ctx.save(); ctx.translate(b.x, b.y - 15); ctx.rotate(Math.atan2(b.vy, b.vx)); 
+        // 優化: Fake Glow 代替 shadowBlur
+        ctx.globalAlpha = 0.4; ctx.fillStyle = b.glow; ctx.beginPath(); ctx.roundRect(-10, -b.radius, 20 + b.radius*4, b.radius*2, 5); ctx.fill();
+        ctx.globalAlpha = 1.0; ctx.fillStyle = b.color; ctx.beginPath(); ctx.roundRect(-10, -b.radius/2, 20 + b.radius*2, b.radius, 5); ctx.fill();
+        ctx.restore();
+    }
+    
+    for (let p of particles) { ctx.globalAlpha = p.life; ctx.fillStyle = p.color; ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill(); }
+    ctx.globalAlpha = 1.0;
+    
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    for (let text of floatingTexts) {
+        ctx.globalAlpha = text.life; ctx.font = `bold ${text.size}px Arial`;
+        // 優化: 移除 shadowBlur，改用繪製兩次文字模擬邊框
+        ctx.fillStyle = 'black'; ctx.fillText(text.text, text.x + 2, text.y + 2);
+        ctx.fillStyle = text.color; ctx.fillText(text.text, text.x, text.y);
+    }
+    ctx.globalAlpha = 1.0;
+
+    let gameCenterX = UI_BOUND + (LOGICAL_WIDTH - UI_BOUND) / 2;
+
+    // --- 繪製正上方目前程度與倍率 (加入課題名稱並分2行顯示) ---
+    if (gameState === 'PLAYING') {
+        ctx.save();
+        ctx.textAlign = 'center';
+        
+        let multObj = { '1': '1.0', '2': '1.2', '3': '1.4', '4': '1.6', '5': '1.8' };
+        let diffLabels = {
+            '1': '10-50 整數加減運算',
+            '2': '整數四則混合運算 (先乘除後加減)',
+            '3': '加減混合 及 基礎指數',
+            '4': '捨入、展開、因式分解、指數 (基礎隨機)',
+            '5': '捨入、展開、因式分解、指數 (進階隨機)'
+        };
+        let currentMult = multObj[currentDifficulty] || '1.0';
+        let currentLabel = diffLabels[currentDifficulty] || '';
+        
+        let line1Text = `程度 ${currentDifficulty} (分數 x${currentMult})`;
+        let line2Text = currentLabel;
+        
+        // 第一行 (程度與分數倍大，字體較大)
+        ctx.textBaseline = 'top';
+        ctx.font = 'bold 24px Arial';
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)'; // 黑色陰影
+        ctx.fillText(line1Text, gameCenterX + 2, 22);
+        ctx.fillStyle = '#fbbf24'; // 黃色文字
+        ctx.fillText(line1Text, gameCenterX, 20);
+
+        // 第二行 (該程度內容敘述，字體較小)
+        ctx.font = 'bold 16px Arial';
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)'; // 黑色陰影
+        ctx.fillText(line2Text, gameCenterX + 2, 52);
+        ctx.fillStyle = '#e2e8f0'; // 白色偏灰文字
+        ctx.fillText(line2Text, gameCenterX, 50);
+
+        ctx.restore();
+    }
+
+    if (gameState === 'PLAYING' && ('ontouchstart' in window)) {
+        const drawJoy = (joy, base) => {
+            if (!joy.active) return; // 只有在按住時才繪製搖桿，實現完全浮動隱形體驗
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.15)'; ctx.beginPath(); ctx.arc(base.x, base.y, joyRadius, 0, Math.PI*2); ctx.fill();
+            ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)'; ctx.stroke();
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.5)'; ctx.beginPath(); ctx.arc(joy.stick.x, joy.stick.y, joyRadius/2.5, 0, Math.PI*2); ctx.fill();
+        };
+        drawJoy(leftJoy, leftJoyBase); 
+    }
+
+    if (gameState === 'GAME_OVER' || gameState === 'VICTORY') {
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.9)'; ctx.fillRect(0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT);
+        ctx.textAlign = 'center';
+        
+        let mult = { '1': 1, '2': 1.2, '3': 1.4, '4': 1.6, '5': 1.8 }[currentDifficulty] || 1;
+        let finalScore = Math.round(enemiesKilled * mult);
+
+        if (gameState === 'VICTORY') {
+            ctx.fillStyle = 'black'; ctx.font = 'bold 60px Arial'; ctx.fillText('MISSION ACCOMPLISHED!', gameCenterX + 3, LOGICAL_HEIGHT/2 - 147); // Fake shadow
+            ctx.fillStyle = '#fbbf24'; ctx.fillText('MISSION ACCOMPLISHED!', gameCenterX, LOGICAL_HEIGHT/2 - 150);
+            ctx.fillStyle = 'white'; ctx.font = 'bold 24px Arial'; 
+            let finalWepName = player.weaponLevel >= 0 ? WEAPONS[player.weaponLevel].name : '無';
+            ctx.fillText(`成功擊殺終極 Boss！ 最終武器: ${finalWepName}`, gameCenterX, LOGICAL_HEIGHT/2 - 80);
+            // 顯示計算公式
+            ctx.fillText(`總得分: ${enemiesKilled} x ${mult} = ${finalScore}分`, gameCenterX, LOGICAL_HEIGHT/2 - 45);
+        } else {
+            ctx.fillStyle = 'black'; ctx.font = 'bold 80px Arial'; ctx.fillText('YOU DIED', gameCenterX + 4, LOGICAL_HEIGHT/2 - 146);
+            ctx.fillStyle = '#ef4444'; ctx.fillText('YOU DIED', gameCenterX, LOGICAL_HEIGHT/2 - 150);
+            ctx.fillStyle = 'white'; ctx.font = 'bold 28px Arial';
+            // 顯示計算公式
+            ctx.fillText(`擊殺數: ${enemiesKilled} / ${TOTAL_MONSTERS} (總得分: ${enemiesKilled} x ${mult} = ${finalScore}分)`, gameCenterX, LOGICAL_HEIGHT/2 - 80);
+        }
+        
+        ctx.globalAlpha = (globalTime % 60 < 30) ? 1 : 0.5; ctx.fillStyle = '#94a3b8'; ctx.font = '24px Arial';
+        ctx.fillText('<< 請在左下方輸入資料上傳排行榜 >>', gameCenterX, LOGICAL_HEIGHT/2 + 250); 
+        ctx.fillText('或按 [Enter] 返回主選單', gameCenterX, LOGICAL_HEIGHT/2 + 290); ctx.globalAlpha = 1.0;
+    }
+    
+    ctx.restore(); // 恢復畫布的全域縮放
+}
+
+async function loadGameData() {
+    const timestamp = new Date().getTime();
+    if (GAS_WEB_APP_URL) {
+        try {
+            let res = await fetch(`${GAS_WEB_APP_URL}?t=${timestamp}`); 
+            let data = await res.json();
+            if (data.weapons && data.weapons.length > 1) {
+                let rows = data.weapons;
+                if (rows[1].length > 9 && rows[1][9]) { let val = parseFloat(rows[1][9]); if (!isNaN(val) && val > 0) lootBoxSpawnInterval = Math.floor(val * 60); }
+                if (rows[1].length > 10 && rows[1][10]) { let val = parseFloat(rows[1][10]); if (!isNaN(val) && val > 0) ammoBoxSpawnInterval = Math.floor(val * 60); }
+                for(let i=1; i<rows.length; i++) {
+                    if (rows[i].length >= 7 && WEAPONS[i-1]) {
+                        WEAPONS[i-1].name = String(rows[i][1]).trim() || WEAPONS[i-1].name; WEAPONS[i-1].damage = parseFloat(rows[i][2]) || WEAPONS[i-1].damage; WEAPONS[i-1].bullets = parseInt(rows[i][3]) || WEAPONS[i-1].bullets;
+                        WEAPONS[i-1].fireRate = parseInt(rows[i][4]) || WEAPONS[i-1].fireRate; WEAPONS[i-1].playerSpeed = parseFloat(rows[i][5]) || WEAPONS[i-1].playerSpeed; WEAPONS[i-1].reloadAmmo = parseInt(rows[i][6]) || WEAPONS[i-1].reloadAmmo;
+                        WEAPONS[i-1].magCapacity = parseInt(rows[i][7]) || WEAPONS[i-1].magCapacity; WEAPONS[i-1].ammoBoxRefill = parseInt(rows[i][8]) || WEAPONS[i-1].ammoBoxRefill;
+                    }
+                }
+            }
+            if (data.monsters && data.monsters.length > 1) {
+                let rows = data.monsters;
+                for(let i=1; i<rows.length; i++) {
+                    if (rows[i].length >= 5 && MONSTER_BASE[i-1]) {
+                        MONSTER_BASE[i-1].name = String(rows[i][1]).trim() || MONSTER_BASE[i-1].name; MONSTER_BASE[i-1].count = parseInt(rows[i][2]) || MONSTER_BASE[i-1].count;
+                        MONSTER_BASE[i-1].hp = parseFloat(rows[i][3]) || MONSTER_BASE[i-1].hp; MONSTER_BASE[i-1].speed = parseFloat(rows[i][4]) || MONSTER_BASE[i-1].speed;
+                    }
+                }
+            }
+        } catch(e) { console.error("載入數據失敗，使用本地預設值:", e); }
+    }
+    document.getElementById('loading-screen').style.display = 'none';
+    
+    // 進入選單畫面
+    let menu = document.getElementById('start-menu');
+    if (menu) menu.style.display = 'flex';
+    gameState = 'START_MENU';
+    gameLoop(); 
+}
+
+function gameLoop() { update(); draw(); requestAnimationFrame(gameLoop); }
+loadGameData();
+
+</script>
+
+</body>
+</html>
