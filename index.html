@@ -106,8 +106,18 @@
         #ui-kill-fill { height: 100%; background: #f59e0b; width: 0%; transition: width 0.2s; }
 
         .black-text { color: #000000; font-weight: bold; font-size: 14px; line-height: 1.5; }
-        .monster-row { display: flex; align-items: center; justify-content: flex-start; padding-left: 30px; gap: 15px; margin-bottom: 0px; }
-        .monster-count { color: #000000; font-weight: bold; font-size: 16px; }
+        
+        /* 雙行平排的魔物清單設計 */
+        .monster-grid { 
+            display: grid; 
+            grid-template-columns: 1fr 1fr; 
+            gap: 6px 2px; 
+            justify-items: center; 
+            padding: 4px 0; 
+        }
+        .monster-item { display: flex; align-items: center; justify-content: flex-start; gap: 6px; width: 90px; }
+        .monster-item.boss { grid-column: span 2; justify-content: center; width: auto; gap: 10px; }
+        .monster-count { color: #000000; font-weight: bold; font-size: 18px; }
         
         #leaderboard-box { flex: 1 1 auto; display: flex; flex-direction: column; overflow: hidden; min-height: 80px; }
         #leaderboard-box h3 { margin: 0 0 8px 0; color: #000; text-align: center; font-size: 15px; }
@@ -232,13 +242,15 @@
                 <div style="text-align:center; color:#000; font-weight:bold; font-size:13px; margin-bottom:5px;">擊殺進度 (尚未擊斃: <span id="ui-left-text">0</span>)</div>
                 <div id="kill-bar-bg"><div id="ui-kill-fill"></div></div>
                 
-                <div style="text-align:center; color:#000; font-weight:bold; font-size:13px; margin:6px 0 4px 0;">剩餘魔物目標</div>
-                <!-- 3倍超高解析度畫布，防止裁剪與起格 -->
-                <div class="monster-row"><canvas id="m-icon-1" width="120" height="120" style="width: 40px; height: 40px;"></canvas><span class="monster-count" id="m-count-1">x 0</span></div>
-                <div class="monster-row"><canvas id="m-icon-2" width="120" height="120" style="width: 40px; height: 40px;"></canvas><span class="monster-count" id="m-count-2">x 0</span></div>
-                <div class="monster-row"><canvas id="m-icon-3" width="120" height="120" style="width: 40px; height: 40px;"></canvas><span class="monster-count" id="m-count-3">x 0</span></div>
-                <div class="monster-row"><canvas id="m-icon-4" width="120" height="120" style="width: 40px; height: 40px;"></canvas><span class="monster-count" id="m-count-4">x 0</span></div>
-                <div class="monster-row"><canvas id="m-icon-5" width="120" height="120" style="width: 40px; height: 40px;"></canvas><span class="monster-count" id="m-count-5">x 0</span></div>
+                <div style="text-align:center; color:#000; font-weight:bold; font-size:13px; margin:6px 0 6px 0;">剩餘魔物目標</div>
+                <!-- 雙行平排，超大高解析度畫布，絕不裁剪 -->
+                <div class="monster-grid">
+                    <div class="monster-item"><canvas id="m-icon-1" width="165" height="165" style="width: 55px; height: 55px;"></canvas><span class="monster-count" id="m-count-1">x 0</span></div>
+                    <div class="monster-item"><canvas id="m-icon-2" width="165" height="165" style="width: 55px; height: 55px;"></canvas><span class="monster-count" id="m-count-2">x 0</span></div>
+                    <div class="monster-item"><canvas id="m-icon-3" width="165" height="165" style="width: 55px; height: 55px;"></canvas><span class="monster-count" id="m-count-3">x 0</span></div>
+                    <div class="monster-item"><canvas id="m-icon-4" width="165" height="165" style="width: 55px; height: 55px;"></canvas><span class="monster-count" id="m-count-4">x 0</span></div>
+                    <div class="monster-item boss"><canvas id="m-icon-5" width="165" height="165" style="width: 55px; height: 55px;"></canvas><span class="monster-count" id="m-count-5">x 0</span></div>
+                </div>
             </div>
 
             <div class="ui-box" id="leaderboard-box">
@@ -256,7 +268,7 @@
             <button class="skip-btn" onclick="window.returnToMenu()">略過並重玩</button>
         </div>
 
-        <div id="version-tag">Math Survival V67</div>
+        <div id="version-tag">Math Survival V68</div>
     </div>
 
     <audio id="bgm" src="audio/bgm.mp3" loop></audio>
@@ -681,7 +693,7 @@ function updateHTMLHUD() {
     }
 }
 
-// 3倍解析度畫布渲染，徹底解決起格及裁剪問題
+// 高解析度畫布渲染，避免起格及裁剪
 function drawHUDIcons() {
     let pC = document.getElementById('player-icon'); 
     if(!pC) return;
@@ -706,9 +718,9 @@ function drawHUDIcons() {
         mCtx.clearRect(0,0,mC.width,mC.height);
         
         mCtx.save();
-        // 畫布為 120x120，中心向下偏移至 72，完美預留頂部王冠與角的空間
-        mCtx.translate(60, 72); mCtx.scale(3.5, 3.5); 
-        drawMonsterEntity(mCtx, 12, mTypes[i].color, mTypes[i].tier, 0, true);
+        // 畫布為 165x165，進行 5.5 倍巨幅放大，並計算完美的中心偏移以保留王冠與角
+        mCtx.translate(82.5, 115); mCtx.scale(5.5, 5.5); 
+        drawMonsterEntity(mCtx, 14, mTypes[i].color, mTypes[i].tier, 0, true);
         mCtx.restore();
     }
 }
