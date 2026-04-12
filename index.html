@@ -65,32 +65,45 @@
 
         /* --- 放大與重新排版的 UI --- */
         #ui-container {
-            position: absolute; top: 10px; left: 10px; bottom: 25px; width: 200px; 
+            position: absolute; top: 10px; left: 10px; bottom: 25px; width: 220px; 
             display: flex; flex-direction: column; gap: 12px; z-index: 10; pointer-events: none;
         }
         .ui-box { background: rgba(241, 245, 249, 0.45); border: 2px solid rgba(148, 163, 184, 0.6); border-radius: 8px; padding: 10px; pointer-events: auto; }
         .player-info-wrapper { display: flex; align-items: center; gap: 10px; }
         #hp-bar-bg { width: 100%; height: 12px; background: #cbd5e1; border: 2px solid #475569; margin-bottom: 6px; }
         #ui-hp-fill { height: 100%; background: #22c55e; width: 100%; }
+        
+        #kill-bar-bg { width: 100%; height: 10px; background: #cbd5e1; border: 2px solid #475569; margin-bottom: 4px; border-radius: 4px; overflow: hidden; }
+        #ui-kill-fill { height: 100%; background: #f59e0b; width: 0%; transition: width 0.2s; }
+
         .black-text { color: #000000; font-weight: bold; font-size: 14px; line-height: 1.5; }
-        .monster-row { display: flex; align-items: center; justify-content: flex-start; padding-left: 20px; gap: 15px; margin-bottom: 2px; }
+        .monster-row { display: flex; align-items: center; justify-content: flex-start; padding-left: 30px; gap: 15px; margin-bottom: 2px; }
         .monster-count { color: #000000; font-weight: bold; font-size: 18px; }
         
         #leaderboard-box { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
         #leaderboard-box h3 { margin: 0 0 10px 0; color: #000; text-align: center; font-size: 16px; }
         #leaderboard-list { 
-            margin: 0; padding: 0; padding-left: 5px; list-style-type: none;
-            color: #000; font-weight: bold; font-size: 13px; 
+            margin: 0; padding: 0; list-style-type: none;
+            color: #000; font-weight: bold; font-size: 12px; 
             overflow-y: auto; max-height: 100%; 
         }
-        #leaderboard-list li { margin-bottom: 6px; padding: 2px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        
+        /* 自動對齊的網格排版 */
+        #leaderboard-list li { 
+            display: grid; 
+            grid-template-columns: 22px 35px 1fr 38px 25px; 
+            gap: 4px; 
+            margin-bottom: 6px; 
+            padding: 2px 0; 
+            align-items: center; 
+        }
+        #leaderboard-list li span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
         #submit-form { display: none; flex-direction: column; align-items: center; gap: 8px; margin-top: 10px; }
         #submit-form input { width: 90%; padding: 6px; border-radius: 4px; border: 1px solid #ccc; text-align: center; font-size: 13px; }
         #submit-form button { background: #3b82f6; color: white; border: none; padding: 8px; border-radius: 4px; cursor: pointer; width: 90%; font-weight: bold; font-size: 13px;}
         #submit-form .skip-btn { background: #64748b; margin-top: 2px; }
 
-        /* 版本號標籤 - 移至左下角 */
+        /* 版本號標籤 - 左下角 */
         #version-tag {
             position: absolute; bottom: 5px; left: 10px; color: rgba(0, 0, 0, 0.7);
             font-size: 12px; font-weight: bold; z-index: 100; pointer-events: none;
@@ -124,11 +137,11 @@
         </button>
         <button class="diff-btn" onclick="window.startGame('4')">
             程度 4
-            <span style="font-size: 14px; font-weight: normal; display: block; margin-top: 4px; color: #e2e8f0;">捨入、展開、因式分解、指數<br>(基礎隨機) <span style="color:#fbbf24; font-weight:bold;">(分數 x1.8)</span></span>
+            <span style="font-size: 14px; font-weight: normal; display: block; margin-top: 4px; color: #e2e8f0;">捨入、展開、因式分解、指數<br>(基礎隨機) <span style="color:#fbbf24; font-weight:bold;">(分數 x1.6)</span></span>
         </button>
         <button class="diff-btn" onclick="window.startGame('5')">
             程度 5
-            <span style="font-size: 14px; font-weight: normal; display: block; margin-top: 4px; color: #e2e8f0;">捨入、展開、因式分解、指數<br>(進階隨機) <span style="color:#fbbf24; font-weight:bold;">(分數 x2.5)</span></span>
+            <span style="font-size: 14px; font-weight: normal; display: block; margin-top: 4px; color: #e2e8f0;">捨入、展開、因式分解、指數<br>(進階隨機) <span style="color:#fbbf24; font-weight:bold;">(分數 x1.8)</span></span>
         </button>
     </div>
 
@@ -157,7 +170,10 @@
         </div>
 
         <div class="ui-box">
-            <div style="text-align:center; color:#000; font-weight:bold; font-size:16px; margin-bottom:12px;">剩餘魔物目標</div>
+            <div style="text-align:center; color:#000; font-weight:bold; font-size:14px; margin-bottom:5px;">擊殺進度 (尚未擊斃: <span id="ui-left-text">0</span>)</div>
+            <div id="kill-bar-bg"><div id="ui-kill-fill"></div></div>
+            
+            <div style="text-align:center; color:#000; font-weight:bold; font-size:14px; margin:10px 0 6px 0;">剩餘魔物目標</div>
             <!-- 加大畫布為 48x48 -->
             <div class="monster-row"><canvas id="m-icon-1" width="48" height="48"></canvas><span class="monster-count" id="m-count-1">x 0</span></div>
             <div class="monster-row"><canvas id="m-icon-2" width="48" height="48"></canvas><span class="monster-count" id="m-count-2">x 0</span></div>
@@ -179,7 +195,8 @@
         </div>
     </div>
     
-    <div id="version-tag">Math Survival V48</div>
+    <!-- 嚴格遵守規則更新版本號碼至 V51 -->
+    <div id="version-tag">Math Survival V51</div>
 
 <script>
 // ==============================================================================
@@ -296,7 +313,7 @@ let monstersLeft = [0, 0, 0, 0, 0, 0];
 let currentWave = 1;
 let lootBoxSpawnInterval = 480; let ammoBoxSpawnInterval = 180; 
 
-let monsterQueue = []; // Implemented missing variable
+let monsterQueue = []; 
 let MONSTER_BASE = [
     {tier: 1, name: "一級怪物", count: 5, hp: 8, speed: 0.5, size: 22, color: '#ef4444'},
     {tier: 2, name: "二級怪物", count: 5, hp: 25, speed: 0.8, size: 28, color: '#f97316'},
@@ -460,13 +477,15 @@ function cacheUIElements() {
     uiElements.hpText = document.getElementById('ui-hp-text');
     uiElements.wepName = document.getElementById('ui-wep-name');
     uiElements.ammoText = document.getElementById('ui-ammo-text');
+    uiElements.killFill = document.getElementById('ui-kill-fill');
+    uiElements.leftText = document.getElementById('ui-left-text');
     uiElements.mathTimerBar = document.getElementById('math-timer-bar');
     uiElements.mCounts = [];
     for(let i=1; i<=5; i++) uiElements.mCounts[i] = document.getElementById(`m-count-${i}`);
     uiReady = true;
 }
 
-let lastHUDState = { hp: -1, weapon: -2, ammo: -1, total: -1, reloading: null, mCounts: [-1,-1,-1,-1,-1,-1] };
+let lastHUDState = { hp: -1, weapon: -2, ammo: -1, total: -1, reloading: null, mCounts: [-1,-1,-1,-1,-1,-1], kills: -1 };
 
 function updateHTMLHUD() {
     if (!uiReady) cacheUIElements();
@@ -476,6 +495,16 @@ function updateHTMLHUD() {
         uiElements.hpFill.style.width = (Math.max(0, player.hp) / player.maxHp * 100) + '%';
         uiElements.hpText.textContent = `HP: ${Math.max(0, player.hp)}`;
         lastHUDState.hp = player.hp;
+    }
+    
+    // 更新擊殺進度條
+    if (lastHUDState.kills !== enemiesKilled) {
+        if (uiElements.killFill && TOTAL_MONSTERS > 0) {
+            let percentage = (enemiesKilled / TOTAL_MONSTERS) * 100;
+            uiElements.killFill.style.width = Math.min(100, percentage) + '%';
+            uiElements.leftText.textContent = Math.max(0, TOTAL_MONSTERS - enemiesKilled);
+        }
+        lastHUDState.kills = enemiesKilled;
     }
     
     let ammoChanged = lastHUDState.ammo !== player.currentMagazine || lastHUDState.total !== player.totalAmmo || lastHUDState.reloading !== player.isReloading;
@@ -547,6 +576,11 @@ function fetchLeaderboard() {
         .catch(e => console.log("LB 獲取失敗", e));
 }
 
+// 每 5 秒自動更新排行榜
+setInterval(() => {
+    if (GAS_LEADERBOARD_URL) fetchLeaderboard();
+}, 5000);
+
 function renderLeaderboard(data) {
     const list = document.getElementById('leaderboard-list');
     if(!list) return;
@@ -556,10 +590,18 @@ function renderLeaderboard(data) {
     data.forEach((item, index) => {
         let li = document.createElement('li');
         let safeName = item.name.length > 6 ? item.name.substring(0, 6) + '..' : item.name;
-        // 為了在 UI 上節省空間，將 "程度 X" 縮寫為 "Lv.X"
-        let shortDiff = item.diff.replace("程度 ", "Lv.");
-        // 明確將名次 (index + 1) 加入到文字開頭
-        li.textContent = `${index + 1}. ${item.cls} ${safeName} - ${item.score}分 (${shortDiff})`;
+        // 將 "程度 X" 縮寫為 "L X" 或是 "LX" 以節省空間
+        let shortDiff = item.diff.replace("程度 ", "L");
+        
+        // 嚴格自動對齊：使用設定好的 Grid 系統
+        li.innerHTML = `
+            <span>${index + 1}.</span>
+            <span>${item.cls}</span>
+            <span>${safeName}</span>
+            <span style="text-align:right;">${item.score}分</span>
+            <span style="text-align:right; color:#475569;">(${shortDiff})</span>
+        `;
+        
         if (item.isMe) { li.style.backgroundColor = "rgba(46, 204, 113, 0.4)"; li.style.borderRadius = "4px"; }
         list.appendChild(li);
     });
@@ -583,7 +625,7 @@ window.submitScore = async function() {
     const diff = "程度 " + currentDifficulty; 
     
     // 依據不同程度乘上倍率
-    let mult = { '1': 1, '2': 1.2, '3': 1.4, '4': 1.8, '5': 2.5 }[currentDifficulty] || 1;
+    let mult = { '1': 1, '2': 1.2, '3': 1.4, '4': 1.6, '5': 1.8 }[currentDifficulty] || 1;
     const score = Math.round(enemiesKilled * mult);
     const timestamp = now.getTime();
 
@@ -977,6 +1019,9 @@ function resetGame() {
     initMonsterQueue(); fetchLeaderboard();
     gameState = 'PLAYING';
     
+    // 初始化進度條，清空UI顯示
+    lastHUDState.kills = -1;
+    
     spawnLootBox();
 }
 
@@ -1323,6 +1368,34 @@ function draw() {
     }
     ctx.globalAlpha = 1.0; ctx.restore(); 
 
+    let gameCenterX = UI_BOUND + (canvas.width - UI_BOUND) / 2;
+
+    // --- 繪製正上方目前程度與倍率 (加入課題名稱) ---
+    if (gameState === 'PLAYING') {
+        ctx.save();
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        ctx.font = 'bold 24px Arial';
+        
+        let multObj = { '1': '1.0', '2': '1.2', '3': '1.4', '4': '1.6', '5': '1.8' };
+        let diffLabels = {
+            '1': '10-50 整數加減運算',
+            '2': '整數四則混合運算 (先乘除後加減)',
+            '3': '加減混合 及 基礎指數',
+            '4': '捨入、展開、因式分解、指數 (基礎隨機)',
+            '5': '捨入、展開、因式分解、指數 (進階隨機)'
+        };
+        let currentMult = multObj[currentDifficulty] || '1.0';
+        let currentLabel = diffLabels[currentDifficulty] || '';
+        let topText = `程度 ${currentDifficulty}：${currentLabel} (分數 x${currentMult})`;
+        
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)'; // 黑色陰影
+        ctx.fillText(topText, gameCenterX + 2, 22);
+        ctx.fillStyle = '#fbbf24'; // 黃色文字
+        ctx.fillText(topText, gameCenterX, 20);
+        ctx.restore();
+    }
+
     if (gameState === 'PLAYING' && ('ontouchstart' in window)) {
         const drawJoy = (joy, base) => {
             ctx.fillStyle = 'rgba(255, 255, 255, 0.15)'; ctx.beginPath(); ctx.arc(base.x, base.y, joyRadius, 0, Math.PI*2); ctx.fill();
@@ -1333,13 +1406,11 @@ function draw() {
         if (rightJoy.active) drawJoy(rightJoy, rightJoy.base);
     }
 
-    let gameCenterX = UI_BOUND + (canvas.width - UI_BOUND) / 2;
-
     if (gameState === 'GAME_OVER' || gameState === 'VICTORY') {
         ctx.fillStyle = 'rgba(15, 23, 42, 0.9)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.textAlign = 'center';
         
-        let mult = { '1': 1, '2': 1.2, '3': 1.4, '4': 1.8, '5': 2.5 }[currentDifficulty] || 1;
+        let mult = { '1': 1, '2': 1.2, '3': 1.4, '4': 1.6, '5': 1.8 }[currentDifficulty] || 1;
         let finalScore = Math.round(enemiesKilled * mult);
 
         if (gameState === 'VICTORY') {
@@ -1348,12 +1419,14 @@ function draw() {
             ctx.fillStyle = 'white'; ctx.font = 'bold 24px Arial'; 
             let finalWepName = player.weaponLevel >= 0 ? WEAPONS[player.weaponLevel].name : '無';
             ctx.fillText(`成功擊殺終極 Boss！ 最終武器: ${finalWepName}`, gameCenterX, canvas.height/2 - 10);
-            ctx.fillText(`總得分: ${finalScore}分`, gameCenterX, canvas.height/2 + 25);
+            // 顯示計算公式
+            ctx.fillText(`總得分: ${enemiesKilled} x ${mult} = ${finalScore}分`, gameCenterX, canvas.height/2 + 25);
         } else {
             ctx.fillStyle = 'black'; ctx.font = 'bold 80px Arial'; ctx.fillText('YOU DIED', gameCenterX + 4, canvas.height/2 - 76);
             ctx.fillStyle = '#ef4444'; ctx.fillText('YOU DIED', gameCenterX, canvas.height/2 - 80);
             ctx.fillStyle = 'white'; ctx.font = 'bold 28px Arial';
-            ctx.fillText(`擊殺數: ${enemiesKilled} / ${TOTAL_MONSTERS} (總得分: ${finalScore}分)`, gameCenterX, canvas.height/2 - 10);
+            // 顯示計算公式
+            ctx.fillText(`擊殺數: ${enemiesKilled} / ${TOTAL_MONSTERS} (總得分: ${enemiesKilled} x ${mult} = ${finalScore}分)`, gameCenterX, canvas.height/2 - 10);
         }
         
         ctx.globalAlpha = (globalTime % 60 < 30) ? 1 : 0.5; ctx.fillStyle = '#94a3b8'; ctx.font = '24px Arial';
