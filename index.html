@@ -29,6 +29,18 @@
             color: #fbbf24; font-size: 32px; font-weight: bold; z-index: 1000;
         }
 
+        /* --- 裝置橫向鎖死介面 --- */
+        #portrait-lock {
+            display: none;
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background-color: #0f172a; z-index: 999999;
+            flex-direction: column; justify-content: center; align-items: center;
+            color: #fbbf24; text-align: center;
+        }
+        @media screen and (orientation: portrait) {
+            #portrait-lock { display: flex; }
+        }
+
         #start-menu {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background-color: rgba(15, 23, 42, 0.95); display: none; flex-direction: column;
@@ -98,10 +110,29 @@
         }
         #leaderboard-list li span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-        #submit-form { display: none; flex-direction: column; align-items: center; gap: 8px; margin-top: 10px; }
-        #submit-form input { width: 90%; padding: 6px; border-radius: 4px; border: 1px solid #ccc; text-align: center; font-size: 13px; }
-        #submit-form button { background: #3b82f6; color: white; border: none; padding: 8px; border-radius: 4px; cursor: pointer; width: 90%; font-weight: bold; font-size: 13px;}
-        #submit-form .skip-btn { background: #64748b; margin-top: 2px; }
+        /* --- 中央彈出的上傳成績表單 --- */
+        #submit-form { 
+            display: none; 
+            flex-direction: column; 
+            align-items: center; 
+            gap: 12px; 
+            position: absolute; 
+            top: 60%; 
+            left: calc(250px + (100vw - 250px) / 2); /* 動態對齊遊戲區域正中 */
+            transform: translate(-50%, -50%);
+            background: rgba(30, 41, 59, 0.95); 
+            padding: 25px; 
+            border-radius: 12px;
+            border: 2px solid #fbbf24; 
+            z-index: 1000; 
+            width: 320px; 
+            box-shadow: 0 0 20px rgba(0,0,0,0.8);
+        }
+        #submit-form input { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #94a3b8; text-align: center; font-size: 16px; box-sizing: border-box; background: #334155; color: white; margin: 0; }
+        #submit-form button { background: #3b82f6; color: white; border: none; padding: 12px; border-radius: 6px; cursor: pointer; width: 100%; font-weight: bold; font-size: 16px; box-sizing: border-box; margin: 0; transition: 0.2s; }
+        #submit-form button:hover { background: #2563eb; }
+        #submit-form .skip-btn { background: #64748b; }
+        #submit-form .skip-btn:hover { background: #475569; }
 
         /* 版本號標籤 - 左下角 */
         #version-tag {
@@ -185,18 +216,20 @@
         <div class="ui-box" id="leaderboard-box">
             <h3>🏆 總排行榜 🏆</h3>
             <ol id="leaderboard-list"><li>載入排行榜中...</li></ol>
-            <div id="submit-form">
-                <input type="text" id="lb-class" placeholder="班別 (例: 1A)">
-                <input type="text" id="lb-sid" placeholder="學號 (例: 01)">
-                <input type="text" id="lb-name" placeholder="名字">
-                <button onclick="window.submitScore()">上傳成績</button>
-                <button class="skip-btn" onclick="window.returnToMenu()">略過並重玩</button>
-            </div>
         </div>
     </div>
     
-    <!-- 嚴格遵守規則更新版本號碼至 V56 -->
-    <div id="version-tag">Math Survival V56</div>
+    <div id="submit-form">
+        <h3 style="margin: 0; color: #fbbf24; font-size: 20px;">上傳遊戲成績</h3>
+        <input type="text" id="lb-class" placeholder="班別 (例: 1A) *必填">
+        <input type="text" id="lb-sid" placeholder="學號 (例: 01) *必填">
+        <input type="text" id="lb-name" placeholder="名字 (選填，預設為學號)">
+        <button onclick="window.submitScore()">上傳成績</button>
+        <button class="skip-btn" onclick="window.returnToMenu()">略過並重玩</button>
+    </div>
+
+    <!-- 標記版本為 V57 -->
+    <div id="version-tag">Math Survival V57</div>
 
 <script>
 // ==============================================================================
@@ -610,8 +643,10 @@ function renderLeaderboard(data) {
 window.submitScore = async function() {
     const cls = document.getElementById('lb-class').value.trim();
     const sid = document.getElementById('lb-sid').value.trim();
-    const name = document.getElementById('lb-name').value.trim();
-    if (!cls || !sid || !name) { alert("請填寫班別、學號及名字！"); return; }
+    let name = document.getElementById('lb-name').value.trim();
+    
+    if (!cls || !sid) { alert("請填寫班別及學號！"); return; }
+    if (!name) name = sid; // 如果沒有填寫名字，預設為學號
 
     if (!GAS_LEADERBOARD_URL) return;
 
@@ -1588,24 +1623,20 @@ function draw() {
         let finalScore = Math.round(enemiesKilled * mult);
 
         if (gameState === 'VICTORY') {
-            ctx.fillStyle = 'black'; ctx.font = 'bold 60px Arial'; ctx.fillText('MISSION ACCOMPLISHED!', gameCenterX + 3, canvas.height/2 - 77); // Fake shadow
-            ctx.fillStyle = '#fbbf24'; ctx.fillText('MISSION ACCOMPLISHED!', gameCenterX, canvas.height/2 - 80);
+            ctx.fillStyle = 'black'; ctx.font = 'bold 60px Arial'; ctx.fillText('MISSION ACCOMPLISHED!', gameCenterX + 3, canvas.height/2 - 147); // Fake shadow
+            ctx.fillStyle = '#fbbf24'; ctx.fillText('MISSION ACCOMPLISHED!', gameCenterX, canvas.height/2 - 150);
             ctx.fillStyle = 'white'; ctx.font = 'bold 24px Arial'; 
             let finalWepName = player.weaponLevel >= 0 ? WEAPONS[player.weaponLevel].name : '無';
-            ctx.fillText(`成功擊殺終極 Boss！ 最終武器: ${finalWepName}`, gameCenterX, canvas.height/2 - 10);
+            ctx.fillText(`成功擊殺終極 Boss！ 最終武器: ${finalWepName}`, gameCenterX, canvas.height/2 - 80);
             // 顯示計算公式
-            ctx.fillText(`總得分: ${enemiesKilled} x ${mult} = ${finalScore}分`, gameCenterX, canvas.height/2 + 25);
+            ctx.fillText(`總得分: ${enemiesKilled} x ${mult} = ${finalScore}分`, gameCenterX, canvas.height/2 - 45);
         } else {
-            ctx.fillStyle = 'black'; ctx.font = 'bold 80px Arial'; ctx.fillText('YOU DIED', gameCenterX + 4, canvas.height/2 - 76);
-            ctx.fillStyle = '#ef4444'; ctx.fillText('YOU DIED', gameCenterX, canvas.height/2 - 80);
+            ctx.fillStyle = 'black'; ctx.font = 'bold 80px Arial'; ctx.fillText('YOU DIED', gameCenterX + 4, canvas.height/2 - 146);
+            ctx.fillStyle = '#ef4444'; ctx.fillText('YOU DIED', gameCenterX, canvas.height/2 - 150);
             ctx.fillStyle = 'white'; ctx.font = 'bold 28px Arial';
             // 顯示計算公式
-            ctx.fillText(`擊殺數: ${enemiesKilled} / ${TOTAL_MONSTERS} (總得分: ${enemiesKilled} x ${mult} = ${finalScore}分)`, gameCenterX, canvas.height/2 - 10);
+            ctx.fillText(`擊殺數: ${enemiesKilled} / ${TOTAL_MONSTERS} (總得分: ${enemiesKilled} x ${mult} = ${finalScore}分)`, gameCenterX, canvas.height/2 - 80);
         }
-        
-        ctx.globalAlpha = (globalTime % 60 < 30) ? 1 : 0.5; ctx.fillStyle = '#94a3b8'; ctx.font = '24px Arial';
-        ctx.fillText('<< 請在左下方輸入資料上傳排行榜 >>', gameCenterX, canvas.height/2 + 70); 
-        ctx.fillText('或按 [Enter] 返回主選單', gameCenterX, canvas.height/2 + 110); ctx.globalAlpha = 1.0;
     }
 }
 
