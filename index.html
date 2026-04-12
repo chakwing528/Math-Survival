@@ -15,22 +15,20 @@
     <script src="js/topics/rounding.js"></script>
 
     <style>
-        body {
+        /* 嚴格全螢幕無黑邊設定，杜絕任何滾動條與走位 */
+        html, body {
             margin: 0; padding: 0; overflow: hidden;
-            background-color: #0f172a; /* 恢復深色滿版背景，無黑邊 */
+            width: 100%; height: 100%;
+            background-color: #0f172a; 
             color: white;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             user-select: none; -webkit-user-select: none; touch-action: none;
         }
 
-        /* --- 遊戲核心滿版容器 --- */
         #game-wrapper {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background-color: #0f172a;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
             overflow: hidden;
         }
 
@@ -42,7 +40,7 @@
             color: #fbbf24; font-size: 32px; font-weight: bold; z-index: 1000;
         }
 
-        /* --- 裝置橫向鎖死介面 (以備不時之需保留) --- */
+        /* --- 裝置橫向鎖死介面 --- */
         #portrait-lock {
             display: none;
             position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
@@ -88,10 +86,11 @@
         .mcq-btn:hover { background: #475569; border-color: #fbbf24; }
         .mcq-label { color: #fbbf24; font-weight: bold; font-size: 24px; }
 
-        /* --- 原生響應式排版 UI --- */
+        /* --- 原生響應式排版 UI (移除強制縮放，杜絕排版崩壞) --- */
         #ui-container {
             position: absolute; top: 10px; left: 10px; bottom: 10px; width: 220px; 
             display: flex; flex-direction: column; gap: 8px; z-index: 10; pointer-events: none;
+            max-height: calc(100% - 20px); /* 絕對防止 UI 溢出導致滾動條 */
         }
         .ui-box { 
             background: rgba(241, 245, 249, 0.30); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
@@ -107,33 +106,30 @@
 
         .black-text { color: #000000; font-weight: bold; font-size: 14px; line-height: 1.5; }
         
-        /* 雙行平排的魔物清單設計 - 確保不換行 */
+        /* 雙行平排的魔物清單設計 - 絕對防止換行 */
         .monster-grid { 
             display: grid; 
             grid-template-columns: 1fr 1fr; 
-            gap: 6px 2px; 
+            gap: 6px 4px; 
             justify-items: center; 
             padding: 4px 0; 
         }
-        .monster-item { display: flex; align-items: center; justify-content: center; gap: 5px; width: 100%; }
+        .monster-item { display: flex; align-items: center; justify-content: center; gap: 4px; width: 100%; overflow: hidden; }
         .monster-item.boss { grid-column: span 2; justify-content: center; width: auto; gap: 10px; }
-        .monster-count { color: #000000; font-weight: bold; font-size: 17px; white-space: nowrap; } /* 絕對防止換行，稍微縮小字體以完美搭配圖示 */
+        .monster-count { color: #000000; font-weight: bold; font-size: 16px; white-space: nowrap; } 
         
-        #leaderboard-box { flex: 1 1 auto; display: flex; flex-direction: column; overflow: hidden; min-height: 80px; }
-        #leaderboard-box h3 { margin: 0 0 8px 0; color: #000; text-align: center; font-size: 15px; }
+        /* 解決 Flexbox 內容溢出撐破容器的終極修復 (min-height: 0) */
+        #leaderboard-box { flex: 1 1 auto; display: flex; flex-direction: column; overflow: hidden; min-height: 0; }
+        #leaderboard-box h3 { margin: 0 0 8px 0; color: #000; text-align: center; font-size: 15px; flex-shrink: 0; }
         #leaderboard-list { 
             margin: 0; padding: 0; list-style-type: none;
             color: #000; font-weight: bold; font-size: 12px; 
-            overflow-y: auto; max-height: 100%; 
+            overflow-y: auto; flex: 1 1 auto;
         }
-        /* 自動對齊的網格排版 */
         #leaderboard-list li { 
             display: grid; 
             grid-template-columns: 22px 35px 1fr 38px 25px; 
-            gap: 4px; 
-            margin-bottom: 4px; 
-            padding: 2px 0; 
-            align-items: center; 
+            gap: 4px; margin-bottom: 4px; padding: 2px 0; align-items: center; 
         }
         #leaderboard-list li span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
@@ -144,8 +140,7 @@
             align-items: center; 
             gap: 12px; 
             position: absolute; 
-            top: 52%; 
-            /* JavaScript 動態置中定位 */
+            top: 55%; /* 降低起點，絕對不遮擋文字 */
             transform: translate(-50%, 0); 
             background: rgba(30, 41, 59, 0.95); 
             padding: 25px; 
@@ -161,11 +156,10 @@
         #submit-form .skip-btn { background: #64748b; }
         #submit-form .skip-btn:hover { background: #475569; }
 
-        /* 版本號標籤 - 左下角 */
+        /* 版本號標籤 */
         #version-tag {
-            position: absolute; bottom: 5px; left: 240px; color: rgba(0, 0, 0, 0.7);
+            position: absolute; bottom: 5px; left: 240px; color: rgba(255,255,255, 0.3);
             font-size: 12px; font-weight: bold; z-index: 100; pointer-events: none;
-            text-shadow: 0.5px 0.5px 1px rgba(255,255,255,0.5);
         }
     </style>
 </head>
@@ -243,13 +237,13 @@
                 <div id="kill-bar-bg"><div id="ui-kill-fill"></div></div>
                 
                 <div style="text-align:center; color:#000; font-weight:bold; font-size:13px; margin:6px 0 4px 0;">剩餘魔物目標</div>
-                <!-- 雙行平排，超大高解析度畫布，絕不裁剪，完美 50px 尺寸以防擠壓換行 -->
+                <!-- 雙行平排，超大高解析度畫布，絕不裁剪，完美 46px 尺寸給予文字充足呼吸空間 -->
                 <div class="monster-grid">
-                    <div class="monster-item"><canvas id="m-icon-1" width="150" height="150" style="width: 50px; height: 50px;"></canvas><span class="monster-count" id="m-count-1">x 0</span></div>
-                    <div class="monster-item"><canvas id="m-icon-2" width="150" height="150" style="width: 50px; height: 50px;"></canvas><span class="monster-count" id="m-count-2">x 0</span></div>
-                    <div class="monster-item"><canvas id="m-icon-3" width="150" height="150" style="width: 50px; height: 50px;"></canvas><span class="monster-count" id="m-count-3">x 0</span></div>
-                    <div class="monster-item"><canvas id="m-icon-4" width="150" height="150" style="width: 50px; height: 50px;"></canvas><span class="monster-count" id="m-count-4">x 0</span></div>
-                    <div class="monster-item boss"><canvas id="m-icon-5" width="150" height="150" style="width: 50px; height: 50px;"></canvas><span class="monster-count" id="m-count-5">x 0</span></div>
+                    <div class="monster-item"><canvas id="m-icon-1" width="150" height="150" style="width: 46px; height: 46px;"></canvas><span class="monster-count" id="m-count-1">x 0</span></div>
+                    <div class="monster-item"><canvas id="m-icon-2" width="150" height="150" style="width: 46px; height: 46px;"></canvas><span class="monster-count" id="m-count-2">x 0</span></div>
+                    <div class="monster-item"><canvas id="m-icon-3" width="150" height="150" style="width: 46px; height: 46px;"></canvas><span class="monster-count" id="m-count-3">x 0</span></div>
+                    <div class="monster-item"><canvas id="m-icon-4" width="150" height="150" style="width: 46px; height: 46px;"></canvas><span class="monster-count" id="m-count-4">x 0</span></div>
+                    <div class="monster-item boss"><canvas id="m-icon-5" width="150" height="150" style="width: 46px; height: 46px;"></canvas><span class="monster-count" id="m-count-5">x 0</span></div>
                 </div>
             </div>
 
@@ -268,7 +262,8 @@
             <button class="skip-btn" onclick="window.returnToMenu()">略過並重玩</button>
         </div>
 
-        <div id="version-tag">Math Survival V69</div>
+        <!-- 確保版本號隨時可見 V70 -->
+        <div id="version-tag">Math Survival V70</div>
     </div>
 
     <audio id="bgm" src="audio/bgm.mp3" loop></audio>
@@ -355,8 +350,7 @@ document.addEventListener("visibilitychange", () => {
 
 const UI_BOUND = 250; 
 
-// --- 全域縮放系統與動態邏輯解析度 (滿版適應) ---
-let globalScale = 1;
+// --- 全域系統邏輯解析度 (100% 滿版無黑邊) ---
 let logicalWidth = window.innerWidth;
 let logicalHeight = window.innerHeight;
 
@@ -370,11 +364,8 @@ let isShooting = false;
 let mouseX = window.innerWidth / 2; 
 let mouseY = window.innerHeight / 2;
 
-// 動態縮放處理 - 全畫面完美擴展 & Retina 適配
+// 動態縮放處理 - Retina 高解析度無黑邊滿版渲染
 function resizeCanvas() {
-    let wrapper = document.getElementById('game-wrapper');
-    wrapper.style.transform = 'none'; // 移除強制縮放，讓畫面自然填滿 100vw/100vh
-
     logicalWidth = window.innerWidth;
     logicalHeight = window.innerHeight;
 
@@ -387,72 +378,19 @@ function resizeCanvas() {
     ctx.resetTransform();
     ctx.scale(dpr, dpr);
 
-    // 計算全域比例 (維持 UI 的相對大小)
-    let scaleX = window.innerWidth / 1180;
-    let scaleY = window.innerHeight / 820;
-    globalScale = Math.min(scaleX, scaleY);
-    globalScale = Math.max(0.4, Math.min(globalScale, 2.5));
-    
-    // 轉換內部邏輯座標使畫面無限擴展 (無黑邊)
-    logicalWidth = logicalWidth / globalScale;
-    logicalHeight = logicalHeight / globalScale;
-
-    // 套用縮放至 UI 面板
-    let uiContainer = document.getElementById('ui-container');
-    if (uiContainer) {
-        uiContainer.style.transform = `scale(${globalScale})`;
-        uiContainer.style.transformOrigin = 'top left';
-        uiContainer.style.height = `${logicalHeight - 20}px`; 
-    }
-    
-    let mathContainer = document.getElementById('math-container');
-    if (mathContainer) {
-        mathContainer.style.transform = `scale(${globalScale})`;
-        mathContainer.style.transformOrigin = 'center center';
-    }
-
-    let startMenuContent = document.getElementById('start-menu-content');
-    if (startMenuContent) {
-        startMenuContent.style.transform = `scale(${globalScale})`;
-        startMenuContent.style.transformOrigin = 'center center';
-    }
-
-    let portraitLockContent = document.getElementById('portrait-lock-content');
-    if (portraitLockContent) {
-        portraitLockContent.style.transform = `scale(${globalScale})`;
-        portraitLockContent.style.transformOrigin = 'center center';
-    }
-
-    let versionTag = document.getElementById('version-tag');
-    if(versionTag) {
-        versionTag.style.transform = `scale(${globalScale})`;
-        versionTag.style.transformOrigin = 'bottom left';
-    }
-
-    // 將上傳表單動態定位至遊戲區正中央
-    let submitForm = document.getElementById('submit-form');
-    if (submitForm) {
-        let scaledUiBound = UI_BOUND * globalScale;
-        let centerX = scaledUiBound + (window.innerWidth - scaledUiBound) / 2;
-        submitForm.style.left = `${centerX}px`;
-        submitForm.style.transform = `translate(-50%, 0) scale(${globalScale})`;
-        submitForm.style.transformOrigin = 'top center';
-    }
-
-    // 清理搖桿位置
+    // 更新左搖桿位置至邏輯座標底端
     leftJoyBase = { x: UI_BOUND + 60, y: logicalHeight - 100 };
     if (!leftJoy.active) leftJoy.stick = { x: leftJoyBase.x, y: leftJoyBase.y };
+
+    // 將上傳成績表單動態定位至遊戲區正中央
+    let submitForm = document.getElementById('submit-form');
+    if (submitForm) {
+        let centerX = UI_BOUND + (logicalWidth - UI_BOUND) / 2;
+        submitForm.style.left = `${centerX}px`;
+    }
 }
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
-
-// 轉換視窗滑鼠/觸控座標為遊戲邏輯座標
-function getLogicalPos(clientX, clientY) {
-    return {
-        x: clientX / globalScale,
-        y: clientY / globalScale
-    };
-}
 
 // Global State
 let gameState = 'START_MENU'; 
@@ -693,7 +631,7 @@ function updateHTMLHUD() {
     }
 }
 
-// 高解析度畫布渲染，避免起格及裁剪
+// 高解析度畫布渲染，徹底解決起格及裁剪問題
 function drawHUDIcons() {
     let pC = document.getElementById('player-icon'); 
     if(!pC) return;
@@ -1157,9 +1095,8 @@ function handleTouchStart(e) {
     const touches = e.changedTouches;
     for (let i = 0; i < touches.length; i++) {
         let t = touches[i]; 
-        let pos = getLogicalPos(t.clientX, t.clientY);
-        let tx = pos.x; 
-        let ty = pos.y;
+        let tx = t.clientX; 
+        let ty = t.clientY;
         
         if (gameState === 'GAME_OVER' || gameState === 'VICTORY') { 
             if (scoreSubmitted || (document.getElementById('submit-form') && document.getElementById('submit-form').style.display === 'none')) window.returnToMenu(); 
@@ -1180,9 +1117,8 @@ function handleTouchMove(e) {
     e.preventDefault(); const touches = e.changedTouches;
     for (let i = 0; i < touches.length; i++) {
         let t = touches[i]; 
-        let pos = getLogicalPos(t.clientX, t.clientY);
-        let tx = pos.x; 
-        let ty = pos.y;
+        let tx = t.clientX; 
+        let ty = t.clientY;
         
         if (leftJoy.active && t.identifier === leftJoy.id) {
             let dx = tx - leftJoyBase.x; 
@@ -1211,9 +1147,8 @@ function handleTouchEnd(e) {
 }
 
 window.addEventListener('mousemove', (e) => { 
-    let pos = getLogicalPos(e.clientX, e.clientY);
-    mouseX = pos.x; 
-    mouseY = pos.y; 
+    mouseX = e.clientX; 
+    mouseY = e.clientY; 
 });
 window.addEventListener('mousedown', (e) => {
     if(e.target !== canvas) return;
@@ -1674,7 +1609,7 @@ function draw() {
         ctx.fillStyle = 'black'; ctx.fillText(text.text, text.x + 2, text.y + 2);
         ctx.fillStyle = text.color; ctx.fillText(text.text, text.x, text.y);
     }
-    ctx.globalAlpha = 1.0; ctx.restore(); 
+    ctx.globalAlpha = 1.0;
 
     let gameCenterX = UI_BOUND + (logicalWidth - UI_BOUND) / 2;
 
@@ -1748,6 +1683,8 @@ function draw() {
             ctx.fillText(`擊殺數: ${enemiesKilled} / ${TOTAL_MONSTERS} (總得分: ${enemiesKilled} x ${mult} = ${finalScore}分)`, gameCenterX, logicalHeight/2 - 80);
         }
     }
+    
+    ctx.restore(); 
 }
 
 async function loadGameData() {
