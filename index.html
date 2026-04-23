@@ -38,6 +38,7 @@
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background-color: #1e293b; display: flex; justify-content: center; align-items: center;
             color: #fbbf24; font-size: 32px; font-weight: bold; z-index: 1000;
+            flex-direction: column; text-align: center; line-height: 1.5;
         }
 
         /* --- 裝置橫向鎖死介面 --- */
@@ -190,7 +191,10 @@
 
     <!-- 滿版遊戲核心容器 -->
     <div id="game-wrapper">
-        <div id="loading-screen">連接伺服器並載入數據中...</div>
+        <div id="loading-screen">
+            <div>連接伺服器並載入數據中...</div>
+            <div id="loading-subtext" style="font-size: 16px; color: #94a3b8; margin-top: 15px;">(正在嘗試讀取 Google Sheet 設定)</div>
+        </div>
         
         <div id="start-menu">
             <!-- 橫向排列：左側為遊戲指引，右側為難度選擇 -->
@@ -300,8 +304,8 @@
             <button class="skip-btn" onclick="window.returnToMenu()">略過並重玩</button>
         </div>
 
-        <!-- 確保版本號隨時可見 V78 -->
-        <div id="version-tag">Math Survival V78</div>
+        <!-- 確保版本號隨時可見 V79 -->
+        <div id="version-tag">Math Survival V79</div>
     </div>
 
     <audio id="bgm" src="audio/bgm.mp3" loop></audio>
@@ -503,7 +507,7 @@ const uiElements = {};
 let uiReady = false;
 
 // ==============================================================================
-// VISUAL EFFECTS (Implemented Missing Functions)
+// VISUAL EFFECTS
 // ==============================================================================
 
 function createParticles(x, y, color, count, speed) {
@@ -733,12 +737,20 @@ function fetchLeaderboard() {
     fetch(`${GAS_LEADERBOARD_URL}?action=getLeaderboard&t=${new Date().getTime()}_${Math.random()}`)
         .then(res => res.json())
         .then(data => renderLeaderboard(data))
-        .catch(e => console.log("LB 獲取失敗", e));
+        .catch(e => {
+            console.log("LB 獲取失敗", e);
+            let list = document.getElementById('leaderboard-list');
+            if (list && list.innerHTML.includes("載入排行榜中")) {
+                list.innerHTML = "<li>載入失敗，可能權限被阻擋</li>";
+            }
+        });
 }
 
 // 每 5 秒自動更新排行榜
 setInterval(() => {
-    if (GAS_LEADERBOARD_URL) fetchLeaderboard();
+    if (GAS_LEADERBOARD_URL && gameState === 'START_MENU') {
+        fetchLeaderboard();
+    }
 }, 5000);
 
 function renderLeaderboard(data) {
@@ -793,11 +805,12 @@ window.submitScore = async function() {
 
     const addUrl = `${GAS_LEADERBOARD_URL}?action=addScore&date=${encodeURIComponent(dateStr)}&time=${encodeURIComponent(timeStr)}&diff=${encodeURIComponent(diff)}&cls=${encodeURIComponent(cls)}&sid=${encodeURIComponent(sid)}&name=${encodeURIComponent(name)}&score=${score}&t=${timestamp}`;
     
-    // 💡 修正 2：確保成績寫入 Google Sheet 後，才去拉取新排行榜
+    // 💡 修正 2：確保成績寫入 Google Sheet 後，才去拉取新排行榜，並加入錯誤提示
     try {
         await fetch(addUrl);
     } catch(e) {
         console.log("LB 上傳延遲", e);
+        alert("❌ 上傳成績被拒絕！請確保 Google Apps Script 部署權限為「所有人 (Anyone)」。");
     }
 
     try {
@@ -1825,7 +1838,21 @@ async function loadGameData() {
                     }
                 }
             }
-        } catch(e) { console.error("載入數據失敗，使用本地預設值:", e); }
+        } catch(e) { 
+            console.error("載入數據失敗，使用本地預設值:", e); 
+            let loadingScreen = document.getElementById('loading-screen');
+            if(loadingScreen) {
+                loadingScreen.innerHTML = "<span style='color:#ef4444; text-align:center;'>❌ Google Sheet 連線被拒絕<br><span style='font-size:18px;'>請前往 Apps Script 將存取權限設為「所有人(Anyone)」<br>3 秒後使用本地預設值啟動...</span></span>";
+                setTimeout(() => {
+                    loadingScreen.style.display = 'none';
+                    let menu = document.getElementById('start-menu');
+                    if (menu) menu.style.display = 'flex';
+                    gameState = 'START_MENU';
+                    gameLoop();
+                }, 4000);
+                return;
+            }
+        }
     }
     document.getElementById('loading-screen').style.display = 'none';
     
