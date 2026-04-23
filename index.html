@@ -301,8 +301,8 @@
             <button class="skip-btn" onclick="window.returnToMenu()">略過並重玩</button>
         </div>
 
-        <!-- 確保版本號隨時可見 V74 -->
-        <div id="version-tag">Math Survival V74</div>
+        <!-- 確保版本號隨時可見 V75 -->
+        <div id="version-tag">Math Survival V75</div>
     </div>
 
     <audio id="bgm" src="audio/bgm.mp3" loop></audio>
@@ -685,13 +685,15 @@ setTimeout(drawHUDIcons, 100);
 
 function fetchLeaderboard() {
     if (!GAS_LEADERBOARD_URL) return;
-    const timestamp = new Date().getTime();
-    fetch(`${GAS_LEADERBOARD_URL}?action=getLeaderboard&t=${timestamp}`)
+    
+    // 💡 修正 1：加入 cache: 'no-store' 與隨機亂數，徹底杜絕瀏覽器快取
+    fetch(`${GAS_LEADERBOARD_URL}?action=getLeaderboard&t=${new Date().getTime()}_${Math.random()}`, { cache: 'no-store' })
         .then(res => res.json())
         .then(data => renderLeaderboard(data))
         .catch(e => console.log("LB 獲取失敗", e));
 }
 
+// 每 5 秒自動更新排行榜
 setInterval(() => {
     if (GAS_LEADERBOARD_URL) fetchLeaderboard();
 }, 5000);
@@ -731,23 +733,23 @@ window.submitScore = async function() {
     if (!GAS_LEADERBOARD_URL) return;
 
     scoreSubmitted = true;
-    document.getElementById('submit-form').style.display = 'none';
-    document.getElementById('leaderboard-list').innerHTML = "<li>上傳中並更新排行榜...</li>";
-
-    const now = new Date();
-    const dateStr = now.toLocaleDateString('zh-HK');
-    const timeStr = now.toLocaleTimeString('zh-HK');
-    const diff = "程度 " + currentDifficulty; 
-    
+    // 依據不同程度乘上倍率
     let mult = { '1': 1, '2': 1.2, '3': 1.4, '4': 1.6, '5': 1.8 }[currentDifficulty] || 1;
     const score = Math.round(enemiesKilled * mult);
     const timestamp = now.getTime();
 
     const addUrl = `${GAS_LEADERBOARD_URL}?action=addScore&date=${encodeURIComponent(dateStr)}&time=${encodeURIComponent(timeStr)}&diff=${encodeURIComponent(diff)}&cls=${encodeURIComponent(cls)}&sid=${encodeURIComponent(sid)}&name=${encodeURIComponent(name)}&score=${score}&t=${timestamp}`;
-    fetch(addUrl).catch(e => console.log("LB 上傳延遲", e));
+    
+    // 💡 修正 2：加入 await 確保成績寫入 Google Sheet 後，才去拉取新排行榜
+    try {
+        await fetch(addUrl, { cache: 'no-store' });
+    } catch(e) {
+        console.log("LB 上傳延遲", e);
+    }
 
     try {
-        let res = await fetch(`${GAS_LEADERBOARD_URL}?action=getLeaderboard&t=${timestamp}`);
+        // 💡 修正 3：拉取排行榜時同樣杜絕快取
+        let res = await fetch(`${GAS_LEADERBOARD_URL}?action=getLeaderboard&t=${new Date().getTime()}_${Math.random()}`, { cache: 'no-store' });
         let data = await res.json();
         data.push({ diff: diff, cls: cls, name: name, score: score, isMe: true });
         data.sort((a, b) => b.score - a.score);
@@ -1677,7 +1679,8 @@ async function loadGameData() {
     const timestamp = new Date().getTime();
     if (GAS_WEB_APP_URL) {
         try {
-            let res = await fetch(`${GAS_WEB_APP_URL}?t=${timestamp}`); 
+            // 💡 修正 4：武器數據載入時強制要求最新資源，禁止讀取舊版快取
+            let res = await fetch(`${GAS_WEB_APP_URL}?action=getGameData&t=${new Date().getTime()}_${Math.random()}`, { cache: 'no-store' }); 
             let data = await res.json();
             if (data.weapons && data.weapons.length > 1) {
                 let rows = data.weapons;
