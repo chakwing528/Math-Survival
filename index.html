@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Math Survival - Optimized & Modular</title>
+    <title>Math Survival - Optimized & Modular V73</ti tle>
     
     <!-- 引入 MathJax 處理 LaTeX 數學排版 -->
     <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
@@ -300,8 +300,8 @@
             <button class="skip-btn" onclick="window.returnToMenu()">略過並重玩</button>
         </div>
 
-        <!-- 確保版本號隨時可見 V72 -->
-        <div id="version-tag">Math Survival V72</div>
+        <!-- 確保版本號隨時可見 V73 -->
+        <div id="version-tag">Math Survival V73</div>
     </div>
 
     <audio id="bgm" src="audio/bgm.mp3" loop></audio>
@@ -1759,8 +1759,14 @@ async function loadGameData() {
             let data = await res.json();
             if (data.weapons && data.weapons.length > 1) {
                 let rows = data.weapons;
-                if (rows[1].length > 9 && rows[1][9]) { let val = parseFloat(rows[1][9]); if (!isNaN(val) && val > 0) lootBoxSpawnInterval = Math.floor(val * 60); }
-                if (rows[1].length > 10 && rows[1][10]) { let val = parseFloat(rows[1][10]); if (!isNaN(val) && val > 0) ammoBoxSpawnInterval = Math.floor(val * 60); }
+                
+                // 尋找全局設定 (武器箱、彈藥箱時間) - 掃描 J, K 欄位尋找第一個有效數字
+                for(let r=1; r<rows.length; r++) {
+                    if (rows[r].length > 9 && rows[r][9] !== "") { let val = parseFloat(rows[r][9]); if (!isNaN(val) && val > 0) { lootBoxSpawnInterval = Math.floor(val * 60); break; } }
+                }
+                for(let r=1; r<rows.length; r++) {
+                    if (rows[r].length > 10 && rows[r][10] !== "") { let val = parseFloat(rows[r][10]); if (!isNaN(val) && val > 0) { ammoBoxSpawnInterval = Math.floor(val * 60); break; } }
+                }
                 
                 let wepIdx = 0;
                 for(let i=1; i<rows.length; i++) {
@@ -1773,15 +1779,15 @@ async function loadGameData() {
                     if (isBaseLevel) {
                         basePlayerSpeed = parseFloat(rows[i][5]) || basePlayerSpeed;
                         if (gameState === 'START_MENU') player.speed = basePlayerSpeed;
-                    } else if (wepIdx < WEAPONS.length && rows[i].length >= 7) {
+                    } else if (wepIdx < WEAPONS.length && rows[i].length >= 6) {
                         WEAPONS[wepIdx].name = nameCol || WEAPONS[wepIdx].name; 
                         WEAPONS[wepIdx].damage = parseFloat(rows[i][2]) || WEAPONS[wepIdx].damage; 
                         WEAPONS[wepIdx].bullets = parseInt(rows[i][3]) || WEAPONS[wepIdx].bullets;
                         WEAPONS[wepIdx].fireRate = parseInt(rows[i][4]) || WEAPONS[wepIdx].fireRate; 
                         WEAPONS[wepIdx].playerSpeed = parseFloat(rows[i][5]) || WEAPONS[wepIdx].playerSpeed; 
-                        WEAPONS[wepIdx].reloadAmmo = parseInt(rows[i][6]) || WEAPONS[wepIdx].reloadAmmo;
-                        WEAPONS[wepIdx].magCapacity = parseInt(rows[i][7]) || WEAPONS[wepIdx].magCapacity; 
-                        WEAPONS[wepIdx].ammoBoxRefill = parseInt(rows[i][8]) || WEAPONS[wepIdx].ammoBoxRefill;
+                        if(rows[i].length > 6) WEAPONS[wepIdx].reloadAmmo = parseInt(rows[i][6]) || WEAPONS[wepIdx].reloadAmmo;
+                        if(rows[i].length > 7) WEAPONS[wepIdx].magCapacity = parseInt(rows[i][7]) || WEAPONS[wepIdx].magCapacity; 
+                        if(rows[i].length > 8) WEAPONS[wepIdx].ammoBoxRefill = parseInt(rows[i][8]) || WEAPONS[wepIdx].ammoBoxRefill;
                         wepIdx++;
                     }
                 }
