@@ -300,8 +300,8 @@
             <button class="skip-btn" onclick="window.returnToMenu()">略過並重玩</button>
         </div>
 
-        <!-- 確保版本號隨時可見 V71 -->
-        <div id="version-tag">Math Survival V71</div>
+        <!-- 確保版本號隨時可見 V72 -->
+        <div id="version-tag">Math Survival V72</div>
     </div>
 
     <audio id="bgm" src="audio/bgm.mp3" loop></audio>
@@ -487,8 +487,11 @@ const WEAPONS = [
     { level: 9, name: "Lv.MAX 神話武器", damage: 25.6, bullets: 9, fireRate: 1, playerSpeed: 10, reloadAmmo: 100, magCapacity: 30, ammoBoxRefill: 30, color: '#ef4444', glow: '#b91c1c', recoil: 16, speed: 30, penetrate: true }
 ];
 
+// 新增：基礎玩家速度（無武器時的預設值，可由 Google Sheet 覆寫）
+let basePlayerSpeed = 4;
+
 let player = {
-    x: UI_BOUND + 100, y: 0, radius: 20, color: '#3b82f6', speed: 9, hp: 100, maxHp: 100,
+    x: UI_BOUND + 100, y: 0, radius: 20, color: '#3b82f6', speed: basePlayerSpeed, hp: 100, maxHp: 100,
     weaponLevel: -1, currentMagazine: 0, totalAmmo: 0,       
     isReloading: false, reloadTimer: 0, angle: 0, recoilOffset: 0, lastFireTime: 0, isMoving: false
 };
@@ -1299,7 +1302,7 @@ function triggerGameOver(isVictory) {
 function resetGame() {
     player.weaponLevel = -1;
     player.hp = player.maxHp; 
-    player.speed = 4; 
+    player.speed = basePlayerSpeed; // 使用 Google Sheet 讀取的空手速度
     player.currentMagazine = 0; 
     player.totalAmmo = 0; 
     player.isReloading = false; player.reloadTimer = 0;
@@ -1758,11 +1761,28 @@ async function loadGameData() {
                 let rows = data.weapons;
                 if (rows[1].length > 9 && rows[1][9]) { let val = parseFloat(rows[1][9]); if (!isNaN(val) && val > 0) lootBoxSpawnInterval = Math.floor(val * 60); }
                 if (rows[1].length > 10 && rows[1][10]) { let val = parseFloat(rows[1][10]); if (!isNaN(val) && val > 0) ammoBoxSpawnInterval = Math.floor(val * 60); }
+                
+                let wepIdx = 0;
                 for(let i=1; i<rows.length; i++) {
-                    if (rows[i].length >= 7 && WEAPONS[i-1]) {
-                        WEAPONS[i-1].name = String(rows[i][1]).trim() || WEAPONS[i-1].name; WEAPONS[i-1].damage = parseFloat(rows[i][2]) || WEAPONS[i-1].damage; WEAPONS[i-1].bullets = parseInt(rows[i][3]) || WEAPONS[i-1].bullets;
-                        WEAPONS[i-1].fireRate = parseInt(rows[i][4]) || WEAPONS[i-1].fireRate; WEAPONS[i-1].playerSpeed = parseFloat(rows[i][5]) || WEAPONS[i-1].playerSpeed; WEAPONS[i-1].reloadAmmo = parseInt(rows[i][6]) || WEAPONS[i-1].reloadAmmo;
-                        WEAPONS[i-1].magCapacity = parseInt(rows[i][7]) || WEAPONS[i-1].magCapacity; WEAPONS[i-1].ammoBoxRefill = parseInt(rows[i][8]) || WEAPONS[i-1].ammoBoxRefill;
+                    let levelCol = String(rows[i][0]).trim();
+                    let nameCol = String(rows[i][1]).trim();
+                    
+                    // ✨ 智慧辨識：「沒有槍/空手」的初始狀態 (確保不佔用 Lv1 武器位置)
+                    let isBaseLevel = levelCol === "0" || levelCol.includes("0") || nameCol.includes("空手") || nameCol.includes("沒有槍") || nameCol.includes("未裝備");
+                    
+                    if (isBaseLevel) {
+                        basePlayerSpeed = parseFloat(rows[i][5]) || basePlayerSpeed;
+                        if (gameState === 'START_MENU') player.speed = basePlayerSpeed;
+                    } else if (wepIdx < WEAPONS.length && rows[i].length >= 7) {
+                        WEAPONS[wepIdx].name = nameCol || WEAPONS[wepIdx].name; 
+                        WEAPONS[wepIdx].damage = parseFloat(rows[i][2]) || WEAPONS[wepIdx].damage; 
+                        WEAPONS[wepIdx].bullets = parseInt(rows[i][3]) || WEAPONS[wepIdx].bullets;
+                        WEAPONS[wepIdx].fireRate = parseInt(rows[i][4]) || WEAPONS[wepIdx].fireRate; 
+                        WEAPONS[wepIdx].playerSpeed = parseFloat(rows[i][5]) || WEAPONS[wepIdx].playerSpeed; 
+                        WEAPONS[wepIdx].reloadAmmo = parseInt(rows[i][6]) || WEAPONS[wepIdx].reloadAmmo;
+                        WEAPONS[wepIdx].magCapacity = parseInt(rows[i][7]) || WEAPONS[wepIdx].magCapacity; 
+                        WEAPONS[wepIdx].ammoBoxRefill = parseInt(rows[i][8]) || WEAPONS[wepIdx].ammoBoxRefill;
+                        wepIdx++;
                     }
                 }
             }
@@ -1786,8 +1806,16 @@ async function loadGameData() {
     gameLoop(); 
 }
 
-function gameLoop() { update(); draw(); requestAnimationFrame(gameLoop); }
-loadGameData();
+function gameLoop() { 
+    if (typeof update === 'function') update(); 
+    if (typeof draw === 'function') draw(); 
+    requestAnimationFrame(gameLoop); 
+}
+
+// 遊戲入口
+if (document.getElementById('start-menu')) {
+    loadGameData();
+}
 
 </script>
 
