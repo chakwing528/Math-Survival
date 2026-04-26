@@ -291,21 +291,22 @@
 
             <div class="ui-box" id="leaderboard-box">
                 <h3>🏆 總排行榜 🏆</h3>
+                <!-- 置頂顯示玩家名次 -->
+                <div id="my-rank-display" style="display: none;"></div>
                 <ol id="leaderboard-list"><li>載入排行榜中...</li></ol>
             </div>
         </div>
         
         <div id="submit-form">
             <h3 style="margin: 0; color: #fbbf24; font-size: 20px;">上傳遊戲成績</h3>
-            <input type="text" id="lb-class" placeholder="班別 (例: 1A) *必填">
-            <input type="text" id="lb-sid" placeholder="學號 (例: 01) *必填">
-            <input type="text" id="lb-name" placeholder="名字 (選填，預設為學號)">
+            <input type="text" id="lb-class" placeholder="班別 (老師填此格即可) *必填">
+            <input type="text" id="lb-sid" placeholder="學號 (老師可留空)">
             <button onclick="window.submitScore()">上傳成績</button>
             <button class="skip-btn" onclick="window.returnToMenu()">略過並重玩</button>
         </div>
 
-        <!-- 確保版本號隨時可見 V79 -->
-        <div id="version-tag">Math Survival V79</div>
+        <!-- 確保版本號隨時可見 V82 -->
+        <div id="version-tag">Math Survival V82</div>
     </div>
 
     <audio id="bgm" src="audio/bgm.mp3" loop></audio>
@@ -507,7 +508,7 @@ const uiElements = {};
 let uiReady = false;
 
 // ==============================================================================
-// VISUAL EFFECTS
+// VISUAL EFFECTS (Implemented Missing Functions)
 // ==============================================================================
 
 function createParticles(x, y, color, count, speed) {
@@ -733,7 +734,7 @@ setTimeout(drawHUDIcons, 100);
 function fetchLeaderboard() {
     if (!GAS_LEADERBOARD_URL) return;
     
-    // 💡 修正 1：隨機參數破除快取，不使用 cache 選項以免觸發 CORS 預檢
+    // 隨機參數破除快取，不使用 cache 選項以免觸發 CORS 預檢
     fetch(`${GAS_LEADERBOARD_URL}?action=getLeaderboard&t=${new Date().getTime()}_${Math.random()}`)
         .then(res => res.json())
         .then(data => renderLeaderboard(data))
@@ -755,20 +756,47 @@ setInterval(() => {
 
 function renderLeaderboard(data) {
     const list = document.getElementById('leaderboard-list');
+    const topDisplay = document.getElementById('my-rank-display');
     if(!list) return;
+
     list.innerHTML = "";
+    if(topDisplay) topDisplay.style.display = 'none';
+
     if (!data || data.length === 0) { list.innerHTML = "<li>暫無數據</li>"; return; }
     
+    let myRank = -1;
+    let myItem = null;
+
     data.forEach((item, index) => {
+        if (item.isMe) {
+            myRank = index + 1;
+            myItem = item;
+        }
+
         let li = document.createElement('li');
-        let safeName = item.name.length > 6 ? item.name.substring(0, 6) + '..' : item.name;
-        // 將 "程度 X" 縮寫為 "L X" 或是 "LX" 以節省空間
-        let shortDiff = item.diff.replace("程度 ", "L");
+        
+        // 💡 修復 TypeError: 將可能有數字或空值的欄位安全轉換成字串，並強制轉為大寫
+        let itemNameStr = item.name != null ? String(item.name).toUpperCase() : "";
+        let itemSidStr = item.sid != null ? String(item.sid).toUpperCase() : "";
+        let itemClsStr = item.cls != null ? String(item.cls).toUpperCase() : "";
+        let itemDiffStr = item.diff != null ? String(item.diff) : "";
+        
+        let displayCls = itemClsStr;
+        let displayName = (itemNameStr.trim() !== "") ? itemNameStr : itemSidStr;
+        
+        // 智慧隱藏邏輯：如果是純空格 (老師模式)
+        if (itemClsStr === " ") {
+            displayCls = "";
+            displayName = itemSidStr;
+        }
+
+        let safeName = displayName.length > 6 ? displayName.substring(0, 6) + '..' : displayName;
+        let shortDiff = itemDiffStr.replace("程度 ", "L");
         
         // 嚴格自動對齊：使用設定好的 Grid 系統
         li.innerHTML = `
             <span>${index + 1}.</span>
-            <span>${item.cls}</span>
+            <span>${displayCls}</span>
             <span>${safeName}</span>
             <span style="text-align:right;">${item.score}分</span>
             <span style="text-align:right; color:#475569;">(${shortDiff})</span>
@@ -777,21 +805,52 @@ function renderLeaderboard(data) {
         if (item.isMe) { li.style.backgroundColor = "rgba(46, 204, 113, 0.4)"; li.style.borderRadius = "4px"; }
         list.appendChild(li);
     });
+
+    // 渲染置頂區塊
+    if (myRank !== -1 && topDisplay && myItem) {
+        let myItemNameStr = myItem.name != null ? String(myItem.name).toUpperCase() : "";
+        let myItemSidStr = myItem.sid != null ? String(myItem.sid).toUpperCase() : "";
+        let myItemClsStr = myItem.cls != null ? String(myItem.cls).toUpperCase() : "";
+        let myItemDiffStr = myItem.diff != null ? String(myItem.diff) : "";
+
+        let displayCls = myItemClsStr === " " ? "" : myItemClsStr;
+        let displayName = myItemClsStr === " " ? myItemSidStr : ((myItemNameStr.trim() !== "") ? myItemNameStr : myItemSidStr);
+        let safeName = displayName.length > 6 ? displayName.substring(0, 6) + '..' : displayName;
+        let shortDiff = myItemDiffStr.replace("程度 ", "L");
+
+        topDisplay.innerHTML = `
+            <div style="background: rgba(234, 179, 8, 0.3); border: 2px solid #f59e0b; border-radius: 6px; padding: 10px; margin-bottom: 8px; color: #fff; text-align: center;">
+                <div style="font-weight: bold; font-size: 16px; margin-bottom: 4px;">你的排名：第 ${myRank} 名</div>
+                <div style="font-size: 14px; color: #cbd5e1;">${displayCls} ${safeName} - ${myItem.score}分 (${shortDiff})</div>
+            </div>
+        `;
+        topDisplay.style.display = 'block';
+    }
 }
 
 window.submitScore = async function() {
-    const cls = document.getElementById('lb-class').value.trim();
-    const sid = document.getElementById('lb-sid').value.trim();
-    let name = document.getElementById('lb-name').value.trim();
+    // 💡 將輸入的值強制轉為大寫，防呆檢查（姓名輸入框已被移除）
+    let clsInput = document.getElementById('lb-class');
+    let sidInput = document.getElementById('lb-sid');
+
+    let cls = clsInput ? clsInput.value.trim().toUpperCase() : "";
+    let sid = sidInput ? sidInput.value.trim().toUpperCase() : "";
+    let name = sid; // 如果沒有姓名輸入框，預設為學號
     
-    if (!cls || !sid) { alert("請填寫班別及學號！"); return; }
-    if (!name) name = sid; // 如果沒有填寫名字，預設為學號
+    // 1. 驗證與防呆機制
+    if (sid !== "" && cls === "") { 
+        alert("班別為必填項目！"); 
+        return; 
+    }
+    if (cls === "") {
+        cls = " ";
+    }
 
     if (!GAS_LEADERBOARD_URL) return;
 
     scoreSubmitted = true;
     document.getElementById('submit-form').style.display = 'none';
-    document.getElementById('leaderboard-list').innerHTML = "<li>上傳中並更新排行榜...</li>";
+    document.getElementById('leaderboard-list').innerHTML = "<li>上傳中並配對資料...</li>";
 
     const now = new Date();
     const dateStr = now.toLocaleDateString('zh-HK');
@@ -803,26 +862,35 @@ window.submitScore = async function() {
     const score = Math.round(enemiesKilled * mult);
     const timestamp = now.getTime();
 
-    const addUrl = `${GAS_LEADERBOARD_URL}?action=addScore&date=${encodeURIComponent(dateStr)}&time=${encodeURIComponent(timeStr)}&diff=${encodeURIComponent(diff)}&cls=${encodeURIComponent(cls)}&sid=${encodeURIComponent(sid)}&name=${encodeURIComponent(name)}&score=${score}&t=${timestamp}`;
+    let playerName = sid; // 預設為學號
+
+    const addUrl = `${GAS_LEADERBOARD_URL}?action=addScore&date=${encodeURIComponent(dateStr)}&time=${encodeURIComponent(timeStr)}&diff=${encodeURIComponent(diff)}&cls=${encodeURIComponent(cls)}&sid=${encodeURIComponent(sid)}&score=${score}&t=${timestamp}`;
     
-    // 💡 修正 2：確保成績寫入 Google Sheet 後，才去拉取新排行榜，並加入錯誤提示
+    // 2. 確保成績寫入 Google Sheet，並獲取配對到的姓名
     try {
-        await fetch(addUrl);
+        let res = await fetch(addUrl);
+        let json = await res.json();
+        // 💡 修復 TypeError: 將回傳的名字安全轉換成字串
+        if (json && json.name && String(json.name).trim() !== "") {
+            playerName = String(json.name);
+        }
     } catch(e) {
-        console.log("LB 上傳延遲", e);
-        alert("❌ 上傳成績被拒絕！請確保 Google Apps Script 部署權限為「所有人 (Anyone)」。");
+        console.log("上傳或配對延遲", e);
+        // 若發生阻擋，依舊會使用預設的 playerName(sid) 顯示在本地
     }
 
+    // 3. 拉取最新排行榜並進行樂觀更新 (Optimistic UI)
+    let leaderboardData = [];
     try {
-        // 💡 修正 3：拉取排行榜時杜絕快取
         let res = await fetch(`${GAS_LEADERBOARD_URL}?action=getLeaderboard&t=${new Date().getTime()}_${Math.random()}`);
-        let data = await res.json();
-        data.push({ diff: diff, cls: cls, name: name, score: score, isMe: true });
-        data.sort((a, b) => b.score - a.score);
-        renderLeaderboard(data);
+        leaderboardData = await res.json();
     } catch(e) {
-        renderLeaderboard([{ diff: diff, cls: cls, name: name, score: score, isMe: true }]);
+        console.log("讀取最新排行榜失敗", e);
     }
+    
+    leaderboardData.push({ diff: diff, cls: cls, sid: sid, name: playerName, score: score, isMe: true });
+    leaderboardData.sort((a, b) => b.score - a.score);
+    renderLeaderboard(leaderboardData);
 }
 
 window.startGame = function(level) {
