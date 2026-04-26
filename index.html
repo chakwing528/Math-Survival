@@ -821,7 +821,7 @@ function renderLeaderboard(data) {
         topDisplay.innerHTML = `
             <div style="background: rgba(234, 179, 8, 0.3); border: 2px solid #f59e0b; border-radius: 6px; padding: 10px; margin-bottom: 8px; color: #fff; text-align: center;">
                 <div style="font-weight: bold; font-size: 16px; margin-bottom: 4px;">你的排名：第 ${myRank} 名</div>
-                <div style="font-size: 14px; color: #cbd5e1;">${displayCls} ${safeName} ${myItem.score}分 (${shortDiff})</div>
+                <div style="font-size: 14px; color: #cbd5e1;">${displayCls} ${safeName}  :  ${myItem.score}分 (${shortDiff})</div>
             </div>
         `;
         topDisplay.style.display = 'block';
