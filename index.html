@@ -5,10 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Math Survival - Optimized & Modular</title>
     
-    <!-- 引入 MathJax 處理 LaTeX 數學排版 -->
     <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 
-    <!-- ⬇️ 實際在 GitHub 上，請保留這行引入 indices.js 及其他題庫 ⬇️ -->
     <script src="js/topics/indices.js"></script>
     <script src="js/topics/expansion.js"></script>
     <script src="js/topics/factorization.js"></script>
@@ -153,7 +151,7 @@
             align-items: center; 
             gap: 12px; 
             position: absolute; 
-            top: 45%; /* 將原本的 55% 改為 40%，數字越小表單越靠上 */
+            top: 40%; /* 將原本的 55% 改為 40%，數字越小表單越靠上 */
             transform: translate(-50%, 0); 
             background: rgba(30, 41, 59, 0.95); 
             padding: 25px; 
@@ -189,7 +187,6 @@
         </div>
     </div>
 
-    <!-- 滿版遊戲核心容器 -->
     <div id="game-wrapper">
         <div id="loading-screen">
             <div>連接伺服器並載入數據中...</div>
@@ -197,10 +194,8 @@
         </div>
         
         <div id="start-menu">
-            <!-- 橫向排列：左側為遊戲指引，右側為難度選擇 -->
             <div id="start-menu-content" style="display:flex; flex-direction:row; align-items:center; justify-content:center; gap:60px;">
                 
-                <!-- 左側：遊戲操作指引 -->
                 <div style="background: rgba(30, 41, 59, 0.85); padding: 35px 40px; border-radius: 16px; border: 2px solid #475569; display: flex; flex-direction: column; align-items: center; box-shadow: 0 0 25px rgba(0,0,0,0.6);">
                     <h2 style="color: #fbbf24; margin: 0 0 25px 0; font-size: 26px; text-shadow: 1px 1px 3px #000;">⌨️ 遊戲操作指引</h2>
                     
@@ -221,7 +216,6 @@
                     </div>
                 </div>
 
-                <!-- 右側：難度選擇 -->
                 <div style="display:flex; flex-direction:column; align-items:center; gap:12px;">
                     <h1 style="color: #fbbf24; font-size: 35px; margin-bottom: 15px; text-shadow: 2px 2px 4px #000; text-align: center;">請選擇目標程度</h1>
                     
@@ -263,7 +257,6 @@
         <div id="ui-container">
             <div class="ui-box">
                 <div class="player-info-wrapper">
-                    <!-- 超高解析度畫布以保證不起格 -->
                     <canvas id="player-icon" width="165" height="165" style="width: 55px; height: 55px;"></canvas>
                     <div style="flex:1;">
                         <div id="hp-bar-bg"><div id="ui-hp-fill"></div></div>
@@ -279,7 +272,6 @@
                 <div id="kill-bar-bg"><div id="ui-kill-fill"></div></div>
                 
                 <div style="text-align:center; color:#000; font-weight:bold; font-size:13px; margin:6px 0 4px 0;">剩餘魔物目標</div>
-                <!-- 雙行平排，超大高解析度畫布，絕不裁剪，完美 46px 尺寸給予文字充足呼吸空間 -->
                 <div class="monster-grid">
                     <div class="monster-item"><canvas id="m-icon-1" width="150" height="150" style="width: 46px; height: 46px;"></canvas><span class="monster-count" id="m-count-1">x 0</span></div>
                     <div class="monster-item"><canvas id="m-icon-2" width="150" height="150" style="width: 46px; height: 46px;"></canvas><span class="monster-count" id="m-count-2">x 0</span></div>
@@ -291,7 +283,6 @@
 
             <div class="ui-box" id="leaderboard-box">
                 <h3>🏆 總排行榜 🏆</h3>
-                <!-- 置頂顯示玩家名次 -->
                 <div id="my-rank-display" style="display: none;"></div>
                 <ol id="leaderboard-list"><li>載入排行榜中...</li></ol>
             </div>
@@ -305,8 +296,7 @@
             <button class="skip-btn" onclick="window.returnToMenu()">略過並重玩</button>
         </div>
 
-        <!-- 確保版本號隨時可見 V84 -->
-        <div id="version-tag">Math Survival V84</div>
+        <div id="version-tag">Math Survival V86</div>
     </div>
 
     <audio id="bgm" src="audio/bgm.mp3" loop></audio>
@@ -340,36 +330,36 @@ const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
 let audioInitialized = false;
+
 function initAudio() {
-    if (!audioInitialized) {
-        let bgm = document.getElementById('bgm');
-        if(bgm) { 
-            bgm.volume = 0.4; 
-            bgm.loop = true; // 強制設定循環播放
-            bgm.play().catch(e=>{}); 
+    if (audioInitialized) return;
+    
+    let bgm = document.getElementById('bgm');
+    if (bgm) {
+        bgm.volume = 0.4;
+        bgm.loop = true;
+        let playPromise = bgm.play();
+        
+        if (playPromise !== undefined) {
+            playPromise.then(() => {
+                audioInitialized = true;
+            }).catch(error => {
+                console.warn("瀏覽器擋下了自動播放，等待玩家點擊後再次嘗試", error);
+                audioInitialized = false; 
+            });
+        } else {
+            audioInitialized = true;
         }
-        
-        // 預載並解鎖所有音效，避免第一次點擊時延遲
-        let sfxIds = ['shootSfx', 'reloadSfx', 'emptyAmmoSfx'];
-        sfxIds.forEach(id => {
-            let sfx = document.getElementById(id);
-            if (sfx) {
-                sfx.volume = 0; // 暫時靜音
-                let p = sfx.play();
-                if (p !== undefined) {
-                    p.then(() => {
-                        sfx.pause();
-                        sfx.currentTime = 0;
-                        sfx.volume = 1; // 恢復音量
-                    }).catch(()=>{ sfx.volume = 1; });
-                } else {
-                    sfx.volume = 1;
-                }
-            }
-        });
-        
-        audioInitialized = true;
     }
+    
+    let sfxIds = ['shootSfx', 'reloadSfx', 'emptyAmmoSfx'];
+    sfxIds.forEach(id => {
+        let el = document.getElementById(id);
+        if (el) { 
+            el.volume = 1.0; 
+            el.load(); 
+        }
+    });
 }
 
 // 監聽網頁可見性變化，退出或切換分頁時自動暫停音效
@@ -384,7 +374,7 @@ document.addEventListener("visibilitychange", () => {
         if (audioInitialized && gameState !== 'START_MENU') {
             let bgm = document.getElementById('bgm');
             if (bgm) {
-                bgm.loop = true; // 確保重回畫面時依然設定為循環
+                bgm.loop = true; 
                 bgm.play().catch(e=>{});
             }
         }
@@ -492,7 +482,6 @@ const WEAPONS = [
     { level: 9, name: "Lv.MAX 神話武器", damage: 25.6, bullets: 9, fireRate: 1, playerSpeed: 10, reloadAmmo: 100, magCapacity: 30, ammoBoxRefill: 30, color: '#ef4444', glow: '#b91c1c', recoil: 16, speed: 30, penetrate: true }
 ];
 
-// 新增：基礎玩家速度（無武器時的預設值，可由 Google Sheet 覆寫）
 let basePlayerSpeed = 4;
 
 let player = {
@@ -508,7 +497,7 @@ const uiElements = {};
 let uiReady = false;
 
 // ==============================================================================
-// VISUAL EFFECTS (Implemented Missing Functions)
+// VISUAL EFFECTS
 // ==============================================================================
 
 function createParticles(x, y, color, count, speed) {
@@ -542,14 +531,11 @@ function addFloatingText(text, x, y, color, size = 20) {
 // UI & HUD MANAGEMENT
 // ==============================================================================
 
-// 新增魔怪外觀繪製模組，統一 HUD 與遊戲內的顯示樣式
 function drawMonsterEntity(ctx, eSize, color, tier, visualY, isFacingRight) {
     let eyeOffsetX = isFacingRight ? eSize*0.15 : -eSize*0.15;
     
-    // 基礎身體
     ctx.fillStyle = color; ctx.beginPath(); 
     if (tier >= 4) {
-        // 等別 4 以上為鋸齒狀底部
         ctx.arc(0, visualY - eSize*0.4, eSize*0.45, Math.PI, 0); 
         ctx.lineTo(eSize*0.45, visualY + eSize*0.1);
         ctx.lineTo(eSize*0.2, visualY - eSize*0.05);
@@ -557,7 +543,6 @@ function drawMonsterEntity(ctx, eSize, color, tier, visualY, isFacingRight) {
         ctx.lineTo(-eSize*0.2, visualY - eSize*0.05);
         ctx.lineTo(-eSize*0.45, visualY + eSize*0.1);
     } else {
-        // 一般平滑底部
         ctx.arc(0, visualY - eSize*0.4, eSize*0.45, Math.PI, 0); 
         ctx.lineTo(eSize*0.45, visualY + eSize*0.1); 
         ctx.lineTo(-eSize*0.45, visualY + eSize*0.1); 
@@ -565,9 +550,7 @@ function drawMonsterEntity(ctx, eSize, color, tier, visualY, isFacingRight) {
     ctx.fill();
     ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(0,0,0,0.4)'; ctx.stroke();
 
-    // 各等級專屬造型裝飾
     if (tier === 1) {
-        // Lv1: 基礎小怪
         ctx.fillStyle = 'white';
         ctx.beginPath(); ctx.arc(eyeOffsetX - eSize*0.15, visualY - eSize*0.3, eSize*0.08, 0, Math.PI*2); ctx.fill();
         ctx.beginPath(); ctx.arc(eyeOffsetX + eSize*0.15, visualY - eSize*0.3, eSize*0.08, 0, Math.PI*2); ctx.fill();
@@ -575,57 +558,46 @@ function drawMonsterEntity(ctx, eSize, color, tier, visualY, isFacingRight) {
         ctx.beginPath(); ctx.arc(eyeOffsetX - eSize*0.15 + (isFacingRight?1:-1), visualY - eSize*0.3, eSize*0.04, 0, Math.PI*2); ctx.fill();
         ctx.beginPath(); ctx.arc(eyeOffsetX + eSize*0.15 + (isFacingRight?1:-1), visualY - eSize*0.3, eSize*0.04, 0, Math.PI*2); ctx.fill();
     } else if (tier === 2) {
-        // Lv2: 憤怒的角怪
         ctx.fillStyle = 'white';
         ctx.beginPath(); ctx.arc(eyeOffsetX - eSize*0.15, visualY - eSize*0.3, eSize*0.08, 0, Math.PI*2); ctx.fill();
         ctx.beginPath(); ctx.arc(eyeOffsetX + eSize*0.15, visualY - eSize*0.3, eSize*0.08, 0, Math.PI*2); ctx.fill();
         ctx.fillStyle = 'black'; 
         ctx.beginPath(); ctx.arc(eyeOffsetX - eSize*0.15 + (isFacingRight?1:-1), visualY - eSize*0.3, eSize*0.04, 0, Math.PI*2); ctx.fill();
         ctx.beginPath(); ctx.arc(eyeOffsetX + eSize*0.15 + (isFacingRight?1:-1), visualY - eSize*0.3, eSize*0.04, 0, Math.PI*2); ctx.fill();
-        // 憤怒眉毛
         ctx.lineWidth = 2; ctx.strokeStyle = 'black'; ctx.beginPath();
         ctx.moveTo(eyeOffsetX - eSize*0.3, visualY - eSize*0.45); ctx.lineTo(eyeOffsetX - eSize*0.05, visualY - eSize*0.35);
         ctx.moveTo(eyeOffsetX + eSize*0.3, visualY - eSize*0.45); ctx.lineTo(eyeOffsetX + eSize*0.05, visualY - eSize*0.35);
         ctx.stroke();
-        // 頭頂尖角
         ctx.fillStyle = '#fef08a'; ctx.beginPath(); ctx.moveTo(-eSize*0.1, visualY - eSize*0.8); ctx.lineTo(eSize*0.1, visualY - eSize*0.8); ctx.lineTo(0, visualY - eSize*1.1); ctx.fill();
         ctx.lineWidth = 1; ctx.stroke();
     } else if (tier === 3) {
-        // Lv3: 機械護甲怪
         ctx.fillStyle = '#334155'; ctx.fillRect(-eSize*0.35, visualY - eSize*0.4, eSize*0.7, eSize*0.25);
         ctx.fillStyle = '#38bdf8'; ctx.fillRect(-eSize*0.2, visualY - eSize*0.32, eSize*0.4, eSize*0.08);
-        // 兩側護甲刺
         ctx.fillStyle = '#94a3b8'; ctx.beginPath(); 
         ctx.moveTo(-eSize*0.45, visualY - eSize*0.2); ctx.lineTo(-eSize*0.7, visualY - eSize*0.3); ctx.lineTo(-eSize*0.45, visualY - eSize*0.4);
         ctx.moveTo(eSize*0.45, visualY - eSize*0.2); ctx.lineTo(eSize*0.7, visualY - eSize*0.3); ctx.lineTo(eSize*0.45, visualY - eSize*0.4);
         ctx.fill(); ctx.stroke();
     } else if (tier === 4) {
-        // Lv4: 異形四眼怪
         ctx.fillStyle = 'black'; 
         ctx.beginPath(); ctx.arc(eyeOffsetX - eSize*0.15, visualY - eSize*0.25, eSize*0.08, 0, Math.PI*2); ctx.fill();
         ctx.beginPath(); ctx.arc(eyeOffsetX + eSize*0.15, visualY - eSize*0.25, eSize*0.08, 0, Math.PI*2); ctx.fill();
         ctx.beginPath(); ctx.arc(eyeOffsetX - eSize*0.1, visualY - eSize*0.5, eSize*0.05, 0, Math.PI*2); ctx.fill();
         ctx.beginPath(); ctx.arc(eyeOffsetX + eSize*0.1, visualY - eSize*0.5, eSize*0.05, 0, Math.PI*2); ctx.fill();
-        // 發紅發光瞳孔
         ctx.fillStyle = '#ef4444';
         ctx.beginPath(); ctx.arc(eyeOffsetX - eSize*0.15, visualY - eSize*0.25, eSize*0.03, 0, Math.PI*2); ctx.fill();
         ctx.beginPath(); ctx.arc(eyeOffsetX + eSize*0.15, visualY - eSize*0.25, eSize*0.03, 0, Math.PI*2); ctx.fill();
     } else if (tier === 5) {
-        // Lv5: 終極王冠魔首領
-        // 王冠
         ctx.fillStyle = '#334155';
         ctx.beginPath(); ctx.moveTo(-eSize*0.2, visualY - eSize*0.4); ctx.lineTo(-eSize*0.5, visualY - eSize*0.7); ctx.lineTo(-eSize*0.3, visualY - eSize*0.3); ctx.fill();
         ctx.beginPath(); ctx.moveTo(eSize*0.2, visualY - eSize*0.4); ctx.lineTo(eSize*0.5, visualY - eSize*0.7); ctx.lineTo(eSize*0.3, visualY - eSize*0.3); ctx.fill();
         ctx.fillStyle = '#fbbf24'; 
         ctx.beginPath(); ctx.moveTo(-eSize*0.6, visualY - eSize*0.5); ctx.lineTo(-eSize*0.8, visualY - eSize*0.8); ctx.lineTo(0, visualY - eSize*0.6); ctx.lineTo(eSize*0.8, visualY - eSize*0.8); ctx.lineTo(eSize*0.6, visualY - eSize*0.5); ctx.fill();
-        // 血紅雙眼
         ctx.fillStyle = '#ef4444';
         ctx.beginPath(); ctx.arc(eyeOffsetX - eSize*0.15, visualY - eSize*0.25, eSize*0.1, 0, Math.PI*2); ctx.fill();
         ctx.beginPath(); ctx.arc(eyeOffsetX + eSize*0.15, visualY - eSize*0.25, eSize*0.1, 0, Math.PI*2); ctx.fill();
         ctx.fillStyle = 'black'; 
         ctx.beginPath(); ctx.arc(eyeOffsetX - eSize*0.15, visualY - eSize*0.25, eSize*0.04, 0, Math.PI*2); ctx.fill();
         ctx.beginPath(); ctx.arc(eyeOffsetX + eSize*0.15, visualY - eSize*0.25, eSize*0.04, 0, Math.PI*2); ctx.fill();
-        // 銳利巨齒
         ctx.fillStyle = 'black';
         ctx.beginPath(); ctx.arc(0, visualY + eSize*0.05, eSize*0.2, 0, Math.PI); ctx.fill();
         ctx.fillStyle = 'white';
@@ -730,11 +702,9 @@ function drawHUDIcons() {
 }
 setTimeout(drawHUDIcons, 100);
 
-// --- 排行榜邏輯 ---
 function fetchLeaderboard() {
     if (!GAS_LEADERBOARD_URL) return;
     
-    // 隨機參數破除快取，不使用 cache 選項以免觸發 CORS 預檢
     fetch(`${GAS_LEADERBOARD_URL}?action=getLeaderboard&t=${new Date().getTime()}_${Math.random()}`)
         .then(res => res.json())
         .then(data => renderLeaderboard(data))
@@ -775,7 +745,6 @@ function renderLeaderboard(data) {
 
         let li = document.createElement('li');
         
-        // 💡 修復 TypeError: 將可能有數字或空值的欄位安全轉換成字串，並強制轉為大寫
         let itemNameStr = item.name != null ? String(item.name).toUpperCase() : "";
         let itemSidStr = item.sid != null ? String(item.sid).toUpperCase() : "";
         let itemClsStr = item.cls != null ? String(item.cls).toUpperCase() : "";
@@ -784,7 +753,6 @@ function renderLeaderboard(data) {
         let displayCls = itemClsStr;
         let displayName = (itemNameStr.trim() !== "") ? itemNameStr : itemSidStr;
         
-        // 智慧隱藏邏輯：如果是純空格 (老師模式)
         if (itemClsStr === " ") {
             displayCls = "";
             displayName = itemSidStr;
@@ -793,7 +761,6 @@ function renderLeaderboard(data) {
         let safeName = displayName.length > 6 ? displayName.substring(0, 6) + '..' : displayName;
         let shortDiff = itemDiffStr.replace("程度 ", "L");
         
-        // 嚴格自動對齊：使用設定好的 Grid 系統
         li.innerHTML = `
             <span>${index + 1}.</span>
             <span>${displayCls}</span>
@@ -806,7 +773,6 @@ function renderLeaderboard(data) {
         list.appendChild(li);
     });
 
-    // 渲染置頂區塊
     if (myRank !== -1 && topDisplay && myItem) {
         let myItemNameStr = myItem.name != null ? String(myItem.name).toUpperCase() : "";
         let myItemSidStr = myItem.sid != null ? String(myItem.sid).toUpperCase() : "";
@@ -821,7 +787,7 @@ function renderLeaderboard(data) {
         topDisplay.innerHTML = `
             <div style="background: rgba(234, 179, 8, 0.3); border: 2px solid #f59e0b; border-radius: 6px; padding: 10px; margin-bottom: 8px; color: #fff; text-align: center;">
                 <div style="font-weight: bold; font-size: 16px; margin-bottom: 4px;">你的排名：第 ${myRank} 名</div>
-                <div style="font-size: 14px; color: #cbd5e1;">${displayCls} ${safeName}  :  ${myItem.score}分 (${shortDiff})</div>
+                <div style="font-size: 14px; color: #cbd5e1;">${displayCls} ${safeName} ${myItem.score}分 (${shortDiff})</div>
             </div>
         `;
         topDisplay.style.display = 'block';
@@ -829,15 +795,13 @@ function renderLeaderboard(data) {
 }
 
 window.submitScore = async function() {
-    // 💡 將輸入的值強制轉為大寫，防呆檢查（姓名輸入框已被移除）
     let clsInput = document.getElementById('lb-class');
     let sidInput = document.getElementById('lb-sid');
 
     let cls = clsInput ? clsInput.value.trim().toUpperCase() : "";
     let sid = sidInput ? sidInput.value.trim().toUpperCase() : "";
-    let name = sid; // 如果沒有姓名輸入框，預設為學號
+    let name = sid; 
     
-    // 1. 驗證與防呆機制
     if (sid !== "" && cls === "") { 
         alert("班別為必填項目！"); 
         return; 
@@ -857,29 +821,24 @@ window.submitScore = async function() {
     const timeStr = now.toLocaleTimeString('zh-HK');
     const diff = "程度 " + currentDifficulty; 
     
-    // 依據不同程度乘上倍率
     let mult = { '1': 1, '2': 1.2, '3': 1.4, '4': 1.6, '5': 1.8 }[currentDifficulty] || 1;
     const score = Math.round(enemiesKilled * mult);
     const timestamp = now.getTime();
 
-    let playerName = sid; // 預設為學號
+    let playerName = sid; 
 
     const addUrl = `${GAS_LEADERBOARD_URL}?action=addScore&date=${encodeURIComponent(dateStr)}&time=${encodeURIComponent(timeStr)}&diff=${encodeURIComponent(diff)}&cls=${encodeURIComponent(cls)}&sid=${encodeURIComponent(sid)}&score=${score}&t=${timestamp}`;
     
-    // 2. 確保成績寫入 Google Sheet，並獲取配對到的姓名
     try {
         let res = await fetch(addUrl);
         let json = await res.json();
-        // 💡 修復 TypeError: 將回傳的名字安全轉換成字串
         if (json && json.name && String(json.name).trim() !== "") {
             playerName = String(json.name);
         }
     } catch(e) {
         console.log("上傳或配對延遲", e);
-        // 若發生阻擋，依舊會使用預設的 playerName(sid) 顯示在本地
     }
 
-    // 3. 拉取最新排行榜並進行樂觀更新 (Optimistic UI)
     let leaderboardData = [];
     try {
         let res = await fetch(`${GAS_LEADERBOARD_URL}?action=getLeaderboard&t=${new Date().getTime()}_${Math.random()}`);
@@ -888,35 +847,30 @@ window.submitScore = async function() {
         console.log("讀取最新排行榜失敗", e);
     }
     
-    // ==========================================
-    // 💡 新增：防重複機制，檢查伺服器是否已經記錄了剛剛上傳的資料
-    // ==========================================
     let alreadyExists = false;
     for (let i = 0; i < leaderboardData.length; i++) {
         let item = leaderboardData[i];
         let itemSidStr = item.sid != null ? String(item.sid).toUpperCase() : "";
         let itemClsStr = item.cls != null ? String(item.cls).toUpperCase() : "";
         
-        // 如果伺服器傳回的榜單中，已經包含這筆相同的成績與身分
         if (itemSidStr === sid && itemClsStr === cls && item.score === score && item.diff === diff && !item.isMe) {
-            item.isMe = true;           // 標記為自己，觸發高亮
-            item.name = playerName;     // 確保顯示最新配對到的名字
-            alreadyExists = true;       // 記錄為「已存在」
-            break;                      // 標記一筆就夠了，退出迴圈
+            item.isMe = true;           
+            item.name = playerName;     
+            alreadyExists = true;       
+            break;                      
         }
     }
 
-    // 只有在伺服器還來不及更新的時候，才手動補上這筆資料，避免顯示兩行
     if (!alreadyExists) {
         leaderboardData.push({ diff: diff, cls: cls, sid: sid, name: playerName, score: score, isMe: true });
     }
-    // ==========================================
     
     leaderboardData.sort((a, b) => b.score - a.score);
     renderLeaderboard(leaderboardData);
 }
 
 window.startGame = function(level) {
+    initAudio(); 
     currentDifficulty = level;
     let menu = document.getElementById('start-menu');
     if (menu) menu.style.display = 'none';
@@ -931,14 +885,12 @@ window.returnToMenu = function() {
     gameState = 'START_MENU';
     scoreSubmitted = false;
     
-    // 每次返回選單/展開新一局時，自動清除輸入框內的資料
     let clsInput = document.getElementById('lb-class');
     let sidInput = document.getElementById('lb-sid');
     if (clsInput) clsInput.value = '';
     if (sidInput) sidInput.value = '';
 }
 
-// 支援自行填寫答案的新格式
 function formatInput(questionStr, ans) {
     return {
         isInput: true,
@@ -949,7 +901,6 @@ function formatInput(questionStr, ans) {
 
 function generateFallbackInput() {
     let wl = Math.max(0, player.weaponLevel);
-    // 當外部題庫讀取失敗時，改為使用雙位數乘法作為後備輸入題
     let num1 = getRandomInt(11, 20 + wl * 2); 
     let num2 = getRandomInt(2, 9);
     let ans = num1 * num2;
@@ -958,16 +909,14 @@ function generateFallbackInput() {
 
 function generateLevel1Question() {
     let wl = Math.max(0, player.weaponLevel);
-    // 基礎 10-50，隨著武器等級而提高數值範圍
     let min = 1 + wl * 2;
     let max = 30 + wl * 5;
     let A = getRandomInt(min, max);
     let B = getRandomInt(min, max);
     let isAdd = Math.random() > 0.5;
-    if (!isAdd && A < B) { let temp = A; A = B; B = temp; } // 保證減法結果一定是整數 (此處確保為正整數)
+    if (!isAdd && A < B) { let temp = A; A = B; B = temp; } 
     let ans = isAdd ? A + B : A - B;
     let op = isAdd ? '+' : '-';
-    // 程度1 改為輸入題型
     return formatInput(`${A} ${op} ${B}`, ans);
 }
 
@@ -975,7 +924,6 @@ function generateLevel2Question() {
     let wl = Math.max(0, player.weaponLevel);
     let maxV = Math.floor(3 + wl * 1.5);
     if (maxV < 3) maxV = 3;
-    // 預設 8 種四則運算組合 (先乘除後加減原則)，確保整除和正數
     let patterns = [
         () => { let b=getRandomInt(2,maxV), c=getRandomInt(2,maxV), a=getRandomInt(1,maxV*2); return {q: `${a} + ${b} \\times ${c}`, a: a+b*c}; },
         () => { let b=getRandomInt(2,maxV), c=getRandomInt(2,maxV), a=getRandomInt(b*c+1, b*c+20); return {q: `${a} - ${b} \\times ${c}`, a: a-b*c}; },
@@ -987,7 +935,6 @@ function generateLevel2Question() {
         () => { let b=getRandomInt(2,10), a=b*getRandomInt(2,maxV), c=getRandomInt(1,a/b-1); return {q: `${a} \\div ${b} - ${c}`, a: a/b-c}; }
     ];
     let p = patterns[getRandomInt(0, patterns.length)]();
-    // 程度2 改為輸入題型
     return formatInput(p.q, p.a);
 }
 
@@ -996,7 +943,6 @@ function triggerMath(type) {
     gameState = 'MATH_TIME';
     isShooting = false; leftJoy.active = false;
     
-    // 玩家回答問題時，馬上停止射擊聲音
     let sSfx = document.getElementById('shootSfx'); 
     if (sSfx && !sSfx.paused) { sSfx.pause(); sSfx.currentTime = 0; }
     
@@ -1023,7 +969,6 @@ function triggerMath(type) {
             qData = generateLevel2Question();
         } else if (diffStr === '3') {
             if (questionsSolved < 3) {
-                // 程度 3：前三題出簡單加減法 (此處借用程度1的出題，故也是輸入題型)
                 qData = generateLevel1Question();
             } else if (typeof generateIndicesQuestions === 'function') {
                 qData = generateIndicesQuestions(1, 1)[0];
@@ -1032,11 +977,9 @@ function triggerMath(type) {
             }
         } else if (diffStr === '4' || diffStr === '5') {
             let level = diffStr === '4' ? 1 : 2;
-            
             let topics = ['rounding', 'expansion', 'factorization', 'indices'];
             let t = topics[getRandomInt(0, topics.length)];
             
-            // 隨機抽取 4 種題庫中的一題
             if (t === 'rounding' && typeof generateRoundingQuestions === 'function') qData = generateRoundingQuestions(1, level)[0];
             else if (t === 'expansion' && typeof generateExpansionQuestions === 'function') qData = generateExpansionQuestions(1, level)[0];
             else if (t === 'factorization' && typeof generateFactorizationQuestions === 'function') qData = generateFactorizationQuestions(1, level)[0];
@@ -1046,7 +989,6 @@ function triggerMath(type) {
             qData = generateFallbackInput();
         }
     } catch(e) { 
-        // 在 Console 印出警告，幫助尋找哪一個題庫發生問題
         console.error("警告：外部進階題庫讀取失敗 (難度 " + diffStr + ")，已自動切換至後備輸入題。請檢查 JS 檔案。", e); 
         qData = generateFallbackInput(); 
     }
@@ -1061,7 +1003,6 @@ function triggerMath(type) {
         optsContainer.innerHTML = '';
         
         if (qData.isInput) {
-            // 動態產生手動輸入數字鍵盤與顯示區
             optsContainer.style.display = 'flex';
             optsContainer.style.flexDirection = 'column';
             optsContainer.style.alignItems = 'center';
@@ -1069,13 +1010,11 @@ function triggerMath(type) {
 
             let currentInputValue = "";
 
-            // 顯示區
             let inputDisplay = document.createElement('div');
             inputDisplay.id = 'math-num-display';
             inputDisplay.style = "font-size: 32px; padding: 10px; width: 240px; min-height: 45px; text-align: center; border-radius: 8px; border: 2px solid #94a3b8; background: #334155; color: #fbbf24; font-weight: bold; display: flex; justify-content: center; align-items: center; letter-spacing: 2px;";
             inputDisplay.textContent = "";
 
-            // 數字鍵盤
             let numpad = document.createElement('div');
             numpad.style = "display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; width: 260px; margin-top: 5px;";
 
@@ -1109,7 +1048,6 @@ function triggerMath(type) {
                 numpad.appendChild(btn);
             });
 
-            // 確定按鈕
             let submitBtn = document.createElement('button');
             submitBtn.textContent = '確定';
             submitBtn.style = "background: #3b82f6; color: white; border: 2px solid #94a3b8; padding: 12px 40px; font-size: 24px; font-weight: bold; border-radius: 8px; cursor: pointer; transition: 0.2s; width: 260px; margin-top: 5px;";
@@ -1117,7 +1055,7 @@ function triggerMath(type) {
             submitBtn.onmouseout = () => submitBtn.style.background = '#3b82f6';
             submitBtn.onclick = () => {
                 if (gameState !== 'MATH_TIME') return;
-                gameState = 'MATH_ANSWERED'; // 暫停時間與禁用輸入
+                gameState = 'MATH_ANSWERED'; 
                 submitBtn.disabled = true;
 
                 let userVal = parseFloat(currentInputValue);
@@ -1135,12 +1073,12 @@ function triggerMath(type) {
                     inputDisplay.innerHTML = `<span style="text-decoration: line-through; margin-right: 15px;">${isNaN(userVal) ? '?' : userVal}</span> <span style="color:#4ade80">${correctAns}</span>`;
                 }
 
+                // 💡 縮短等待時間：改為 0.3 秒，怪物幾乎不會有停頓感
                 setTimeout(() => {
                     window.submitMCQ(isCorrect);
-                }, 1200);
+                }, 300);
             };
 
-            // 電腦實體鍵盤輸入支援
             if (window.mathKeydownHandler) {
                 window.removeEventListener('keydown', window.mathKeydownHandler);
             }
@@ -1167,7 +1105,6 @@ function triggerMath(type) {
             optsContainer.appendChild(submitBtn);
 
         } else {
-            // 恢復原版選擇題 (MC) 佈局，並加入反饋與停頓
             optsContainer.style.display = 'grid'; 
             let optionElements = [];
             qData.options.forEach(opt => {
@@ -1178,7 +1115,7 @@ function triggerMath(type) {
                 
                 btn.onclick = () => {
                     if (gameState !== 'MATH_TIME') return;
-                    gameState = 'MATH_ANSWERED'; // 暫停時間與禁用點擊
+                    gameState = 'MATH_ANSWERED'; 
                     
                     if (opt.isCorrect) {
                         btn.style.backgroundColor = 'rgba(74, 222, 128, 0.2)';
@@ -1197,9 +1134,10 @@ function triggerMath(type) {
                         }
                     }
 
+                    // 💡 縮短等待時間：改為 0.3 秒，怪物幾乎不會有停頓感
                     setTimeout(() => {
                         window.submitMCQ(opt.isCorrect);
-                    }, 1200);
+                    }, 300);
                 };
                 optsContainer.appendChild(btn);
             });
@@ -1212,7 +1150,7 @@ function triggerMath(type) {
         overlay.style.display = 'flex';
     }
     
-    mathTimer = 600; // 10 秒
+    mathTimer = 600; 
 }
 
 window.submitMCQ = function(isCorrect) {
@@ -1256,7 +1194,10 @@ function closeMathOverlay(success) {
     if (overlay) overlay.style.display = 'none';
     shakeTime = success ? 0 : 15;
     gameState = 'PLAYING'; 
-    isShooting = false; leftJoy.active = false; keys.w = keys.a = keys.s = keys.d = false; 
+    isShooting = false; leftJoy.active = false; 
+    
+    // 💡 已移除強制重置 WASD 的代碼，讓玩家能一直按著移動鍵不放
+    
     let sSfx = document.getElementById('shootSfx'); if (sSfx && !sSfx.paused) { sSfx.pause(); sSfx.currentTime = 0; }
 }
 
@@ -1345,14 +1286,21 @@ window.addEventListener('mousedown', (e) => {
 window.addEventListener('mouseup', () => { 
     isShooting = false; 
 });
+
+// 💡 修正：移除 gameState 條件限制，確保一直按著的鍵可以被正確捕捉及釋放
 window.addEventListener('keydown', (e) => {
     initAudio();
-    if (gameState === 'PLAYING') { let key = e.key.toLowerCase(); if (keys.hasOwnProperty(key)) keys[key] = true; } 
-    else if (gameState === 'GAME_OVER' || gameState === 'VICTORY') { 
+    let key = e.key.toLowerCase(); 
+    if (keys.hasOwnProperty(key)) keys[key] = true; 
+    
+    if (gameState === 'GAME_OVER' || gameState === 'VICTORY') { 
         if (e.key === 'Enter') { if (scoreSubmitted || (document.getElementById('submit-form') && document.getElementById('submit-form').style.display === 'none')) window.returnToMenu(); }
     }
 });
-window.addEventListener('keyup', (e) => { if (gameState === 'PLAYING') { let key = e.key.toLowerCase(); if (keys.hasOwnProperty(key)) keys[key] = false; }});
+window.addEventListener('keyup', (e) => { 
+    let key = e.key.toLowerCase(); 
+    if (keys.hasOwnProperty(key)) keys[key] = false; 
+});
 
 
 // ==============================================================================
@@ -1421,7 +1369,7 @@ function triggerGameOver(isVictory) {
 function resetGame() {
     player.weaponLevel = -1;
     player.hp = player.maxHp; 
-    player.speed = basePlayerSpeed; // 使用 Google Sheet 讀取的空手速度
+    player.speed = basePlayerSpeed; 
     player.currentMagazine = 0; 
     player.totalAmmo = 0; 
     player.isReloading = false; player.reloadTimer = 0;
@@ -1440,7 +1388,6 @@ function resetGame() {
     initMonsterQueue(); fetchLeaderboard();
     gameState = 'PLAYING';
     
-    // 初始化進度條，清空UI顯示
     lastHUDState.kills = -1;
     
     spawnLootBox();
@@ -1468,7 +1415,6 @@ function update() {
     if (gameState === 'START_MENU') return;
 
     if (gameState === 'MATH_TIME' || gameState === 'MATH_ANSWERED') {
-        // 玩家回答問題時，所有補充包暫停扣除時間 (透過推移生成時間來凍結壽命計算)
         for (let i = 0; i < lootBoxes.length; i++) lootBoxes[i].spawnTime++;
         for (let i = 0; i < ammoBoxes.length; i++) ammoBoxes[i].spawnTime++;
 
@@ -1480,7 +1426,7 @@ function update() {
                 uiElements.mathTimerBar.style.backgroundColor = mathTimer < 180 ? '#ef4444' : '#4ade80';
             }
             if (mathTimer <= 0) {
-                gameState = 'MATH_ANSWERED'; // 防止超時後鍵盤繼續輸入
+                gameState = 'MATH_ANSWERED'; 
                 closeMathOverlay(false);
                 addFloatingText("⏳ 時間到！寶箱已損毀。", player.x, player.y - 40, '#ef4444');
             }
@@ -1537,7 +1483,6 @@ function update() {
     player.x = Math.max(UI_BOUND + player.radius, Math.min(logicalWidth - player.radius, player.x));
     player.y = Math.max(player.radius, Math.min(logicalHeight - player.radius, player.y));
 
-    // 游標精準跟隨瞄準 (Mouse Aiming)
     if (!('ontouchstart' in window) || !leftJoy.active) { 
         player.angle = Math.atan2(mouseY - player.y, mouseX - player.x) || 0;
     }
@@ -1974,7 +1919,3 @@ if (document.getElementById('start-menu')) {
 
 </body>
 </html>
-
-
-This error happens when I input class and studnet id, but skip the name. The name box is now removed, if the sid is "01" how can i use it as the name. Since i deleted the name box. So name is null.
-Can you fix this?
