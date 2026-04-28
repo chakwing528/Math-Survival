@@ -151,7 +151,7 @@
             align-items: center; 
             gap: 12px; 
             position: absolute; 
-            top: 45%; /* 將原本的 55% 改為 40%，數字越小表單越靠上 */
+            top: 40%; /* 遊戲結算置中位置 */
             transform: translate(-50%, 0); 
             background: rgba(30, 41, 59, 0.95); 
             padding: 25px; 
@@ -161,11 +161,8 @@
             width: 320px; 
             box-shadow: 0 0 20px rgba(0,0,0,0.8);
         }
-        #submit-form input { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #94a3b8; text-align: center; font-size: 16px; box-sizing: border-box; background: #334155; color: white; margin: 0; }
         #submit-form button { background: #3b82f6; color: white; border: none; padding: 12px; border-radius: 6px; cursor: pointer; width: 100%; font-weight: bold; font-size: 16px; box-sizing: border-box; margin: 0; transition: 0.2s; }
         #submit-form button:hover { background: #2563eb; }
-        #submit-form .skip-btn { background: #64748b; }
-        #submit-form .skip-btn:hover { background: #475569; }
 
         /* 版本號標籤 */
         #version-tag {
@@ -198,7 +195,6 @@
                 
                 <div style="background: rgba(30, 41, 59, 0.85); padding: 35px 40px; border-radius: 16px; border: 2px solid #475569; display: flex; flex-direction: column; align-items: center; box-shadow: 0 0 25px rgba(0,0,0,0.6);">
                     <h2 style="color: #fbbf24; margin: 0 0 25px 0; font-size: 26px; text-shadow: 1px 1px 3px #000;">⌨️ 遊戲操作指引</h2>
-                    
                     <div style="display: flex; flex-direction: column; align-items: center; gap: 8px; margin-bottom: 30px;">
                         <div class="key">W</div>
                         <div style="display: flex; gap: 8px;">
@@ -207,7 +203,6 @@
                             <div class="key">D</div>
                         </div>
                     </div>
-                    
                     <div style="text-align: center; color: #e2e8f0; font-size: 18px; line-height: 1.8;">
                         <span style="color:#fbbf24; font-weight:bold;">W</span> : 前進 &nbsp;&nbsp;&nbsp; <span style="color:#fbbf24; font-weight:bold;">S</span> : 後退<br>
                         <span style="color:#fbbf24; font-weight:bold;">A</span> : 向左 &nbsp;&nbsp;&nbsp; <span style="color:#fbbf24; font-weight:bold;">D</span> : 向右<br><br>
@@ -216,29 +211,24 @@
                     </div>
                 </div>
 
-                <div style="display:flex; flex-direction:column; align-items:center; gap:12px;">
-                    <h1 style="color: #fbbf24; font-size: 35px; margin-bottom: 15px; text-shadow: 2px 2px 4px #000; text-align: center;">請選擇目標程度</h1>
+                <div id="right-panel" style="display:flex; flex-direction:column; align-items:center; gap:12px;">
                     
-                    <button class="diff-btn" onclick="window.startGame('1')">
-                        程度 1
-                        <span style="font-size: 14px; font-weight: normal; display: block; margin-top: 4px; color: #e2e8f0;">10-50 整數加減運算<br><span style="color:#fbbf24; font-weight:bold;">(分數 x1.0)</span></span>
-                    </button>
-                    <button class="diff-btn" onclick="window.startGame('2')">
-                        程度 2
-                        <span style="font-size: 14px; font-weight: normal; display: block; margin-top: 4px; color: #e2e8f0;">整數四則混合運算 (先乘除後加減)<br><span style="color:#fbbf24; font-weight:bold;">(分數 x1.2)</span></span>
-                    </button>
-                    <button class="diff-btn" onclick="window.startGame('3')">
-                        程度 3
-                        <span style="font-size: 14px; font-weight: normal; display: block; margin-top: 4px; color: #e2e8f0;">加減混合 及 基礎指數<br><span style="color:#fbbf24; font-weight:bold;">(分數 x1.4)</span></span>
-                    </button>
-                    <button class="diff-btn" onclick="window.startGame('4')">
-                        程度 4
-                        <span style="font-size: 14px; font-weight: normal; display: block; margin-top: 4px; color: #e2e8f0;">捨入、展開、因式分解、指數<br>(基礎隨機) <span style="color:#fbbf24; font-weight:bold;">(分數 x1.6)</span></span>
-                    </button>
-                    <button class="diff-btn" onclick="window.startGame('5')">
-                        程度 5
-                        <span style="font-size: 14px; font-weight: normal; display: block; margin-top: 4px; color: #e2e8f0;">捨入、展開、因式分解、指數<br>(進階隨機) <span style="color:#fbbf24; font-weight:bold;">(分數 x1.8)</span></span>
-                    </button>
+                    <div id="login-selection" style="display:flex; flex-direction:column; align-items:center; gap:15px; width: 100%;">
+                        <h1 style="color: #fbbf24; font-size: 35px; margin-bottom: 15px; text-shadow: 2px 2px 4px #000; text-align: center;">請先輸入資料</h1>
+                        <input type="text" id="login-class" placeholder="班別 (例: 1A) *必填" style="width: 280px; padding: 12px; border-radius: 8px; font-size: 18px; text-align: center; border: 2px solid #94a3b8; background: #334155; color: white; box-sizing: border-box;">
+                        <input type="text" id="login-sid" placeholder="學號 (例: 01) *必填" style="width: 280px; padding: 12px; border-radius: 8px; font-size: 18px; text-align: center; border: 2px solid #94a3b8; background: #334155; color: white; box-sizing: border-box;">
+                        <button class="diff-btn" style="margin-top: 10px;" onclick="window.goToDifficulty()">下一步</button>
+                    </div>
+
+                    <div id="diff-selection" style="display:none; flex-direction:column; align-items:center; gap:12px;">
+                        <h1 style="color: #fbbf24; font-size: 35px; margin-bottom: 15px; text-shadow: 2px 2px 4px #000; text-align: center;">請選擇目標程度</h1>
+                        <button class="diff-btn" onclick="window.startGame('1')">程度 1<span style="font-size: 14px; font-weight: normal; display: block; margin-top: 4px; color: #e2e8f0;">10-50 整數加減運算<br><span style="color:#fbbf24; font-weight:bold;">(分數 x1.0)</span></span></button>
+                        <button class="diff-btn" onclick="window.startGame('2')">程度 2<span style="font-size: 14px; font-weight: normal; display: block; margin-top: 4px; color: #e2e8f0;">整數四則混合運算<br><span style="color:#fbbf24; font-weight:bold;">(分數 x1.2)</span></span></button>
+                        <button class="diff-btn" onclick="window.startGame('3')">程度 3<span style="font-size: 14px; font-weight: normal; display: block; margin-top: 4px; color: #e2e8f0;">加減混合 及 基礎指數<br><span style="color:#fbbf24; font-weight:bold;">(分數 x1.4)</span></span></button>
+                        <button class="diff-btn" onclick="window.startGame('4')">程度 4<span style="font-size: 14px; font-weight: normal; display: block; margin-top: 4px; color: #e2e8f0;">捨入/展開/因式/指數 (基礎)<br><span style="color:#fbbf24; font-weight:bold;">(分數 x1.6)</span></span></button>
+                        <button class="diff-btn" onclick="window.startGame('5')">程度 5<span style="font-size: 14px; font-weight: normal; display: block; margin-top: 4px; color: #e2e8f0;">捨入/展開/因式/指數 (進階)<br><span style="color:#fbbf24; font-weight:bold;">(分數 x1.8)</span></span></button>
+                        <button class="diff-btn" style="background: #64748b; margin-top: 10px; font-size: 18px; padding: 10px;" onclick="window.backToLogin()">返回修改資料</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -289,14 +279,12 @@
         </div>
         
         <div id="submit-form">
-            <h3 style="margin: 0; color: #fbbf24; font-size: 20px;">上傳遊戲成績</h3>
-            <input type="text" id="lb-class" placeholder="班別 (老師填此格即可) *必填">
-            <input type="text" id="lb-sid" placeholder="學號 (老師可留空)">
-            <button onclick="window.submitScore()">上傳成績</button>
-            <button class="skip-btn" onclick="window.returnToMenu()">略過並重玩</button>
+            <h3 style="margin: 0 0 5px 0; color: #fbbf24; font-size: 24px;">遊戲結束</h3>
+            <p style="color: #cbd5e1; font-size: 14px; margin: 0 0 15px 0; text-align: center;">請點擊下方按鈕上傳您的成績<br>(上傳完成後點擊畫面任意處即可重玩)</p>
+            <button onclick="window.submitScore()" style="padding: 15px; font-size: 18px;">上傳成績並觀看排名</button>
         </div>
 
-        <div id="version-tag">Math Survival V87</div>
+        <div id="version-tag">Math Survival V89</div>
     </div>
 
     <audio id="bgm" src="audio/bgm.mp3" loop></audio>
@@ -448,9 +436,7 @@ function getLogicalPos(clientX, clientY) {
 // Global State
 let gameState = 'START_MENU'; 
 let globalTime = 0; let shakeTime = 0; let bossAlarmTimer = 0;
-
-// 💡 新增：怪物凍結計時器
-let monsterFreezeTimer = 0; 
+let monsterFreezeTimer = 0; // 怪物凍結計時器
 
 let currentDifficulty = '1';
 let questionBank = [];
@@ -634,7 +620,6 @@ function updateHTMLHUD() {
         lastHUDState.hp = player.hp;
     }
     
-    // 更新擊殺進度條
     if (lastHUDState.kills !== enemiesKilled) {
         if (uiElements.killFill && TOTAL_MONSTERS > 0) {
             let percentage = (enemiesKilled / TOTAL_MONSTERS) * 100;
@@ -673,7 +658,7 @@ function updateHTMLHUD() {
     }
 }
 
-// 高解析度畫布渲染，徹底解決起格及裁剪問題
+// 高解析度畫布渲染
 function drawHUDIcons() {
     let pC = document.getElementById('player-icon'); 
     if(!pC) return;
@@ -698,7 +683,6 @@ function drawHUDIcons() {
         mCtx.clearRect(0,0,mC.width,mC.height);
         
         mCtx.save();
-        // 畫布為 150x150，進行 5 倍巨幅放大，並計算完美的中心偏移以保留王冠與角
         mCtx.translate(75, 105); mCtx.scale(5.0, 5.0); 
         drawMonsterEntity(mCtx, 14, mTypes[i].color, mTypes[i].tier, 0, true);
         mCtx.restore();
@@ -706,6 +690,27 @@ function drawHUDIcons() {
 }
 setTimeout(drawHUDIcons, 100);
 
+// --- 選單切換邏輯 ---
+window.goToDifficulty = function() {
+    let cls = document.getElementById('login-class').value.trim();
+    let sid = document.getElementById('login-sid').value.trim();
+    
+    if (cls === "" || sid === "") {
+        alert("請填寫班別及學號才能開始遊戲！");
+        return;
+    }
+    
+    document.getElementById('login-selection').style.display = 'none';
+    document.getElementById('diff-selection').style.display = 'flex';
+    initAudio(); 
+}
+
+window.backToLogin = function() {
+    document.getElementById('diff-selection').style.display = 'none';
+    document.getElementById('login-selection').style.display = 'flex';
+}
+
+// --- 排行榜邏輯 ---
 function fetchLeaderboard() {
     if (!GAS_LEADERBOARD_URL) return;
     
@@ -721,7 +726,6 @@ function fetchLeaderboard() {
         });
 }
 
-// 每 5 秒自動更新排行榜
 setInterval(() => {
     if (GAS_LEADERBOARD_URL && gameState === 'START_MENU') {
         fetchLeaderboard();
@@ -799,8 +803,8 @@ function renderLeaderboard(data) {
 }
 
 window.submitScore = async function() {
-    let clsInput = document.getElementById('lb-class');
-    let sidInput = document.getElementById('lb-sid');
+    let clsInput = document.getElementById('login-class');
+    let sidInput = document.getElementById('login-sid');
 
     let cls = clsInput ? clsInput.value.trim().toUpperCase() : "";
     let sid = sidInput ? sidInput.value.trim().toUpperCase() : "";
@@ -889,8 +893,11 @@ window.returnToMenu = function() {
     gameState = 'START_MENU';
     scoreSubmitted = false;
     
-    let clsInput = document.getElementById('lb-class');
-    let sidInput = document.getElementById('lb-sid');
+    document.getElementById('diff-selection').style.display = 'none';
+    document.getElementById('login-selection').style.display = 'flex';
+    
+    let clsInput = document.getElementById('login-class');
+    let sidInput = document.getElementById('login-sid');
     if (clsInput) clsInput.value = '';
     if (sidInput) sidInput.value = '';
 }
@@ -1077,7 +1084,6 @@ function triggerMath(type) {
                     inputDisplay.innerHTML = `<span style="text-decoration: line-through; margin-right: 15px;">${isNaN(userVal) ? '?' : userVal}</span> <span style="color:#4ade80">${correctAns}</span>`;
                 }
 
-                // 💡 恢復 1.2 秒的顯示時間
                 setTimeout(() => {
                     window.submitMCQ(isCorrect);
                 }, 1200);
@@ -1138,7 +1144,6 @@ function triggerMath(type) {
                         }
                     }
 
-                    // 💡 恢復 1.2 秒的顯示時間
                     setTimeout(() => {
                         window.submitMCQ(opt.isCorrect);
                     }, 1200);
@@ -1199,11 +1204,9 @@ function closeMathOverlay(success) {
     shakeTime = success ? 0 : 15;
     
     gameState = 'PLAYING'; 
-    monsterFreezeTimer = 60; // 💡 啟動怪物 1 秒凍結計時器 (60 frames)
+    monsterFreezeTimer = 60; 
     
-    // 💡 移除強制放開鍵盤 WASD 的機制，讓玩家可以直接走位
-    isShooting = false; 
-    leftJoy.active = false; 
+    isShooting = false; leftJoy.active = false; 
     
     let sSfx = document.getElementById('shootSfx'); if (sSfx && !sSfx.paused) { sSfx.pause(); sSfx.currentTime = 0; }
 }
@@ -1382,7 +1385,7 @@ function resetGame() {
     player.angle = 0;
     
     enemiesKilled = 0; totalMonstersSpawned = 0; questionsSolved = 0;
-    monsterFreezeTimer = 0; // 💡 重置怪物凍結計時
+    monsterFreezeTimer = 0; 
     player.x = UI_BOUND + (logicalWidth - UI_BOUND)/2; player.y = logicalHeight / 2;
     bullets = []; enemies = []; lootBoxes = []; ammoBoxes = []; particles = []; floatingTexts = [];
     isShooting = false; keys.w = keys.a = keys.s = keys.d = false;
@@ -1455,7 +1458,6 @@ function update() {
 
     if (gameState !== 'PLAYING') return;
 
-    // 💡 倒數怪物凍結時間
     if (monsterFreezeTimer > 0) monsterFreezeTimer--;
 
     if (player.isReloading && player.weaponLevel >= 0) {
@@ -1549,7 +1551,6 @@ function update() {
     for (let i = enemies.length - 1; i >= 0; i--) {
         let enemy = enemies[i];
         
-        // 💡 如果在凍結期間，怪物不追蹤也不移動
         if (monsterFreezeTimer <= 0) {
             let angleToPlayer = Math.atan2(player.y - enemy.y, player.x - enemy.x) || 0;
             enemy.angle = angleToPlayer;
@@ -1563,7 +1564,6 @@ function update() {
             createParticles(player.x, player.y, '#ef4444', 30, 8); 
             addFloatingText(`-${dmg}`, player.x, player.y - 50, '#ef4444', 24);
             
-            // 確保被撞到時會稍微彈開
             let repelAngle = Math.atan2(player.y - enemy.y, player.x - enemy.x) || 0;
             enemy.x -= Math.cos(repelAngle) * 40; enemy.y -= Math.sin(repelAngle) * 40;
             
