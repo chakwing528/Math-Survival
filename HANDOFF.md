@@ -2,7 +2,7 @@
 
 > 新 Codex task 應先讀 `AGENTS.md`、`docs/PROJECT_MAP.md` 同 `docs/CURRENT_STATE.md`，再按任務讀相關 feature 文件。
 > 呢份文件只保留近期交接同歷史實作細節；架構、API、資料流同長期規則以 `docs/` 為準，實際行為以程式碼為準。
-> 目前 workspace：`/Users/cwchan/Downloads/Math-Survival-main/Math-Survival-main`。2026-08-25 盤點時缺少 `.git`；其後已確認並恢復公開 repository `chakwing528/Math-Survival` 的 Git 歷史及 `origin`。本機新版在獨立分支整理，尚未合併至 `main`。
+> 目前 workspace：`/Users/cwchan/Downloads/Math-Survival-main/Math-Survival-main`。2026-08-25 盤點時缺少 `.git`；其後已確認並恢復公開 repository `chakwing528/Math-Survival` 的 Git 歷史及 `origin`。本機新版在 `codex/project-memory-v3.3`，Draft PR #1 尚未合併至 `main`；首輪 overhaul 工作見 Issues #4、#2、#3 及 `docs/ROADMAP.md`。
 
 ---
 

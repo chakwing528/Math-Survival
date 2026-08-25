@@ -32,6 +32,8 @@
 
 - Git 歷史及 `origin` 已於 2026-08-25 恢復；`origin` 是公開 repository `chakwing528/Math-Survival`，預設分支為 `main`。
 - 本機 V3.3、文件系統及資產在獨立分支整理；合併前應先審查，避免直接改動 GitHub Pages 的公開版本。
+- Draft PR #1 由 `codex/project-memory-v3.3` 指向 `main`；目前可合併但仍保持 Draft，未改動正式網站。
+- 大規模重整路線圖見 `docs/ROADMAP.md`；首輪 GitHub Issues 為 #4（測試/CI 基線）、#2（GAS/學生資料安全邊界）及 #3（desktop/touch 輸入與狀態機）。
 - `.claude/launch.json` 已改為本機可用的 `python3` 和相對工作目錄，但仍需由實際 launcher 驗證。
 - 模型授權不是全部 CC-BY 3.0；個別授權以 `assets/models/credits.txt` 為準。
 - GAS handler、遠端 schema、權限及資料保留政策不在此 workspace。
@@ -44,9 +46,7 @@
 
 ## 下一批建議工作
 
-1. 審查本機相對 `origin/main` 的完整變更，設定提交者資料後提交到獨立分支。
-2. 經人工確認公開內容及 GitHub Pages 影響後，才建立 Pull Request 或合併至 `main`。
-3. 取得/審查 GAS handler、資料 schema、authentication/authorization 和學生資料政策。
-4. 為題庫及 config parsing 建立最小 unit tests。
-5. 為兩個頁面建立不提交真實資料的 browser smoke tests。
-6. 若繼續手機版，先解耦 Pointer Lock 狀態機，再建立統一 input abstraction。
+1. 審查 Draft PR #1 的公開內容、兩個遊戲入口及 GitHub Pages 影響；未完成 smoke test 前不要合併。
+2. 先執行 Issue #4，建立測試、browser smoke test 和 CI 基線。
+3. 取得/審查 GAS handler、資料 schema、authentication/authorization 和學生資料政策，推進 Issue #2。
+4. 有回歸安全網後才推進 Issue #3：解耦 Pointer Lock 狀態機並建立統一 input abstraction。
