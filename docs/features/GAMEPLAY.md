@@ -24,7 +24,7 @@
 
 ## Gameplay systems
 
-- 玩家：HP/boost、WASD、Shift、FPP/TPP、瞄準、射擊、換彈、平底鑊。
+- 玩家：HP/boost、WASD／虛擬搖桿、Shift／搖桿疾跑、mouse／touch look、FPP/TPP、瞄準、射擊、換彈、近戰。
 - 武器：9 級；數值來自 `WEAPONS`，模型 mapping 來自 `GUN_BY_LEVEL`。
 - 敵人：5 tiers；數值來自 `MONSTER_BASE`，由 queue 分批生成。
 - 場景：預設 nature；school 可由 `SCENE_MODE` 啟用但不是完整可玩樓層系統。
@@ -59,6 +59,7 @@
 - 沒有 deterministic RNG、save game、replay 或 server authority。
 - `window.__game` 暴露 debug instance；production 是否保留尚未決定。
 - input/lifecycle 有 unit tests；完整 render loop、collision、Pointer Lock 及 dispose 修改仍至少需要 desktop browser smoke test。
+- TouchControlSurface 有 unit 及隔離 Chromium 多指 mapping 測試；實際 WebGL 已驗證 HUD、戰鬥鍵、pause/reset/resume，目標真機仍是 release gate。
 
 ## 2D 對照
 

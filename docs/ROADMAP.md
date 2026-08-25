@@ -8,7 +8,7 @@
 - 每個 PR 只處理一個可驗證結果，並同步相關 `docs/`。
 - 先寫 characterization tests 或記錄現有行為，再搬動高風險程式。
 - 任何 `main` 合併前都要確認 GitHub Pages 影響和 rollback 方法。
-- 修改已帶 `?v=36` 的前端模組時，同步更新 cache key 和畫面版本。
+- 修改已帶 `?v=37` 的前端模組時，同步更新 cache key 和畫面版本。
 
 ## Phase 0 — 建立可重現基線
 
@@ -38,7 +38,7 @@
 
 ## Phase 2 — 輸入及遊戲狀態機
 
-**狀態（2026-08-25）**：第一批完成。已抽出 input/lifecycle、解耦 Pointer Lock、加入 visibility pause、touch 暫停／回復及 unit/browser 驗證；完整 touch controls 待第二批。
+**狀態（2026-08-25）**：Batch 1／2 程式及 browser 階段完成。已抽出 input/lifecycle、解耦 Pointer Lock，並加入多指虛擬搖桿、touch look、開火、toggle 瞄準、換彈、近戰、暫停／回復及 unit/browser 驗證；目標手機真機驗收仍待完成。
 
 **結果**：desktop、touch、Pointer Lock、pause/resume 共用一致狀態模型。
 

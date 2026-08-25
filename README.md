@@ -4,10 +4,10 @@
 
 ## 版本和支援狀態
 
-- **3D 主版**：開啟 `index.html`，正式控制方式為滑鼠和鍵盤。
+- **3D 主版**：開啟 `index.html`，支援滑鼠鍵盤及完整 touch HUD。
 - **2D 經典版**：開啟 `classic-2d.html`，保留觸控和舊裝置 fallback。
-- 3D 主版已有共用輸入狀態、touch 暫停／回復及畫質偵測，但完整虛擬搖桿、touch look 和射擊按鈕尚未完成；手機目前仍可使用 2D fallback。
-- 畫面版本為 V3.6，module cache key 為 `?v=36`。
+- 3D touch 支援虛擬搖桿、拖動視角、開火、toggle 瞄準、換彈、近戰及暫停；手機仍可選用 2D fallback。
+- 畫面版本為 V3.7，module cache key 為 `?v=37`。
 
 > 3D 版使用 ES Modules，必須經 HTTP server 開啟。直接雙擊 `index.html` 會因 `file://` 限制而無法載入 modules。
 
@@ -57,6 +57,8 @@ npm run lint:db
 | R | 換彈 |
 | V | 切換第一／第三人稱 |
 | Esc | 暫停及設定 |
+
+Touch 模式使用左下虛擬搖桿移動（推盡向前會疾跑）、右半屏拖動視角，以及右下開火／瞄準／換彈／近戰按鈕。
 
 ## 玩法
 

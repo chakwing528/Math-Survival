@@ -2,7 +2,7 @@
 
 > 新 Codex task 應先讀 `AGENTS.md`、`docs/PROJECT_MAP.md` 同 `docs/CURRENT_STATE.md`，再按任務讀相關 feature 文件。
 > 呢份文件只保留近期交接同歷史實作細節；架構、API、資料流同長期規則以 `docs/` 為準，實際行為以程式碼為準。
-> 目前 workspace：`/Users/cwchan/Downloads/Math-Survival-main/Math-Survival-main`。Draft PR #1 尚未合併至 `main`；V3.6 Issue #3 第一批在 `codex/input-state-machine-p1` 疊加分支。Issue #2 的獨立 `Math-Survival-Staging` rollout 已完成，production 仍為 GAS；後續見 `docs/runbooks/SUPABASE_MIGRATION.md`、Issue #3 及 `docs/ROADMAP.md`。
+> 目前 workspace：`/Users/cwchan/Downloads/Math-Survival-main/Math-Survival-main`。Draft PR #1 尚未合併至 `main`；Issue #3 Batch 1 在 PR #5，V3.7 Batch 2 在 `codex/touch-controls-p2` 疊加分支。Issue #2 的獨立 `Math-Survival-Staging` rollout 已完成，production 仍為 GAS。
 
 ---
 
@@ -12,9 +12,9 @@
 
 **核心玩法**：喺草地戰場射殺喪屍 → 行近空投包裹自動觸發**數學題** → 答啱升級武器 → 圍牆不斷收窄 → 殺清全部喪屍(含喪屍王)勝利 → 上傳成績到 Google Sheet 排行榜。
 
-**目標用戶**：明愛聖若瑟中學學生（電腦版，需滑鼠鍵盤）
+**目標用戶**：明愛聖若瑟中學學生（滑鼠鍵盤或 touch 裝置）
 
-**現時版本**：**V3.6**（快取版本號 `?v=36`）　← Issue #3 第一批 input/lifecycle 重構；production 仍為 GAS
+**現時版本**：**V3.7**（快取版本號 `?v=37`）　← Issue #3 Batch 2 touch controls；production 仍為 GAS
 
 ---
 
@@ -51,7 +51,7 @@ audio/              bgm.mp3 + 3 個槍聲音效
 
 ### 版本快取機制（重要！）
 
-目前已加 cache key 嘅 import 都掛 `?v=36`，例如 `import { x } from './config.js?v=36'`。
+目前已加 cache key 嘅 import 都掛 `?v=37`，例如 `import { x } from './config.js?v=37'`。
 **每次改完代碼必須 bump 版本號**，否則用戶瀏覽器會用舊快取。
 
 ```bash
@@ -65,7 +65,7 @@ for f in ['index.html','js/main.js','js/game.js','js/assets.js','js/math.js','js
         s2 = s.replace('?v='+OLD, '?v='+NEW)
         if s != s2: io.open(f,'w',encoding='utf-8').write(s2)
 h = io.open('index.html', encoding='utf-8').read()
-h = re.sub(r'Math Survival FPS V[0-9.]+', 'Math Survival FPS V3.6', h)  # ← 同步改顯示版本
+h = re.sub(r'Math Survival FPS V[0-9.]+', 'Math Survival FPS V3.7', h)  # ← 同步改顯示版本
 io.open('index.html','w',encoding='utf-8').write(h)
 print('bumped')
 PYEOF
@@ -234,10 +234,16 @@ python3 -m http.server 8000   → http://localhost:8000
 - 遊戲由 `RESUME_WAIT` 開始；Pointer Lock 失敗不再讓模擬在背景繼續，並顯示可退出的暫停選單。
 - 18 個 unit tests及實際 forced-touch 3D browser pause/resume 計時驗證通過。
 
+### ✅ Issue #3 Batch 2 browser 階段已完成（V3.7）
+
+- 左下虛擬搖桿、推盡向前疾跑、右半屏 touch look、按住開火、toggle 瞄準、換彈及近戰已接入 `InputController`。
+- `TouchControlSurface` 追蹤獨立 pointerId，支援同時移動／轉視角／開火；pause、resume 及 dispose 會完整 reset。
+- 20 個 unit tests、6 個隔離 Chromium smoke tests及實際 3D/WebGL HUD／戰鬥鍵／pause-reset-resume 驗證通過。
+- 仍需 iPhone Safari、Android Chrome、iPad 的 orientation、audio/autoplay 及完整長局真機驗收。
+
 ### ⬜ 待做
 
-- **P1 第二批能玩**：左下虛擬搖桿（推到最外圈＝疾跑）、右半屏拖動轉視角、右下開火掣，接駁現有 `InputController`。
-- **P2 好玩** — 拖動即射（開火掣按住可同時轉視角，要追 pointerId）、開鏡改 toggle、換彈/切視角/近戰掣、磁吸加大
+- **P2 真機閘** — iPhone Safari、Android Chrome、iPad 多指、orientation、audio/autoplay 及完整核心玩法驗收。
 - **P3 靚** — 四角 HUD wrapper 各自 `transform: scale(var(--hud-s))`（唔好成個 HUD 一次過 scale，錨點會飛）、
   選單 `flex-direction` 手機改 column、答題彈窗選項掣 ≥48px、填充題 `inputmode="numeric"`
 - **P4 打磨** — 真機測試（iPhone Safari / Android Chrome / iPad）、iOS AudioContext 解鎖時機、19MB 模型考慮壓縮

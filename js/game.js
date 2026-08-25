@@ -4,13 +4,13 @@
 
 import * as THREE from 'three';
 import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
-import { WEAPONS, MONSTER_BASE, SETTINGS, DIFF_MULT, DIFF_LABELS } from './config.js?v=36';
-import { playSfx, sfxZombieGrowl, sfxZombieAttack, sfxZombieDeath, sfxBossRoar, sfxCorrect, sfxWrong, sfxLevelUp, sfxHeartbeat, sfxVictory, sfxPanSwing, sfxPanClang } from './audio.js?v=36';
-import { showMathQuestion } from './math.js?v=36';
-import { ASSETS, GUN_BY_LEVEL, cloneCharacter, cloneProp, cloneGun, tintModel } from './assets.js?v=36';
-import { buildSchool, COURT_HX, COURT_HZ, BUILD_HX, BUILD_HZ } from './school.js?v=36';
-import { getQuality, downgradeQuality, isTouchMode } from './device.js?v=36';
-import { GAME_STATES, GameStateMachine, InputController } from './input.js?v=36';
+import { WEAPONS, MONSTER_BASE, SETTINGS, DIFF_MULT, DIFF_LABELS } from './config.js?v=37';
+import { playSfx, sfxZombieGrowl, sfxZombieAttack, sfxZombieDeath, sfxBossRoar, sfxCorrect, sfxWrong, sfxLevelUp, sfxHeartbeat, sfxVictory, sfxPanSwing, sfxPanClang } from './audio.js?v=37';
+import { showMathQuestion } from './math.js?v=37';
+import { ASSETS, GUN_BY_LEVEL, cloneCharacter, cloneProp, cloneGun, tintModel } from './assets.js?v=37';
+import { buildSchool, COURT_HX, COURT_HZ, BUILD_HX, BUILD_HZ } from './school.js?v=37';
+import { getQuality, downgradeQuality, isTouchMode } from './device.js?v=37';
+import { GAME_STATES, GameStateMachine, InputController, TouchControlSurface } from './input.js?v=37';
 
 // 喪屍等級 → 模型
 const ZOMBIE_BY_TIER = { 1: 'zombie_b', 2: 'zombie_a', 3: 'zombie_c', 4: 'zombie_anim', 5: 'zombie_anim' };
@@ -1344,23 +1344,27 @@ export class Game {
 
     // -------------------------------------------------------------- 事件綁定
     _bindEvents() {
+        const handleAction = action => {
+            if (action === 'pause') {
+                this.pause('keyboard');
+                return;
+            }
+            if (this.state !== GAME_STATES.PLAYING) return;
+            if (action === 'reload') this._startReload();
+            if (action === 'melee') this._tryMelee();
+            if (action === 'toggle-view') {
+                this.viewMode = this.viewMode === 'TPP' ? 'FPP' : 'TPP';
+                this._addMsg(this.viewMode === 'TPP' ? '👤 第三人稱視角' : '👁️ 第一人稱視角', '#e5e5e5');
+            }
+        };
         this.input = new InputController({
             target: document,
             pointerTarget: this.renderer.domElement,
-            onAction: action => {
-                if (action === 'pause') {
-                    this.pause('keyboard');
-                    return;
-                }
-                if (this.state !== GAME_STATES.PLAYING) return;
-                if (action === 'reload') this._startReload();
-                if (action === 'toggle-view') {
-                    this.viewMode = this.viewMode === 'TPP' ? 'FPP' : 'TPP';
-                    this._addMsg(this.viewMode === 'TPP' ? '👤 第三人稱視角' : '👁️ 第一人稱視角', '#e5e5e5');
-                }
-            }
+            onAction: handleAction
         });
         this.input.bind();
+        this.touchControls = new TouchControlSurface({ root: document, input: this.input, onAction: handleAction });
+        this.touchControls.bind();
         this._onContextMenu = (e) => { e.preventDefault(); };
         this._onResize = () => {
             this.camera.aspect = window.innerWidth / window.innerHeight;
@@ -1415,6 +1419,7 @@ export class Game {
     pause(reason = 'manual') {
         if (this.state !== GAME_STATES.PLAYING && this.state !== GAME_STATES.RESUME_WAIT) return false;
         this.lifecycle.transition(GAME_STATES.PAUSED);
+        this.touchControls.reset();
         this.input.reset();
         this.ui.resumeOverlay.style.display = 'none';
         this.ui.pauseMenu.style.display = 'flex';
@@ -1425,6 +1430,7 @@ export class Game {
     resume() {
         if (this.state !== GAME_STATES.PAUSED && this.state !== GAME_STATES.RESUME_WAIT) return false;
         this.lifecycle.transition(GAME_STATES.PLAYING);
+        this.touchControls.reset();
         this.input.reset();
         this.ui.pauseMenu.style.display = 'none';
         this.ui.resumeOverlay.style.display = 'none';
@@ -1532,41 +1538,42 @@ export class Game {
     }
 
     // -------------------------------------------------------------- 射擊
+    _tryMelee() {
+        const now = this.time;
+        if (now - this.lastFireTime < 0.55) return;
+        this.lastFireTime = now;
+        this.panSwing = 1;
+        const pos = this.camera.position;
+        const fwd = new THREE.Vector3();
+        this.camera.getWorldDirection(fwd);
+        let hitAny = false, killAny = false;
+        for (const e of this.enemies) {
+            if (e.dying) continue;
+            const dx = e.group.position.x - pos.x;
+            const dz = e.group.position.z - pos.z;
+            const dist = Math.hypot(dx, dz);
+            if (dist > e.radius + 2.4) continue;
+            if ((dx * fwd.x + dz * fwd.z) / (dist || 1) < 0.35) continue;
+            const hitPoint = e.group.position.clone();
+            hitPoint.y += e.radius * 1.2;
+            const killed = this._damageEnemy(e, 3, hitPoint, fwd);
+            hitAny = true;
+            if (killed) killAny = true;
+            this._spawnDmgText(hitPoint, '-3', '#ffd166');
+        }
+        if (hitAny) {
+            sfxPanClang();
+            this._showHitmarker(killAny, false);
+        } else {
+            sfxPanSwing();
+        }
+    }
+
     _tryShoot() {
         const now = this.time;
 
         if (this.weaponLevel < 0) {
-            // 平底鑊近戰：短距離扇形揮擊
-            if (now - this.lastFireTime < 0.55) return;
-            this.lastFireTime = now;
-            this.panSwing = 1;
-            const pos = this.camera.position;
-            const fwd = new THREE.Vector3();
-            this.camera.getWorldDirection(fwd);
-            let hitAny = false, killAny = false;
-            for (const e of this.enemies) {
-                if (e.dying) continue;
-                const dx = e.group.position.x - pos.x;
-                const dz = e.group.position.z - pos.z;
-                const dist = Math.hypot(dx, dz);
-                if (dist > e.radius + 2.4) continue;
-                // 只打正面 (~100° 扇形)
-                const dot = (dx * fwd.x + dz * fwd.z) / (dist || 1);
-                if (dot < 0.35) continue;
-                const hitPoint = e.group.position.clone();
-                hitPoint.y += e.radius * 1.2;
-                const killed = this._damageEnemy(e, 3, hitPoint, fwd);
-                hitAny = true;
-                if (killed) killAny = true;
-                this._spawnDmgText(hitPoint, '-3', '#ffd166');
-            }
-            if (hitAny) {
-                sfxPanClang();
-                this._showHitmarker(killAny, false);
-            } else {
-                sfxPanSwing();
-            }
-            return;
+            return this._tryMelee();
         }
 
         const wep = WEAPONS[this.weaponLevel];
@@ -2511,6 +2518,17 @@ export class Game {
     }
 
     _updatePlaying(dt) {
+        const look = this.input.consumeLookDelta();
+        if (isTouchMode() && (look.x || look.y)) {
+            const euler = this._touchLookEuler || (this._touchLookEuler = new THREE.Euler(0, 0, 0, 'YXZ'));
+            euler.setFromQuaternion(this.camera.quaternion);
+            const sensitivity = 0.0022 * this.baseSens;
+            euler.y -= look.x * sensitivity;
+            euler.x -= look.y * sensitivity;
+            euler.x = Math.max(-Math.PI / 2 + 0.08, Math.min(Math.PI / 2 - 0.08, euler.x));
+            this.camera.quaternion.setFromEuler(euler);
+        }
+
         // ---- 計時生成
         this.lootTimer += dt; this.ammoTimer += dt; this.spawnTimer += dt;
         if (this.lootTimer >= SETTINGS.lootBoxInterval) { this.lootTimer = 0; this._spawnPickup('UPGRADE'); }
@@ -2888,8 +2906,8 @@ export class Game {
             if (this.campLight) this.campLight.intensity = 1.2 + Math.sin(t * 13) * 0.3 + Math.random() * 0.12;
         }
         if (this.gunGroup && this.gunBase) {
-            if (this.weaponLevel < 0 && this.panSwing > 0) {
-                // 平底鑊大動作揮擊：由畫面右上掃到左下 (成隻手臂連鑊一齊掃)
+            if (this.panSwing > 0) {
+                // 近戰大動作揮擊：空手用鑊，有槍時用槍托。
                 const k = 1 - this.panSwing;                 // 0 → 1
                 const e = 1 - Math.pow(1 - k, 2);            // ease-out：起手快
                 this.gunGroup.position.x = 0.55 - e * 1.0;   // 右 0.55 → 左 -0.45
@@ -2911,8 +2929,8 @@ export class Game {
                 this.gunGroup.rotation.z += (0 - this.gunGroup.rotation.z) * Math.min(1, dt * 10);
             }
         }
-        // 第三人稱：士兵手上支鑊都跟住揮
-        if (this.tpGunWrap && this.weaponLevel < 0 && this.panSwing > 0) {
+        // 第三人稱：手上近戰武器／槍托跟住揮。
+        if (this.tpGunWrap && this.panSwing > 0) {
             const k = Math.sin((1 - this.panSwing) * Math.PI);
             this.tpGunWrap.rotation.x = -k * 1.4;
         } else if (this.tpGunWrap) {
@@ -2932,6 +2950,7 @@ export class Game {
         this.disposed = true;
         cancelAnimationFrame(this._raf);
 
+        this.touchControls.dispose();
         this.input.dispose();
         document.removeEventListener('contextmenu', this._onContextMenu);
         document.removeEventListener('visibilitychange', this._onVisibilityChange);
