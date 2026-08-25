@@ -2,7 +2,7 @@
 
 ## 範圍
 
-兩個 client 都直接呼叫同一個外部 Google Apps Script URL。repository 只包含 caller，沒有 GAS handler 或 Google Sheet schema。
+兩個 client 經 `js/cloud-core.js` 的共用 `MathSurvivalCloud` boundary 呼叫同一個外部 Google Apps Script URL。repository 只包含 caller，沒有 GAS handler 或 Google Sheet schema。
 
 ## Cloud game data
 
@@ -15,7 +15,7 @@
 
 程式按二維 rows 的位置讀取名稱、傷害、子彈、fire rate、速度、彈藥及補給間隔。這是非正式 schema；實際欄名和 sheet ownership 未確認。
 
-3D boot 最多等待六秒；失敗使用本機預設值。2D 版有相似但獨立的 parsing 實作。
+每個 cloud request 最多等待六秒；3D/2D 失敗時使用本機預設值。兩個 client 仍各自套用 gameplay config，但共用 response normalization。
 
 ## Leaderboard
 
@@ -25,7 +25,7 @@
 - `renderLeaderboard()`：顯示排名、班別、姓名/學號、分數和難度。
 - `submitScore()`：提交班別、學號、日期、時間、難度和分數；以 response `name` 配對學生姓名，再重新讀取排行榜。
 
-2D 版在 `classic-2d.html` 有一份獨立版本。
+2D 版在 `classic-2d.html` 保留 UI orchestration，但 request、validation、merge 和安全 renderer 共用 `MathSurvivalCloud`。
 
 ## Invariants
 
@@ -40,9 +40,9 @@
 - `addScore` 使用有寫入副作用的 GET；班別/學號會出現在 URL。
 - caller 沒有 credentials、signature 或 anti-replay token；遠端是否驗證未知。
 - 沒有正式 request/response schema 或 HTTP status handling。
-- GAS 回傳的 `name`、`cls`、`sid` 等資料經 template string 放入 `innerHTML`。應改為 `textContent`/安全 DOM 建構。
-- 沒有 retry policy、idempotency key、submission receipt 或可靠的成功狀態。
-- endpoint 硬編碼於兩處，修改時容易不同步。
+- Client 已用 `textContent` 安全建構 leaderboard，並限制欄位長度/分數；server output escaping 仍未知。
+- Client 對 submission 使用 single-flight，但 server 沒有已確認的 idempotency key、receipt 或可靠成功狀態。
+- Read 失敗靠下一次 leaderboard polling 自然重試；mutation 不自動 retry，避免重複寫入。
 
 ## 修改前要求
 
@@ -52,3 +52,4 @@
 4. 確認學生資料的收集目的、保留期、刪除/更正及存取人員。
 5. 使用測試資料和獨立測試部署；不要對 production 提交真實/假學生紀錄作 smoke test。
 
+Client v1 contract 見 `../api/GAS_CONTRACT_V1.md`；POST migration 見 `../api/GAS_POST_MIGRATION.md`。

@@ -25,7 +25,7 @@ Student input (class, student ID)
                                       │
                                       └─ leaderboard JSON (name/class/ID/score)
                                                  │
-                                                 └─ browser innerHTML rendering
+                                                 └─ validation → textContent DOM rendering
 ```
 
 ## Browser storage keys
@@ -41,10 +41,10 @@ Student input (class, student ID)
 ## 已確認風險
 
 1. 班別和學號在 GET URL 中，可能被 browser history、proxy、server logs 或監察工具記錄。
-2. GAS leaderboard data 經 `innerHTML` 顯示；未可信資料可能造成 HTML injection/XSS。
-3. 「login」只是資料輸入，沒有 authentication、session 或 proof of student identity。
-4. client 無法證明遠端成功保存；失敗時仍可能顯示本機合成排名項目。
-5. endpoint 和資料欄位公開存在於 client source，不能當作 secret。
+2. 「login」只是資料輸入，沒有 authentication、session 或 proof of student identity。
+3. client 無法證明遠端成功保存；失敗時仍可能顯示本機合成排名項目。
+4. endpoint 和資料欄位公開存在於 client source，不能當作 secret。
+5. Client 已限制/安全顯示遠端欄位，但 server-side validation、formula injection 防護及 access control 仍未知。
 
 ## Repository 未提供的政策
 
@@ -58,9 +58,8 @@ Student input (class, student ID)
 ## 工程要求
 
 - 文件、測試、screenshots 和 logs 不得使用真實學生資料。
-- 遠端資料進 DOM 前使用 `textContent` 或可靠 sanitization。
-- 評估把 score submission 改成 POST，並避免在 URL 傳個人資料。
+- 遠端 leaderboard 資料必須經 `MathSurvivalCloud` validation，並使用 `textContent` 建構 DOM；不可恢復 template-string `innerHTML`。
+- score POST 遷移按 `docs/api/GAS_POST_MIGRATION.md`，避免在 URL 傳個人資料。
 - client 和 server 都要驗證長度、格式、分數範圍及允許字元。
 - 在取得資料 owner 批准前，不新增 analytics、tracking 或更多學生欄位。
 - 對 GAS 做 integration test 前使用獨立測試 deployment/sheet。
-

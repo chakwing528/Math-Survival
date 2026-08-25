@@ -58,7 +58,7 @@ Browser
 
 - 可部署到任何能正確提供 ES Modules、GLB 和 audio MIME types 的靜態 host。
 - 公開 repository 為 `chakwing528/Math-Survival`，現有 GitHub Pages 網址是 `https://chakwing528.github.io/Math-Survival/`；repository 沒有 deployment workflow，實際 Pages source/settings 尚未記錄在程式碼內。
-- `?v=33` 只更新有 query 的 JS；不保證 `index.html` 本身立即失效。
+- `?v=34` 只更新有 query 的 JS；不保證 `index.html` 本身立即失效。
 - CDN 是 runtime dependency；離線或被網絡政策阻擋時 3D/MathJax 會受影響。
 
 ## 未確認邊界

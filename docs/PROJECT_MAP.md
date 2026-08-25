@@ -14,6 +14,7 @@ Math Survival 是一個純靜態瀏覽器數學射擊遊戲：學生在 3D 或 2
 | 數學題 | `js/math.js`、`js/topics/` | 題目選擇、答題 UI、解釋和課題生成器 |
 | 雲端設定 | `js/config.js` | 本機預設值及 GAS game-data 覆寫 |
 | 排行榜 | `js/leaderboard.js` | 3D 版排行榜讀取、渲染和提交 |
+| Cloud boundary | `js/cloud-core.js` | 共用 GAS endpoint、timeout、validation、single-flight、安全排行榜 DOM |
 | 裝置/畫質 | `js/device.js` | desktop/touch、全螢幕、橫屏、品質分級 |
 | 3D 資產 | `js/assets.js`、`assets/models/` | GLB manifest、載入、clone、動畫映射 |
 | 音訊 | `js/audio.js`、`audio/` | BGM、錄製音效及 WebAudio 合成音效 |

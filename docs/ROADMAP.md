@@ -1,6 +1,6 @@
 # Overhaul Roadmap
 
-本路線圖用於 V3.3 納入 `main` 後的大規模重整。原則是先建立安全網，再拆分架構；每個階段應使用獨立 branch／Pull Request，避免一次改動所有 gameplay、UI、資料和部署。
+本路線圖用於 V3.4 納入 `main` 後的大規模重整。原則是先建立安全網，再拆分架構；每個階段應使用獨立 branch／Pull Request，避免一次改動所有 gameplay、UI、資料和部署。
 
 ## 全程原則
 
@@ -8,7 +8,7 @@
 - 每個 PR 只處理一個可驗證結果，並同步相關 `docs/`。
 - 先寫 characterization tests 或記錄現有行為，再搬動高風險程式。
 - 任何 `main` 合併前都要確認 GitHub Pages 影響和 rollback 方法。
-- 修改已帶 `?v=33` 的前端模組時，同步更新 cache key 和畫面版本。
+- 修改已帶 `?v=34` 的前端模組時，同步更新 cache key 和畫面版本。
 
 ## Phase 0 — 建立可重現基線
 
@@ -24,6 +24,8 @@
 **完成條件**：乾淨 clone 可一個指令跑完靜態檢查；browser tests 使用 mock／攔截 GAS。
 
 ## Phase 1 — 安全及資料邊界
+
+**狀態（2026-08-25）**：Client 本機階段已完成（共用 boundary、validation、安全 DOM、single-flight、tests、v1 contract 及 POST plan）；server 階段被 GAS source/owner、test deployment 和資料政策阻塞。
 
 **結果**：學生資料、排行榜和雲端設定有明確 contract 及安全處理。
 

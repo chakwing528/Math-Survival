@@ -2,7 +2,7 @@
 
 > 新 Codex task 應先讀 `AGENTS.md`、`docs/PROJECT_MAP.md` 同 `docs/CURRENT_STATE.md`，再按任務讀相關 feature 文件。
 > 呢份文件只保留近期交接同歷史實作細節；架構、API、資料流同長期規則以 `docs/` 為準，實際行為以程式碼為準。
-> 目前 workspace：`/Users/cwchan/Downloads/Math-Survival-main/Math-Survival-main`。2026-08-25 盤點時缺少 `.git`；其後已確認並恢復公開 repository `chakwing528/Math-Survival` 的 Git 歷史及 `origin`。本機新版在 `codex/project-memory-v3.3`，Draft PR #1 尚未合併至 `main`。Issue #4 測試/CI 基線已完成，本機及 GitHub Actions 均通過；後續見 Issues #2、#3 及 `docs/ROADMAP.md`。
+> 目前 workspace：`/Users/cwchan/Downloads/Math-Survival-main/Math-Survival-main`。2026-08-25 盤點時缺少 `.git`；其後已確認並恢復公開 repository `chakwing528/Math-Survival` 的 Git 歷史及 `origin`。本機 V3.4 在 `codex/project-memory-v3.3`，Draft PR #1 尚未合併至 `main`。Issue #4 已完成；Issue #2 client 本機安全階段已完成並等待 CI，server POST migration 仍需 GAS source/owner/test deployment；後續見 Issue #3 及 `docs/ROADMAP.md`。
 
 ---
 
@@ -14,7 +14,7 @@
 
 **目標用戶**：明愛聖若瑟中學學生（電腦版，需滑鼠鍵盤）
 
-**現時版本**：**V3.3**（快取版本號 `?v=33`）　← 手機版改造進行中，見第九節
+**現時版本**：**V3.4**（快取版本號 `?v=34`）　← GAS／排行榜 client 安全邊界已完成本機階段；手機版改造見第九節
 
 ---
 
@@ -51,7 +51,7 @@ audio/              bgm.mp3 + 3 個槍聲音效
 
 ### 版本快取機制（重要！）
 
-目前已加 cache key 嘅 import 都掛 `?v=33`，例如 `import { x } from './config.js?v=33'`。
+目前已加 cache key 嘅 import 都掛 `?v=34`，例如 `import { x } from './config.js?v=34'`。
 **每次改完代碼必須 bump 版本號**，否則用戶瀏覽器會用舊快取。
 
 ```bash

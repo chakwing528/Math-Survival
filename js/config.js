@@ -2,7 +2,9 @@
 // 遊戲設定：武器 / 魔物 / 難度 / Google Apps Script 雲端設定
 // ==============================================================================
 
-export const GAS_URL = "https://script.google.com/macros/s/AKfycbyhAYaMKRTbD_VyHDe-MZZ5OBZVdsvY2l9qcKWq8TuliBKptbhLpQsHbc4wdyKmX24Cvg/exec";
+const Cloud = globalThis.MathSurvivalCloud;
+if (!Cloud) throw new Error('MathSurvivalCloud must load before config.js');
+export const GAS_URL = Cloud.GAS_URL;
 
 export const WEAPONS = [
     { level: 1, name: "Lv.1 基礎手槍",     damage: 1,    bullets: 1, fireRate: 15, playerSpeed: 4,  reloadAmmo: 30,  magCapacity: 30, ammoBoxRefill: 30, color: '#fde047', glow: '#ca8a04', recoil: 4 },
@@ -43,10 +45,9 @@ export const SETTINGS = {
 // 從 Google Sheet 讀取武器 / 魔物 / 箱子時間設定 (沿用原有 GAS API)
 export async function loadCloudConfig() {
     if (!GAS_URL) return;
-    let res = await fetch(`${GAS_URL}?action=getGameData&t=${new Date().getTime()}_${Math.random()}`);
-    let data = await res.json();
+    const data = await Cloud.requestAction('getGameData');
 
-    let weaponsData = data.weapons || data.Weapons || data['設定武器'];
+    let weaponsData = data.weapons;
     if (weaponsData && weaponsData.length > 1) {
         let rows = weaponsData;
         let wepIdx = 0;
@@ -87,7 +88,7 @@ export async function loadCloudConfig() {
         }
     }
 
-    let monstersData = data.monsters || data.Monsters || data['設定魔物'];
+    let monstersData = data.monsters;
     if (monstersData && monstersData.length > 1) {
         let rows = monstersData;
         for (let i = 1; i < rows.length; i++) {

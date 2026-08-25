@@ -2,9 +2,9 @@
 
 ## 基址
 
-Google Apps Script Web App URL 硬編碼於 `js/config.js` 和 `classic-2d.html`。完整部署 ID 不在本文件重複；修改時必須同步兩處，或先集中為共用設定。
+Google Apps Script Web App URL 只定義於 `js/cloud-core.js`，3D 和 2D client 共用 `MathSurvivalCloud`。完整 v1 client contract 見 `GAS_CONTRACT_V1.md`。
 
-repository 沒有本機 handler、OpenAPI/GraphQL schema 或 server tests。
+repository 沒有本機 handler、OpenAPI/GraphQL schema 或 server tests；`GAS_CONTRACT_V1.md` 是 client-observed contract，不是 server 保證。
 
 ## Endpoints/actions
 
@@ -14,20 +14,21 @@ repository 沒有本機 handler、OpenAPI/GraphQL schema 或 server tests。
 - Auth：caller 不傳 credentials/token；遠端規則未知。
 - Caller：`js/config.js#loadCloudConfig`；`classic-2d.html#loadGameData`。
 - Request：`action`、時間/隨機 cache buster `t`。
-- Response：JSON object，可能包含 weapons/monsters 二維 rows；精確 schema 未定義。
+- Response：JSON object，aliases 及 client normalization 見 `GAS_CONTRACT_V1.md`。
 - Data access/handler：repository 外的 GAS。
 - Error：3D boot timeout/fetch/JSON error 後用本機 defaults；2D 亦 fallback。
-- Tests：無。
+- Tests：unit tests 覆蓋 object/rows normalization、invalid response 和 timeout；browser smoke tests 使用 mock。
 
 ### GET `?action=getLeaderboard&t={cacheBuster}`
 
 - 用途：取得總排行榜。
 - Auth：caller 不傳 credentials/token；遠端規則未知。
 - Caller：`js/leaderboard.js#fetchLeaderboard`；2D 同名功能。
-- Response caller contract：array of `{diff, cls, sid, name, score}`。
+- Response caller contract：array of `{diff, cls, sid, name, score}`，有長度/數值限制；invalid rows 會被捨棄。
 - Handler：repository 外的 GAS。
 - Error：主選單顯示載入失敗；提交後讀取失敗則使用空陣列/本機本人項目。
-- Tests：無。
+- Rendering：所有遠端欄位以 `textContent` 建構，不進入 HTML parser。
+- Tests：3D/2D malicious-payload smoke tests。
 
 ### GET `?action=addScore&date&time&diff&cls&sid&score&t`
 
@@ -38,7 +39,8 @@ repository 沒有本機 handler、OpenAPI/GraphQL schema 或 server tests。
 - Request fields：本地日期、時間、`程度 N`、大寫班別、大小寫轉換後學號、整數分數、timestamp。
 - Response caller contract：可選 `{name}`；其他欄位未知。
 - Error：catch 後繼續讀排行榜；UI 可能顯示本機合成紀錄，不能當作提交成功證據。
-- Tests：無。
+- Duplicate policy：client single-flight 防止同一時間重複 request；server idempotency 未確認。
+- Tests：submission validation、single-flight、merge unit tests；browser test 確認 duplicate call 只產生一次被 block 的 `addScore`。
 
 ## 共同未知事項
 
@@ -50,6 +52,5 @@ repository 沒有本機 handler、OpenAPI/GraphQL schema 或 server tests。
 ## 變更政策
 
 - 新增或改欄位前要同時更新兩個 clients、本文件及資料私隱文件。
-- 建議把 mutating action 改為 POST 並使用明確 JSON schema，但只能在取得 GAS handler 和部署批准後設計。
+- POST v2 方案見 `GAS_POST_MIGRATION.md`；只能在取得 GAS handler、test deployment 和部署批准後執行。
 - browser tests 不應直接寫 production leaderboard；需要測試部署或 mock layer。
-

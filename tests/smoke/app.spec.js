@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-async function isolateExternalServices(page) {
+async function isolateExternalServices(page, gasResponses = {}) {
   const observed = { gasActions: [], blockedHosts: new Set(), pageErrors: [], badLocalResponses: [] };
 
   page.on('pageerror', error => observed.pageErrors.push(error.message));
@@ -23,7 +23,7 @@ async function isolateExternalServices(page) {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: action === 'getLeaderboard' ? '[]' : '{}'
+        body: JSON.stringify(gasResponses[action] ?? (action === 'getLeaderboard' ? [] : {}))
       });
       return;
     }
@@ -51,7 +51,7 @@ test('3D client boots and reaches difficulty selection without production servic
   await page.goto('/');
   await expect(page.locator('#loading-screen')).toBeHidden({ timeout: 10_000 });
   await expect(page.locator('#start-menu')).toBeVisible();
-  await expect(page.locator('#version-tag')).toHaveText('Math Survival FPS V3.3');
+  await expect(page.locator('#version-tag')).toHaveText('Math Survival FPS V3.4');
 
   await page.locator('#login-class').fill('TEST');
   await page.locator('#login-sid').fill('00');
@@ -82,4 +82,36 @@ test('2D client boots and enters canvas gameplay without production services', a
   await expect(page.locator('#ui-container')).toBeVisible();
   expect(observed.gasActions).toContain('getGameData');
   expectSafeRun(observed);
+});
+
+for (const client of [
+  { name: '3D', path: '/', list: '#menu-lb-list' },
+  { name: '2D', path: '/classic-2d.html', list: '#leaderboard-list' }
+]) {
+  test(`${client.name} leaderboard renders malicious remote fields as inert text`, async ({ page }) => {
+    const payload = '<img id="xss-proof" src=x onerror="window.__xss=1">';
+    const observed = await isolateExternalServices(page, {
+      getLeaderboard: [{ cls: payload, sid: '01', name: payload, score: 12, diff: '程度 1' }]
+    });
+
+    await page.goto(client.path);
+    await expect(page.locator('#loading-screen')).toBeHidden({ timeout: 10_000 });
+    if (client.name === '2D') await page.evaluate(() => globalThis.fetchLeaderboard());
+    await expect(page.locator(client.list)).toContainText('<IMG');
+    await expect(page.locator('#xss-proof')).toHaveCount(0);
+    expect(await page.evaluate(() => globalThis.__xss)).toBeUndefined();
+    expectSafeRun(observed);
+  });
+}
+
+test('2D score submission coalesces duplicate clicks and remains production-isolated', async ({ page }) => {
+  const observed = await isolateExternalServices(page);
+  await page.goto('/classic-2d.html');
+  await expect(page.locator('#loading-screen')).toBeHidden({ timeout: 10_000 });
+  await page.locator('#login-class').fill('TEST');
+  await page.locator('#login-sid').fill('00');
+
+  await page.evaluate(() => Promise.all([globalThis.submitScore(), globalThis.submitScore()]));
+  expect(observed.gasActions.filter(action => action === 'addScore')).toHaveLength(1);
+  expectSafeRun({ ...observed, gasActions: observed.gasActions.filter(action => action !== 'addScore') });
 });

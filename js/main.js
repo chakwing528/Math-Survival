@@ -2,17 +2,17 @@
 // 主流程：載入 → 登入 → 選難度 → 遊戲 → 結算上傳 → 返回選單
 // ==============================================================================
 
-import { loadCloudConfig, DIFF_MULT } from './config.js?v=33';
-import { initAudio, setBgmVolume, setSfxVolume } from './audio.js?v=33';
-import { fetchLeaderboard, renderLeaderboard, submitScore } from './leaderboard.js?v=33';
-import { TOPIC_NAMES } from './math.js?v=33';
-import { initInputMode, initOrientationGuard, enterImmersive } from './device.js?v=33';
+import { loadCloudConfig, DIFF_MULT } from './config.js?v=34';
+import { initAudio, setBgmVolume, setSfxVolume } from './audio.js?v=34';
+import { fetchLeaderboard, renderLeaderboard, submitScore } from './leaderboard.js?v=34';
+import { TOPIC_NAMES } from './math.js?v=34';
+import { initInputMode, initOrientationGuard, enterImmersive } from './device.js?v=34';
 
 // 3D 引擎 (Three.js) 採用動態載入：就算 CDN 有問題，選單同排行榜都照常運作
 let GameClass = null;
 async function loadEngine() {
     if (!GameClass) {
-        const mod = await import('./game.js?v=33');
+        const mod = await import('./game.js?v=34');
         GameClass = mod.Game;
     }
     return GameClass;
@@ -32,8 +32,8 @@ async function refreshMenuLeaderboard() {
         renderLeaderboard(data, $('menu-lb-list'), null);
     } catch (e) {
         const list = $('menu-lb-list');
-        if (list && list.innerHTML.includes("載入排行榜中")) {
-            list.innerHTML = "<li>載入失敗，可能權限被阻擋</li>";
+        if (list && list.textContent.includes("載入排行榜中")) {
+            globalThis.MathSurvivalCloud.setListMessage(list, "載入失敗，可能權限被阻擋");
         }
     }
 }
@@ -57,7 +57,7 @@ function showMenu() {
 let ambientMod = null;
 function ensureAmbient() {
     if (ambientMod) { ambientMod.resumeAmbient(); return; }
-    import('./ambient.js?v=33')
+    import('./ambient.js?v=34')
         .then(m => { ambientMod = m; m.startAmbient($('game-container')); })
         .catch(() => {}); // 失敗都唔影響選單
 }
@@ -97,7 +97,7 @@ async function startGame(level) {
     try {
         Game = await loadEngine();
         // 載入 3D 模型 (首次需時，顯示進度)
-        const { loadAssets } = await import('./assets.js?v=33');
+        const { loadAssets } = await import('./assets.js?v=34');
         const ls = $('loading-screen');
         const sub = $('loading-subtext');
         ls.style.display = 'flex';
@@ -258,7 +258,7 @@ async function boot() {
 
     // 背景預載 3D 引擎 + 模型，令首次入場更快
     loadEngine()
-        .then(() => import('./assets.js?v=33'))
+        .then(() => import('./assets.js?v=34'))
         .then(m => m.loadAssets())
         .catch(() => {});
 }

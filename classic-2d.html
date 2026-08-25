@@ -284,7 +284,7 @@
             <button onclick="window.submitScore()" style="padding: 15px; font-size: 18px;">上傳成績並觀看排名</button>
         </div>
 
-        <div id="version-tag">Math Survival V89</div>
+        <div id="version-tag">Math Survival Classic V3.4</div>
     </div>
 
     <audio id="bgm" src="audio/bgm.mp3" loop></audio>
@@ -292,6 +292,7 @@
     <audio id="reloadSfx" src="audio/reloadSfx.m4a"></audio>
     <audio id="emptyAmmoSfx" src="audio/emptyAmmoSfx.m4a"></audio>
 
+<script src="js/cloud-core.js?v=34"></script>
 <script>
 // ==============================================================================
 // CONFIGURATION & SETUP
@@ -311,7 +312,8 @@ function shuffleArray(array) {
     return arr; 
 }
 
-const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyhAYaMKRTbD_VyHDe-MZZ5OBZVdsvY2l9qcKWq8TuliBKptbhLpQsHbc4wdyKmX24Cvg/exec"; 
+const Cloud = globalThis.MathSurvivalCloud;
+const GAS_WEB_APP_URL = Cloud.GAS_URL;
 const GAS_LEADERBOARD_URL = GAS_WEB_APP_URL; 
 
 const canvas = document.getElementById('gameCanvas');
@@ -711,19 +713,15 @@ window.backToLogin = function() {
 }
 
 // --- 排行榜邏輯 ---
-function fetchLeaderboard() {
+async function fetchLeaderboard() {
     if (!GAS_LEADERBOARD_URL) return;
-    
-    fetch(`${GAS_LEADERBOARD_URL}?action=getLeaderboard&t=${new Date().getTime()}_${Math.random()}`)
-        .then(res => res.json())
-        .then(data => renderLeaderboard(data))
-        .catch(e => {
-            console.log("LB 獲取失敗", e);
-            let list = document.getElementById('leaderboard-list');
-            if (list && list.innerHTML.includes("載入排行榜中")) {
-                list.innerHTML = "<li>載入失敗，可能權限被阻擋</li>";
-            }
-        });
+    try {
+        renderLeaderboard(await Cloud.requestAction('getLeaderboard'));
+    } catch (error) {
+        console.log("LB 獲取失敗", error);
+        const list = document.getElementById('leaderboard-list');
+        if (list && list.textContent.includes("載入排行榜中")) Cloud.setListMessage(list, "載入失敗，可能權限被阻擋");
+    }
 }
 
 setInterval(() => {
@@ -735,147 +733,56 @@ setInterval(() => {
 function renderLeaderboard(data) {
     const list = document.getElementById('leaderboard-list');
     const topDisplay = document.getElementById('my-rank-display');
-    if(!list) return;
-
-    list.innerHTML = "";
-    if(topDisplay) topDisplay.style.display = 'none';
-
-    if (!data || data.length === 0) { list.innerHTML = "<li>暫無數據</li>"; return; }
-    
-    let myRank = -1;
-    let myItem = null;
-
-    data.forEach((item, index) => {
-        if (item.isMe) {
-            myRank = index + 1;
-            myItem = item;
-        }
-
-        let li = document.createElement('li');
-        
-        let itemNameStr = item.name != null ? String(item.name).toUpperCase() : "";
-        let itemSidStr = item.sid != null ? String(item.sid).toUpperCase() : "";
-        let itemClsStr = item.cls != null ? String(item.cls).toUpperCase() : "";
-        let itemDiffStr = item.diff != null ? String(item.diff) : "";
-        
-        let displayCls = itemClsStr;
-        let displayName = (itemNameStr.trim() !== "") ? itemNameStr : itemSidStr;
-        
-        if (itemClsStr === " ") {
-            displayCls = "";
-            displayName = itemSidStr;
-        }
-
-        let safeName = displayName.length > 6 ? displayName.substring(0, 6) + '..' : displayName;
-        let shortDiff = itemDiffStr.replace("程度 ", "L");
-        
-        li.innerHTML = `
-            <span>${index + 1}.</span>
-            <span>${displayCls}</span>
-            <span>${safeName}</span>
-            <span style="text-align:right;">${item.score}分</span>
-            <span style="text-align:right; color:#475569;">(${shortDiff})</span>
-        `;
-        
-        if (item.isMe) { li.style.backgroundColor = "rgba(46, 204, 113, 0.4)"; li.style.borderRadius = "4px"; }
-        list.appendChild(li);
-    });
-
-    if (myRank !== -1 && topDisplay && myItem) {
-        let myItemNameStr = myItem.name != null ? String(myItem.name).toUpperCase() : "";
-        let myItemSidStr = myItem.sid != null ? String(myItem.sid).toUpperCase() : "";
-        let myItemClsStr = myItem.cls != null ? String(myItem.cls).toUpperCase() : "";
-        let myItemDiffStr = myItem.diff != null ? String(myItem.diff) : "";
-
-        let displayCls = myItemClsStr === " " ? "" : myItemClsStr;
-        let displayName = myItemClsStr === " " ? myItemSidStr : ((myItemNameStr.trim() !== "") ? myItemNameStr : myItemSidStr);
-        let safeName = displayName.length > 6 ? displayName.substring(0, 6) + '..' : displayName;
-        let shortDiff = myItemDiffStr.replace("程度 ", "L");
-
-        topDisplay.innerHTML = `
-            <div style="background: rgba(234, 179, 8, 0.3); border: 2px solid #f59e0b; border-radius: 6px; padding: 10px; margin-bottom: 8px; color: #fff; text-align: center;">
-                <div style="font-weight: bold; font-size: 16px; margin-bottom: 4px;">你的排名：第 ${myRank} 名</div>
-                <div style="font-size: 14px; color: #cbd5e1;">${displayCls} ${safeName} ${myItem.score}分 (${shortDiff})</div>
-            </div>
-        `;
-        topDisplay.style.display = 'block';
-    }
+    Cloud.renderLeaderboard(data, list, topDisplay, { classic: true });
 }
 
-window.submitScore = async function() {
+window.submitScore = Cloud.createSingleFlight(async function() {
+    if (scoreSubmitted) return;
     let clsInput = document.getElementById('login-class');
     let sidInput = document.getElementById('login-sid');
 
     let cls = clsInput ? clsInput.value.trim().toUpperCase() : "";
     let sid = sidInput ? sidInput.value.trim().toUpperCase() : "";
-    let name = sid; 
     
     if (sid !== "" && cls === "") { 
         alert("班別為必填項目！"); 
         return; 
     }
-    if (cls === "") {
-        cls = " ";
-    }
-
     if (!GAS_LEADERBOARD_URL) return;
 
-    scoreSubmitted = true;
-    document.getElementById('submit-form').style.display = 'none';
-    document.getElementById('leaderboard-list').innerHTML = "<li>上傳中並配對資料...</li>";
-
     const now = new Date();
-    const dateStr = now.toLocaleDateString('zh-HK');
-    const timeStr = now.toLocaleTimeString('zh-HK');
-    const diff = "程度 " + currentDifficulty; 
-    
     let mult = { '1': 1, '2': 1.2, '3': 1.4, '4': 1.6, '5': 1.8 }[currentDifficulty] || 1;
     const score = Math.round(enemiesKilled * mult);
-    const timestamp = now.getTime();
+    const submission = Cloud.normalizeSubmission({ cls, sid, score, difficulty: currentDifficulty });
+    scoreSubmitted = true;
+    document.getElementById('submit-form').style.display = 'none';
+    Cloud.setListMessage(document.getElementById('leaderboard-list'), "上傳中並配對資料...");
 
-    let playerName = sid; 
-
-    const addUrl = `${GAS_LEADERBOARD_URL}?action=addScore&date=${encodeURIComponent(dateStr)}&time=${encodeURIComponent(timeStr)}&diff=${encodeURIComponent(diff)}&cls=${encodeURIComponent(cls)}&sid=${encodeURIComponent(sid)}&score=${score}&t=${timestamp}`;
+    let playerName = submission.sid;
     
     try {
-        let res = await fetch(addUrl);
-        let json = await res.json();
-        if (json && json.name && String(json.name).trim() !== "") {
-            playerName = String(json.name);
-        }
-    } catch(e) {
-        console.log("上傳或配對延遲", e);
+        const response = await Cloud.requestAction('addScore', { params: {
+            date: now.toLocaleDateString('zh-HK'),
+            time: now.toLocaleTimeString('zh-HK'),
+            diff: `程度 ${submission.difficulty}`,
+            cls: submission.cls,
+            sid: submission.sid,
+            score: submission.score,
+            t: now.getTime()
+        }});
+        if (response.name) playerName = response.name;
+    } catch(error) {
+        console.log("上傳或配對延遲", error);
     }
 
     let leaderboardData = [];
     try {
-        let res = await fetch(`${GAS_LEADERBOARD_URL}?action=getLeaderboard&t=${new Date().getTime()}_${Math.random()}`);
-        leaderboardData = await res.json();
-    } catch(e) {
-        console.log("讀取最新排行榜失敗", e);
+        leaderboardData = await Cloud.requestAction('getLeaderboard');
+    } catch(error) {
+        console.log("讀取最新排行榜失敗", error);
     }
-    
-    let alreadyExists = false;
-    for (let i = 0; i < leaderboardData.length; i++) {
-        let item = leaderboardData[i];
-        let itemSidStr = item.sid != null ? String(item.sid).toUpperCase() : "";
-        let itemClsStr = item.cls != null ? String(item.cls).toUpperCase() : "";
-        
-        if (itemSidStr === sid && itemClsStr === cls && item.score === score && item.diff === diff && !item.isMe) {
-            item.isMe = true;           
-            item.name = playerName;     
-            alreadyExists = true;       
-            break;                      
-        }
-    }
-
-    if (!alreadyExists) {
-        leaderboardData.push({ diff: diff, cls: cls, sid: sid, name: playerName, score: score, isMe: true });
-    }
-    
-    leaderboardData.sort((a, b) => b.score - a.score);
-    renderLeaderboard(leaderboardData);
-}
+    renderLeaderboard(Cloud.mergeSubmittedScore(leaderboardData, submission, playerName));
+});
 
 window.startGame = function(level) {
     initAudio(); 
@@ -1837,10 +1744,9 @@ function draw() {
 async function loadGameData() {
     if (GAS_WEB_APP_URL) {
         try {
-            let res = await fetch(`${GAS_WEB_APP_URL}?action=getGameData&t=${new Date().getTime()}_${Math.random()}`); 
-            let data = await res.json();
+            const data = await Cloud.requestAction('getGameData');
             
-            let weaponsData = data.weapons || data.Weapons || data['Weapons'] || data['設定武器'];
+            let weaponsData = data.weapons;
             if (weaponsData && weaponsData.length > 1) {
                 let rows = weaponsData;
                 let wepIdx = 0;
@@ -1886,7 +1792,7 @@ async function loadGameData() {
                 }
             }
             
-            let monstersData = data.monsters || data.Monsters || data['Monsters'] || data['設定魔物'];
+            let monstersData = data.monsters;
             if (monstersData && monstersData.length > 1) {
                 let rows = monstersData;
                 for(let i=1; i<rows.length; i++) {

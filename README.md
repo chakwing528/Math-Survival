@@ -7,7 +7,7 @@
 - **3D 主版**：開啟 `index.html`，正式控制方式為滑鼠和鍵盤。
 - **2D 經典版**：開啟 `classic-2d.html`，保留觸控和舊裝置 fallback。
 - 3D 主版已有 touch/畫質偵測 P0，但完整虛擬搖桿、touch look、射擊及暫停流程尚未完成；手機目前優先使用 2D 版。
-- 畫面版本為 V3.3，module cache key 為 `?v=33`。
+- 畫面版本為 V3.4，module cache key 為 `?v=34`。
 
 > 3D 版使用 ES Modules，必須經 HTTP server 開啟。直接雙擊 `index.html` 會因 `file://` 限制而無法載入 modules。
 
@@ -33,7 +33,7 @@ npx playwright install chromium
 npm test
 ```
 
-`npm test` 先檢查 JavaScript syntax、JSON、Markdown links、cache version 及模型引用，再以 Chromium 驗證 3D 登入／難度流程和 2D Canvas 開局。Smoke tests 會 mock Google Apps Script、阻止 `addScore`，並封鎖其他外部 host，因此不會讀寫 production 排行榜。
+`npm test` 先檢查 JavaScript syntax、JSON、Markdown links、cache version 及模型引用，再執行 cloud contract unit tests，最後以 Chromium 驗證 3D/2D 啟動、惡意 leaderboard payload 和重複提交。Smoke tests 會 mock Google Apps Script、阻止 `addScore`，並封鎖其他外部 host，因此不會讀寫 production 排行榜。
 
 只執行靜態驗證可使用 `npm run check:static`。GitHub Actions 亦執行同一套 `npm test`，workflow 只有 read permission，沒有部署步驟。
 
@@ -67,6 +67,7 @@ js/
   main.js               選單、boot、遊戲建立、結算
   game.js               Three.js runtime、戰鬥、AI、場景、HUD
   config.js             遊戲預設值及 GAS 雲端覆寫
+  cloud-core.js         共用 GAS endpoint、validation、timeout、安全排行榜 DOM
   math.js               3D 題目選擇、答題 UI、解釋
   leaderboard.js        3D 排行榜 client/renderer
   device.js             desktop/touch、orientation、畫質
@@ -96,11 +97,13 @@ tests/smoke/            隔離外部服務的 3D／2D browser smoke tests
 - 架構：[docs/architecture/OVERVIEW.md](docs/architecture/OVERVIEW.md)
 - 頁面及 routes：[docs/pages/PAGES.md](docs/pages/PAGES.md)
 - 外部 API：[docs/api/API_MAP.md](docs/api/API_MAP.md)
+- GAS client v1 contract：[docs/api/GAS_CONTRACT_V1.md](docs/api/GAS_CONTRACT_V1.md)
+- GAS POST 遷移方案：[docs/api/GAS_POST_MIGRATION.md](docs/api/GAS_POST_MIGRATION.md)
 - 資料及私隱：[docs/data/DATA_FLOWS_AND_PRIVACY.md](docs/data/DATA_FLOWS_AND_PRIVACY.md)
 
 ## 雲端設定和排行榜
 
-武器、魔物及補給設定可由外部 Google Apps Script/Sheet 覆寫；排行榜亦使用同一外部服務。GAS handler、遠端 schema、權限和資料保留政策不在本 repository，詳見 `docs/features/CLOUD_AND_LEADERBOARD.md`。
+武器、魔物及補給設定可由外部 Google Apps Script/Sheet 覆寫；排行榜亦使用同一外部服務。兩個 client 經 `js/cloud-core.js` 共用 endpoint、timeout、response validation、single-flight 和安全 DOM renderer。GAS handler、server-side schema、權限和資料保留政策不在本 repository，詳見 `docs/features/CLOUD_AND_LEADERBOARD.md`。
 
 班別和學號會在玩家主動提交成績時傳送到 GAS。開發和測試不要使用真實學生資料，也不要直接向 production 排行榜寫入測試紀錄。
 
