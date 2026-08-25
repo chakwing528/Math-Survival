@@ -1,0 +1,19 @@
+# macOS
+.DS_Store
+
+# Local editor / knowledge-tool state
+.obsidian/workspace.json
+.obsidian/workspaces.json
+graphify-out/
+
+# Generated development output
+coverage/
+dist/
+build/
+.cache/
+
+# Local secrets (none are currently required by this project)
+.env
+.env.*
+!.env.example
+

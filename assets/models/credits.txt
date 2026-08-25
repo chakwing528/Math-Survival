@@ -1,0 +1,24 @@
+gun_sniper | "Title":"Sniper Rifle" | "Licence":"CC0 1.0" | "Animated":false | 76652 bytes | https://poly.pizza/m/ASOMZIErq3
+gun_scifi | "Title":"Scifi Smg" | "Licence":"CC0 1.0" | "Animated":false | 91088 bytes | https://poly.pizza/m/NHYaHnTNIM
+zombie_b | "Title":"Zombie" | "Licence":"CC0 1.0" | "Animated":true | 238624 bytes | https://poly.pizza/m/JoBvxIUpZP
+zombie_c | "Title":"Zombie" | "Licence":"CC-BY 3.0" | "Animated":true | 681436 bytes | https://poly.pizza/m/22K0aSZkHV
+zombie_a | "Title":"Zombie" | "Licence":"CC0 1.0" | "Animated":true | 981672 bytes | https://poly.pizza/m/VlXjG0N8Eg
+plant | "Title":"Plant" | "Licence":"CC0 1.0" | "Animated":false | 685820 bytes | https://poly.pizza/m/NrJN7UcglF
+pine1 | "Title":"Pine" | "Licence":"CC0 1.0" | "Animated":false | 2219996 bytes | https://poly.pizza/m/Zt62gceKXZ
+pine2 | "Title":"Pine" | "Licence":"CC0 1.0" | "Animated":false | 2261060 bytes | https://poly.pizza/m/699sFuLCN2
+gun_9mm | "Title":"9mm Pistol" | "Licence":"CC-BY 3.0" | "Animated":false | 133928 bytes | https://poly.pizza/m/BoZWhFdsj4
+twisted2 | "Title":"Twisted Tree" | "Licence":"CC0 1.0" | "Animated":false | 3075984 bytes | https://poly.pizza/m/7PDBpElkQr
+twisted1 | "Title":"Twisted Tree" | "Licence":"CC0 1.0" | "Animated":false | 3089768 bytes | https://poly.pizza/m/8oraKn9m0x
+soldier | "Title":"Character Soldier" | "Licence":"CC0 1.0" | "Animated":true | 1333700 bytes | https://poly.pizza/m/PpLF4rt4ah
+gun_revolver | "Title":"Revolver" | "Licence":"CC0 1.0" | "Animated":false | 79988 bytes | https://poly.pizza/m/9C26wSpMS0
+gun_pistol | "Title":"Pistol" | "Licence":"CC0 1.0" | "Animated":false | 53776 bytes | https://poly.pizza/m/J3i9KDQ3kt
+gun_shotgun | "Title":"Shotgun" | "Licence":"CC0 1.0" | "Animated":false | 55352 bytes | https://poly.pizza/m/ZmPTnh7njL
+rock2 | "Title":"Rock Medium" | "Licence":"CC0 1.0" | "Animated":false | 1060940 bytes | https://poly.pizza/m/KZdEP3uUpa
+rock1 | "Title":"Rock Medium" | "Licence":"CC0 1.0" | "Animated":false | 1064792 bytes | https://poly.pizza/m/s1OJ3bBzqc
+zombie_anim | "Title":"Animated Zombie" | "Licence":"CC-BY 3.0" | "Animated":true | 694500 bytes | https://poly.pizza/m/jkrEvQZb8J
+gun_rifle | "Title":"Assault Rifle" | "Licence":"CC0 1.0" | "Animated":false | 133980 bytes | https://poly.pizza/m/Bgvuu4CUMV
+gun_smg | "Title":"Submachine Gun" | "Licence":"CC0 1.0" | "Animated":false | 70976 bytes | https://poly.pizza/m/7ehatxr7FY
+small_plant | "Title":"Small Plant" | "Licence":"CC0 1.0" | "Animated":false | 14664 bytes | https://poly.pizza/m/MZdeiQApSb
+tallgrass | "Title":"Tall Grass" | "Licence":"CC0 1.0" | "Animated":false | 88020 bytes | https://poly.pizza/m/JSIYtscPmP
+plant_big | "Title":"Plant Big" | "Licence":"CC0 1.0" | "Animated":false | 698784 bytes | https://poly.pizza/m/MbhbP7JrTI
+grass1 | "Title":"Grass" | "Licence":"CC0 1.0" | "Animated":false | 767660 bytes | https://poly.pizza/m/UGTOzcO3P2
