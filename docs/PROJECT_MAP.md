@@ -15,7 +15,8 @@ Math Survival 是一個靜態瀏覽器數學射擊遊戲：學生在 3D 或 2D �
 | 雲端設定 | `js/config.js` | 本機預設值及 GAS game-data 覆寫 |
 | 排行榜 | `js/leaderboard.js` | 3D 版排行榜讀取、渲染和提交 |
 | Cloud boundary | `js/cloud-runtime-config.js`、`js/cloud-core.js` | GAS/Supabase feature flag、adapter、validation、安全排行榜 DOM |
-| Supabase backend | `supabase/` | Postgres migration、RLS/grants、Edge Function、synthetic seed、pgTAP |
+| Supabase backend | `supabase/` | Postgres migrations、RLS/grants、Edge Function、synthetic seed、pgTAP 及 hosted staging |
+| Staging validation | `scripts/validate-hosted-supabase.mjs`、`tests/smoke/supabase-staging.spec.js` | Hosted HTTP 安全邊界及 3D／2D 無 GAS fallback 驗收 |
 | 裝置/畫質 | `js/device.js` | desktop/touch、全螢幕、橫屏、品質分級 |
 | 3D 資產 | `js/assets.js`、`assets/models/` | GLB manifest、載入、clone、動畫映射 |
 | 音訊 | `js/audio.js`、`audio/` | BGM、錄製音效及 WebAudio 合成音效 |
@@ -39,7 +40,7 @@ Math Survival 是一個靜態瀏覽器數學射擊遊戲：學生在 3D 或 2D �
 
 - `/` 或 `/index.html`：3D 主頁；`/` 是否映射到 `index.html` 由靜態 host 決定。
 - `/classic-2d.html`：2D 經典版。
-- `supabase/` 可啟動隔離本機 backend；正式 static site 尚未切換，亦未連接 hosted project。
+- `supabase/` 可啟動隔離本機 backend，亦已連接獨立 `Math-Survival-Staging`；正式 static site仍保持 GAS。
 - 外部 GAS actions：`getGameData`、`getLeaderboard`、`addScore`；詳見 `api/API_MAP.md`。
 - Supabase v1 endpoints：詳見 `api/SUPABASE_CONTRACT_V1.md`。
 

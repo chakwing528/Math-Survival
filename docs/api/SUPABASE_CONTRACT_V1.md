@@ -2,7 +2,7 @@
 
 ## Status
 
-本 contract 已在隔離本機 Supabase stack 驗證，尚未套用到任何 hosted project。前端預設仍為 `provider: 'gas'`；切換 production 前必須完成 `../runbooks/SUPABASE_MIGRATION.md` 的決策及驗證。
+本 contract 已在隔離本機 stack 及獨立 hosted `Math-Survival-Staging` 驗證。前端 production 預設仍為 `provider: 'gas'`；真實資料匯入或切換 production 前必須完成 `../runbooks/SUPABASE_MIGRATION.md` 的 owner／retention／cutover 決策。
 
 ## Public browser configuration
 

@@ -3,6 +3,7 @@ import {
     extractRequesterAddress,
     getCorsHeaders,
     hashRequester,
+    normalizeRpcError,
     normalizeSubmissionPayload,
     parseAllowedOrigins
 } from '../_shared/submit-score-core.js';
@@ -65,13 +66,7 @@ Deno.serve(async request => {
         });
         const result = await rpcResponse.json().catch(() => null);
         if (!rpcResponse.ok) {
-            const upstreamMessage = typeof result?.message === 'string' ? result.message : '';
-            let parsed = null;
-            try { parsed = JSON.parse(upstreamMessage); } catch { /* return generic boundary error */ }
-            return jsonResponse({
-                code: parsed?.code ?? 'SUBMISSION_REJECTED',
-                message: parsed?.message ?? 'Score submission was rejected'
-            }, rpcResponse.status, corsHeaders);
+            return jsonResponse(normalizeRpcError(result), rpcResponse.status, corsHeaders);
         }
 
         const receipt = Array.isArray(result) ? result[0] : result;

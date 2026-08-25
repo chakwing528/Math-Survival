@@ -7,10 +7,12 @@
     "check:static": "node scripts/validate.mjs",
     "test:unit": "node --test tests/unit/*.test.js",
     "test:smoke": "playwright test",
+    "test:smoke:staging": "MATH_SURVIVAL_STAGING_CONFIG=1 playwright test tests/smoke/supabase-staging.spec.js",
     "supabase:start": "supabase start",
     "supabase:stop": "supabase stop",
     "supabase:reset": "supabase db reset --local",
     "test:db": "supabase test db --local supabase/tests/database",
+    "test:supabase:hosted": "node scripts/validate-hosted-supabase.mjs",
     "lint:db": "supabase db lint --local --schema public,math_survival_private --level warning --fail-on error",
     "test": "npm run check:static && npm run test:unit && npm run test:smoke"
   },

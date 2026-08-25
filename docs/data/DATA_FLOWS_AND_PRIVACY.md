@@ -13,7 +13,7 @@
 | 逐題統計 | `Game` runtime | 賽後學習報告 | 只存在當局記憶體，沒有提交證據 |
 | UI/device preferences | browser/device | 輸入模式、畫質、靈敏度、音量 | localStorage |
 
-Supabase design（hosted 未啟用）會把學生目錄、原始成績及姓名 snapshot 放在 unexposed private schema；公開 leaderboard 只回班別、遮罩名和分數。Edge Function 只保存 requester address 的 salted SHA-256 hash作短期 rate-limit key，不保存 raw IP。
+Supabase design 已部署到獨立 hosted staging：學生目錄、原始成績及姓名 snapshot 放在 unexposed private schema；公開 leaderboard 只回班別、遮罩名和分數。Edge Function 只保存 requester address 的 salted SHA-256 hash 作短期 rate-limit key，不保存 raw IP。Staging 目前只有明確合成 fixture。
 
 ## 資料流
 
@@ -56,7 +56,7 @@ Student input (class, student ID)
 - Google account、Sheet、Apps Script deployment 的 sharing/permission。
 - Backup、incident response、audit log 和 breach notification。
 - 是否允許 leaderboard 向所有玩家顯示班別/姓名/學號。
-- Hosted Supabase 應使用獨立 project 或共用 `School Platform Production`。
+- Hosted staging 已使用另一帳戶的獨立 project；production project 及真實資料 owner 仍待決定。
 - 成績、姓名 snapshot、學生目錄及 requester hash 的具體保留期。
 
 ## 工程要求
@@ -68,4 +68,4 @@ Student input (class, student ID)
 - 在取得資料 owner 批准前，不新增 analytics、tracking 或更多學生欄位。
 - 對 GAS 做 integration test 前使用獨立測試 deployment/sheet。
 - Supabase secret/service-role key及 rate-limit salt不可進 browser、repository、logs 或 screenshots；browser 只使用 publishable key。
-- Hosted Supabase 套用前按 `../runbooks/SUPABASE_MIGRATION.md` 完成 owner/policy/staging 決策。
+- 真實資料匯入或 production 切換前按 `../runbooks/SUPABASE_MIGRATION.md` 完成 owner／retention／cutover 決策。

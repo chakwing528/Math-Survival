@@ -25,7 +25,7 @@
 
 ## Phase 1 — 安全及資料邊界
 
-**狀態（2026-08-25）**：Supabase 完整本機 foundation 已完成並通過 migration/RLS/Edge tests；hosted project 選擇、資料 owner/retention/origins 及 staging rollout 尚待決定。
+**狀態（2026-08-25）**：Supabase 本機 foundation 及獨立 hosted staging rollout 已完成，migration/RLS/Edge/HTTP/3D/2D tests 通過；production GAS 未切換，資料 owner／retention／真實匯入及 cutover仍待決定。
 
 **結果**：學生資料、排行榜和雲端設定有明確 contract 及安全處理。
 

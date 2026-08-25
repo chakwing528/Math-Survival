@@ -1,6 +1,12 @@
 const UUID_V4_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const CLASS_PATTERN = /^[A-Z0-9-]{1,16}$/;
 const STUDENT_ID_PATTERN = /^[A-Z0-9-]{1,32}$/;
+const RPC_ERROR_MESSAGES = new Map([
+    ['INVALID_SUBMISSION', 'Submission fields are invalid'],
+    ['IDEMPOTENCY_CONFLICT', 'Idempotency key was already used'],
+    ['STUDENT_NOT_FOUND', 'Student record was not found'],
+    ['RATE_LIMITED', 'Too many submissions']
+]);
 
 export class SubmissionError extends Error {
     constructor(code, status, message) {
@@ -24,6 +30,24 @@ export function getCorsHeaders(origin, allowedOrigins) {
         'Access-Control-Max-Age': '86400',
         'Vary': 'Origin'
     };
+}
+
+export function normalizeRpcError(value) {
+    let code = value && typeof value === 'object' && typeof value.code === 'string'
+        ? value.code
+        : '';
+    if (!RPC_ERROR_MESSAGES.has(code) && value && typeof value === 'object' && typeof value.message === 'string') {
+        try {
+            const parsed = JSON.parse(value.message);
+            code = typeof parsed?.code === 'string' ? parsed.code : '';
+        } catch {
+            code = '';
+        }
+    }
+    if (!RPC_ERROR_MESSAGES.has(code)) {
+        return { code: 'SUBMISSION_REJECTED', message: 'Score submission was rejected' };
+    }
+    return { code, message: RPC_ERROR_MESSAGES.get(code) };
 }
 
 export function normalizeSubmissionPayload(value) {

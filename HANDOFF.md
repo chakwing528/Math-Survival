@@ -2,7 +2,7 @@
 
 > 新 Codex task 應先讀 `AGENTS.md`、`docs/PROJECT_MAP.md` 同 `docs/CURRENT_STATE.md`，再按任務讀相關 feature 文件。
 > 呢份文件只保留近期交接同歷史實作細節；架構、API、資料流同長期規則以 `docs/` 為準，實際行為以程式碼為準。
-> 目前 workspace：`/Users/cwchan/Downloads/Math-Survival-main/Math-Survival-main`。本機 V3.5 在 `codex/project-memory-v3.3`，Draft PR #1 尚未合併至 `main`。Issue #4 已完成；Issue #2 的 Supabase 本機 foundation（migration、RLS/grants、Edge Function、adapter、tests）已完成，hosted rollout 尚未選定 project 或確認學生資料政策；後續見 `docs/runbooks/SUPABASE_MIGRATION.md`、Issue #3 及 `docs/ROADMAP.md`。
+> 目前 workspace：`/Users/cwchan/Downloads/Math-Survival-main/Math-Survival-main`。本機 V3.5 在 `codex/project-memory-v3.3`，Draft PR #1 尚未合併至 `main`。Issue #4 已完成；Issue #2 的本機 foundation 及獨立 Free `Math-Survival-Staging` hosted rollout 已完成，production 仍為 GAS，真實資料 owner／retention／匯入及 cutover 未決；後續見 `docs/runbooks/SUPABASE_MIGRATION.md`、Issue #3 及 `docs/ROADMAP.md`。
 
 ---
 

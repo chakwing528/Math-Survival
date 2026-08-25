@@ -6,7 +6,7 @@ Google Apps Script Web App URL 只定義於 `js/cloud-core.js`，3D 和 2D clien
 
 repository 沒有 GAS handler、OpenAPI/GraphQL schema 或 GAS server tests；`GAS_CONTRACT_V1.md` 是 client-observed contract，不是 server 保證。Supabase 本機 handler/tests 另見下節。
 
-## Supabase v1（本機已驗證，hosted 未啟用）
+## Supabase v1（本機及獨立 hosted staging 已驗證，production 未啟用）
 
 - Active config：Data API `game_config_versions`，anon 只有 active-row `SELECT` grant＋RLS。
 - Leaderboard：`get_leaderboard_v1` RPC，只回傳班別、遮罩名、分數；不回傳學號／全名。
@@ -62,4 +62,4 @@ repository 沒有 GAS handler、OpenAPI/GraphQL schema 或 GAS server tests；`G
 - 新增或改欄位前要同時更新兩個 clients、本文件及資料私隱文件。
 - POST v2 方案見 `GAS_POST_MIGRATION.md`；只能在取得 GAS handler、test deployment 和部署批准後執行。
 - browser tests 不應直接寫 production leaderboard；需要測試部署或 mock layer。
-- Hosted Supabase migration 必須先在獨立 staging project 驗證；不可因帳戶已有 production project 就直接套用。
+- Hosted migration 已在獨立 `Math-Survival-Staging` 驗證；不可把後續 migration 直接套用 `School Platform Production` 或 production 環境。

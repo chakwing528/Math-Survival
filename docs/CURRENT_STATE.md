@@ -39,14 +39,16 @@
 - 大規模重整路線圖見 `docs/ROADMAP.md`；Issue #4（測試/CI 基線）已完成，後續首輪工作為 #2（GAS/學生資料安全邊界）及 #3（desktop/touch 輸入與狀態機）。
 - `.claude/launch.json` 已改為本機可用的 `python3` 和相對工作目錄，但仍需由實際 launcher 驗證。
 - 模型授權不是全部 CC-BY 3.0；個別授權以 `assets/models/credits.txt` 為準。
-- Hosted Supabase migration 尚未選定 project；`School Platform Production` 是否共用、資料 owner、retention、正式 origins 仍待確認。
+- Hosted staging 已選用另一帳戶的獨立 Free project `Math-Survival-Staging`（ref `mtwhanvpaqgdlhbxzyhu`，Tokyo）；未使用 `School Platform Production`。真實資料 owner、retention、匯入批准及 production cutover 仍待確認。
 - Legacy `addScore` 仍以 GET 傳送班別/學號；POST v2 只完成本機 contract/遷移設計，未改 production。
 
 ## 驗證狀態
 
-- 2026-08-25：V3.5 static/unit/database/Edge local tests 通過；最終完整 `npm test` 及 GitHub Actions 狀態見 branch 最新 commit。
-- Node unit tests：12 tests passed，新增 Supabase POST adapter、no mutation fallback、CORS、Edge payload 及 requester hash。
+- 2026-08-25：V3.5 static/unit/database/Edge local tests 及 hosted staging rollout 通過；最終完整 `npm test` 及 GitHub Actions 狀態見 branch 最新 commit。
+- Node unit tests：13 tests passed，覆蓋 Supabase POST adapter、no mutation fallback、CORS、Edge payload、requester hash 及安全 PostgREST 錯誤映射。
 - Supabase pgTAP：18 tests passed；database lint 0 errors；local HTTP 驗證 read 200、direct submit 401、Edge accepted/duplicate 200、bad origin 403。
+- Hosted staging：兩個 migrations、`submit-score` Edge Function 及四個 project secrets 已部署；read、redaction、direct-write denial、CORS、idempotency 及 5/min rate limit 全部通過。3D／2D staging smoke tests 2 passed，沒有 GAS fallback。
+- Hosted advisors 無 error；private tables 的 no-policy INFO、固定遮罩 leaderboard `SECURITY DEFINER` WARN 及 staging unused-index INFO 均為已記錄的刻意設計／低流量狀態。
 - Playwright Chromium：5 tests passed，涵蓋 3D/2D 啟動、兩個 client 的 malicious leaderboard payload 及 2D duplicate submission。
 - Smoke tests 全程 mock GAS、阻止 `addScore` 並封鎖其他外部 host；沒有讀寫 production leaderboard。
 - 尚未驗證完整 3D 模型/WebGL gameplay、Pointer Lock、touch、audio、真實 GAS integration 或真機。
@@ -54,5 +56,5 @@
 ## 下一批建議工作
 
 1. 審查 Draft PR #1 的公開內容、完整 3D gameplay 及 GitHub Pages 影響；未完成必要人工測試前不要合併。
-2. 按 Supabase migration runbook 確認 hosted project、資料 owner/retention/origins，先 staging 後 production；不要直接套用現有 production project。
+2. 按 Supabase migration runbook 完成資料 owner/retention/import approval；先以現有獨立 staging 驗收真實流程，再決定 production cutover，唔好套用 `School Platform Production`。
 3. 基於現有回歸安全網推進 Issue #3：解耦 Pointer Lock 狀態機並建立統一 input abstraction。

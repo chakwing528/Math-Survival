@@ -5,6 +5,7 @@ import {
     SubmissionError,
     getCorsHeaders,
     hashRequester,
+    normalizeRpcError,
     normalizeSubmissionPayload,
     parseAllowedOrigins
 } from '../../supabase/functions/_shared/submit-score-core.js';
@@ -35,4 +36,19 @@ test('hashes requester metadata without retaining the raw address', async () => 
     assert.match(first, /^[0-9a-f]{64}$/);
     assert.equal(first, second);
     assert.equal(first.includes('192.0.2.1'), false);
+});
+
+test('maps only known PostgREST errors across the browser boundary', () => {
+    assert.deepEqual(normalizeRpcError({ code: 'RATE_LIMITED', message: 'Too many submissions' }), {
+        code: 'RATE_LIMITED', message: 'Too many submissions'
+    });
+    assert.deepEqual(normalizeRpcError({
+        code: 'PGRST',
+        message: '{"code":"STUDENT_NOT_FOUND","message":"upstream text is ignored"}'
+    }), {
+        code: 'STUDENT_NOT_FOUND', message: 'Student record was not found'
+    });
+    assert.deepEqual(normalizeRpcError({ code: 'XX000', message: 'internal database detail' }), {
+        code: 'SUBMISSION_REJECTED', message: 'Score submission was rejected'
+    });
 });

@@ -2,7 +2,7 @@
 
 ## 範圍
 
-兩個 client 經 `js/cloud-runtime-config.js`＋`js/cloud-core.js` 的共用 `MathSurvivalCloud` boundary。Production flag 仍為 GAS；Supabase adapter/backend 已完成本機基礎但未套用 hosted project。
+兩個 client 經 `js/cloud-runtime-config.js`＋`js/cloud-core.js` 的共用 `MathSurvivalCloud` boundary。Production flag 仍為 GAS；Supabase backend 已部署到獨立 hosted staging，本機測試 server 可按環境變數動態注入 staging public config。
 
 ## Supabase migration foundation
 
@@ -12,6 +12,7 @@
 - `submit-score` Edge Function：origin、publishable key、payload、idempotency、hashed requester rate limit。
 - `submit_score_v1`：只授權 server role；browser 直接呼叫會被拒。
 - Supabase read 可按 flag fallback GAS；mutation 絕不自動 fallback/dual-write。
+- Hosted staging runtime 關閉 read fallback；3D／2D smoke tests會確認沒有 GAS request。
 
 Contract 見 `../api/SUPABASE_CONTRACT_V1.md`；hosted rollout 見 `../runbooks/SUPABASE_MIGRATION.md`。
 
@@ -62,6 +63,6 @@ Contract 見 `../api/SUPABASE_CONTRACT_V1.md`；hosted rollout 見 `../runbooks/
 3. 確認 authentication/authorization、CORS、rate limit 和 abuse prevention。
 4. 確認學生資料的收集目的、保留期、刪除/更正及存取人員。
 5. 使用測試資料和獨立測試部署；不要對 production 提交真實/假學生紀錄作 smoke test。
-6. Supabase hosted rollout 前確認 project、資料 owner、retention、正式 origins 及 staging；不要直接套用 `School Platform Production`。
+6. Hosted staging 已獨立建立；真實資料匯入及 production cutover 前仍要確認資料 owner、retention 及正式 origins，唔好套用 `School Platform Production`。
 
 Client v1 contract 見 `../api/GAS_CONTRACT_V1.md`；POST migration 見 `../api/GAS_POST_MIGRATION.md`。
