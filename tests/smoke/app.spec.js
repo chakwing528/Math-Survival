@@ -51,7 +51,7 @@ test('3D client boots and reaches difficulty selection without production servic
   await page.goto('/');
   await expect(page.locator('#loading-screen')).toBeHidden({ timeout: 10_000 });
   await expect(page.locator('#start-menu')).toBeVisible();
-  await expect(page.locator('#version-tag')).toHaveText('Math Survival FPS V3.6');
+  await expect(page.locator('#version-tag')).toHaveText('Math Survival FPS V3.7');
 
   await page.locator('#login-class').fill('TEST');
   await page.locator('#login-sid').fill('00');
@@ -61,6 +61,79 @@ test('3D client boots and reaches difficulty selection without production servic
   await expect(page.locator('#diff-selection')).toBeVisible();
   await expect(page.locator('.diff-btn[data-level]')).toHaveCount(5);
   expect(observed.gasActions).toContain('getGameData');
+  expectSafeRun(observed);
+});
+
+test('3D forced-touch HUD maps simultaneous joystick, look and combat pointers', async ({ page }) => {
+  const observed = await isolateExternalServices(page);
+  await page.setViewportSize({ width: 844, height: 390 });
+  await page.goto('/?mode=touch');
+  await expect(page.locator('#loading-screen')).toBeHidden({ timeout: 10_000 });
+  await expect(page.locator('body')).toHaveClass(/mode-touch/);
+
+  await page.evaluate(async () => {
+    document.querySelector('#hud').style.display = 'block';
+    const { InputController, TouchControlSurface } = await import('/js/input.js?smoke-touch');
+    const actions = [];
+    const input = new InputController({ target: document, pointerTarget: document.querySelector('#game-container') });
+    const surface = new TouchControlSurface({ root: document, input, onAction: action => actions.push(action) });
+    surface.bind();
+    globalThis.__touchSmoke = { input, surface, actions };
+  });
+
+  await expect(page.locator('#touch-controls')).toBeVisible();
+  await expect(page.locator('#btn-touch-fire')).toBeVisible();
+  const actionBoxes = await Promise.all(
+    ['#btn-touch-aim', '#btn-touch-reload', '#btn-touch-fire', '#btn-touch-melee']
+      .map(selector => page.locator(selector).boundingBox())
+  );
+  expect(actionBoxes.every(Boolean)).toBe(true);
+  for (let i = 0; i < actionBoxes.length; i++) {
+    const a = actionBoxes[i];
+    expect(a.x).toBeGreaterThanOrEqual(0);
+    expect(a.y).toBeGreaterThanOrEqual(0);
+    expect(a.x + a.width).toBeLessThanOrEqual(844);
+    expect(a.y + a.height).toBeLessThanOrEqual(390);
+    for (let j = i + 1; j < actionBoxes.length; j++) {
+      const b = actionBoxes[j];
+      const overlaps = a.x < b.x + b.width && a.x + a.width > b.x
+        && a.y < b.y + b.height && a.y + a.height > b.y;
+      expect(overlaps).toBe(false);
+    }
+  }
+  const base = await page.locator('#touch-move-base').boundingBox();
+  expect(base).not.toBeNull();
+  const centerX = base.x + base.width / 2;
+  const centerY = base.y + base.height / 2;
+
+  await page.locator('#touch-move-zone').dispatchEvent('pointerdown', { pointerId: 11, clientX: centerX, clientY: centerY - base.height / 2 });
+  await page.locator('#touch-look-zone').dispatchEvent('pointerdown', { pointerId: 12, clientX: 500, clientY: 220 });
+  await page.locator('#touch-look-zone').dispatchEvent('pointermove', { pointerId: 12, clientX: 535, clientY: 195 });
+  await page.locator('#btn-touch-fire').dispatchEvent('pointerdown', { pointerId: 13 });
+  await page.locator('#btn-touch-aim').dispatchEvent('pointerdown', { pointerId: 14 });
+  await page.locator('#btn-touch-reload').dispatchEvent('pointerdown', { pointerId: 15 });
+  await page.locator('#btn-touch-melee').dispatchEvent('pointerdown', { pointerId: 16 });
+
+  const state = await page.evaluate(() => ({
+    movement: globalThis.__touchSmoke.input.movement,
+    sprint: globalThis.__touchSmoke.input.sprint,
+    fire: globalThis.__touchSmoke.input.fire,
+    aim: globalThis.__touchSmoke.input.aim,
+    look: globalThis.__touchSmoke.input.consumeLookDelta(),
+    actions: globalThis.__touchSmoke.actions
+  }));
+  expect(state).toEqual({
+    movement: { w: true, a: false, s: false, d: false },
+    sprint: true,
+    fire: true,
+    aim: true,
+    look: { x: 35, y: -25 },
+    actions: ['reload', 'melee']
+  });
+
+  await page.locator('#touch-move-zone').dispatchEvent('pointerup', { pointerId: 11, clientX: centerX, clientY: centerY });
+  await page.locator('#btn-touch-fire').dispatchEvent('pointerup', { pointerId: 13 });
+  await page.evaluate(() => globalThis.__touchSmoke.surface.dispose());
   expectSafeRun(observed);
 });
 

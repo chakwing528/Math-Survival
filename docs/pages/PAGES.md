@@ -40,7 +40,8 @@
 
 - Models：`WEAPONS`、`MONSTER_BASE`、`SETTINGS`、`mathStats`、leaderboard item。
 - API：三個 GAS actions，詳見 `../api/API_MAP.md`。
-- Tests：啟動／雲端隔離 browser smoke、input/lifecycle unit tests；完整 gameplay 仍需實際瀏覽器驗收。
+- Touch HUD：`#touch-controls` 提供虛擬搖桿、look zone、開火、瞄準、換彈及近戰；`#btn-touch-pause` 負責暫停。
+- Tests：啟動／雲端隔離 browser smoke、input/lifecycle/touch unit tests；目標手機真機的完整 gameplay 仍需驗收。
 
 ## 2D 經典版
 

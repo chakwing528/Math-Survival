@@ -70,4 +70,4 @@ classic-2d.html ─────────────┘
 - 2D/3D 有重複雲端、題目及排行榜邏輯，容易只修正其中一版。
 - GAS/Supabase 回傳資料一律視為不可信；排行榜現經 validation＋`textContent`，不可恢復 `innerHTML`。
 - 班別和學號經 GET query string 提交；更改前要先確認遠端 handler 及資料政策。
-- 3D touch P1 第一批狀態機／暫停流程已完成；虛擬移動、視角及戰鬥控制仍未完成。
+- 3D touch Batch 2 已接通虛擬移動、視角及戰鬥控制；iPhone／Android／iPad 真機、audio/autoplay 及完整長局驗收仍未完成。

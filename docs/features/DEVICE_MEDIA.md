@@ -9,9 +9,11 @@
 - 真實 touch、mouse movement 或實體 keyboard 事件可在 runtime 切換模式。
 - `<body>` 使用 `mode-touch`/`mode-desktop` class 作 UI hook。
 
-`js/input.js` 統一保存 keyboard/mouse/touch control state；`game.js` 經它讀取移動、疾跑、開火及瞄準。touch HUD 可用 `setControl()`／`addLookDelta()` 接駁，但虛擬搖桿、touch look 和戰鬥按鈕尚未建立。
+`js/input.js` 統一保存 keyboard/mouse/touch control state；`TouchControlSurface` 以獨立 pointerId 接駁左下虛擬搖桿、右半屏 touch look、按住開火、toggle 瞄準、換彈及近戰。搖桿推盡向前會自動疾跑，多指移動／視角／開火互不搶 state。
 
 Pointer Lock 只負責 desktop 取得滑鼠控制；`Game.pause()`／`resume()`、數學題回復及 `visibilitychange` 已使用共用 lifecycle。touch HUD 現有獨立暫停鍵，回復不要求 Pointer Lock。
+
+touch controls 在 pause、visibility loss、resume 及 dispose 時 reset；透明 look zone 位於戰鬥鍵下層，避免攔截按鈕。
 
 ## 沉浸和 orientation
 
