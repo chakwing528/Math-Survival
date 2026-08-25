@@ -1,0 +1,14 @@
+{
+  "name": "math-survival",
+  "version": "3.3.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check:static": "node scripts/validate.mjs",
+    "test:smoke": "playwright test",
+    "test": "npm run check:static && npm run test:smoke"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.62.1"
+  }
+}

@@ -21,7 +21,21 @@ python3 -m http.server 8000
 
 然後瀏覽 `http://localhost:8000/`。Windows 如有 `python` launcher，也可使用 `python -m http.server 8000`。
 
-本 repository 沒有 package install、build、test、lint 或 CI scripts。
+遊戲本身沒有 build step；Node/Playwright 只用於開發驗證。
+
+## 測試
+
+首次 clone 後執行：
+
+```bash
+npm ci
+npx playwright install chromium
+npm test
+```
+
+`npm test` 先檢查 JavaScript syntax、JSON、Markdown links、cache version 及模型引用，再以 Chromium 驗證 3D 登入／難度流程和 2D Canvas 開局。Smoke tests 會 mock Google Apps Script、阻止 `addScore`，並封鎖其他外部 host，因此不會讀寫 production 排行榜。
+
+只執行靜態驗證可使用 `npm run check:static`。GitHub Actions 亦執行同一套 `npm test`，workflow 只有 read permission，沒有部署步驟。
 
 ## 操作
 
@@ -67,6 +81,9 @@ audio/                  BGM 和槍械音效
 docs/                   專案地圖、架構、功能、API、資料及 ADR
 AGENTS.md               Codex 閱讀和驗證指引
 HANDOFF.md              近期工作狀態
+scripts/                靜態驗證及本機測試 server
+tests/smoke/            隔離外部服務的 3D／2D browser smoke tests
+.github/workflows/      非部署 CI workflow
 ```
 
 ## 專案文件

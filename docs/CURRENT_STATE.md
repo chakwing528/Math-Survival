@@ -26,7 +26,7 @@
 - 尚未有 `js/input.js` 統一輸入抽象、虛擬搖桿、touch look 或手機射擊按鈕。
 - 學校場景沒有樓梯重力/探地及跨樓層喪屍尋路。
 - 19 MB 模型未壓縮。
-- 沒有自動化測試、CI、lint、type check 或正式 build。
+- 已有靜態驗證、Playwright browser smoke tests 及非部署 GitHub Actions CI；仍沒有 lint、type check 或正式 build。
 
 ## 已知文件／設定問題
 
@@ -40,13 +40,14 @@
 
 ## 驗證狀態
 
-- 2026-08-25：15 個 JavaScript 檔通過 `node --check`。
-- 沒有執行 browser gameplay、WebGL、Pointer Lock、touch、audio 或 GAS integration 測試。
-- 「語法通過」不代表功能通過。
+- 2026-08-25：`npm test` 通過；靜態驗證涵蓋 19 個 JavaScript、3 個 JSON、18 個 Markdown、24 個模型引用及 cache v33。
+- Playwright Chromium：3D client 成功啟動並完成登入→難度流程；2D client 成功啟動並進入 Canvas gameplay，共 2 tests passed。
+- Smoke tests 全程 mock GAS、阻止 `addScore` 並封鎖其他外部 host；沒有讀寫 production leaderboard。
+- 尚未驗證完整 3D 模型/WebGL gameplay、Pointer Lock、touch、audio、真實 GAS integration 或真機。
 
 ## 下一批建議工作
 
-1. 審查 Draft PR #1 的公開內容、兩個遊戲入口及 GitHub Pages 影響；未完成 smoke test 前不要合併。
-2. 先執行 Issue #4，建立測試、browser smoke test 和 CI 基線。
+1. 確認 Draft PR #1 的首次 GitHub Actions run 成功，再完成 Issue #4。
+2. 審查 Draft PR #1 的公開內容、完整 3D gameplay 及 GitHub Pages 影響；未完成必要人工測試前不要合併。
 3. 取得/審查 GAS handler、資料 schema、authentication/authorization 和學生資料政策，推進 Issue #2。
-4. 有回歸安全網後才推進 Issue #3：解耦 Pointer Lock 狀態機並建立統一 input abstraction。
+4. 基於現有回歸安全網推進 Issue #3：解耦 Pointer Lock 狀態機並建立統一 input abstraction。

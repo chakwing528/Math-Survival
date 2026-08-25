@@ -35,8 +35,9 @@
 
 ## 驗證原則
 
-- 專案沒有正式 package scripts、測試框架或 CI；不要聲稱測試已通過，除非列出實際執行的驗證。
-- 最低唯讀語法檢查：`for f in js/*.js js/topics/*.js; do node --check "$f" || exit 1; done`
+- 安裝依賴後以 `npm test` 執行完整基線：靜態驗證加 3D／2D Playwright smoke tests。
+- 只需靜態驗證時執行 `npm run check:static`；它會檢查 JavaScript syntax、JSON、Markdown links、cache version 和 24 個模型引用。
+- browser smoke tests 會攔截 GAS、阻止 `addScore` 並封鎖其他外部 host；不要移除這層隔離後對 production 執行測試。
 - 本機 3D 版必須經 HTTP server 開啟；目前可用 `python3 -m http.server 8000`，但啟動服務前留意工作環境規則。
 - 涉及 gameplay、Pointer Lock、WebGL、audio、touch 或 GAS 時需要瀏覽器/真機驗證；純語法檢查不足夠。
 - 測試時不要把真實學生資料提交到 GAS。
