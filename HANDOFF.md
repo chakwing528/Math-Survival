@@ -243,7 +243,7 @@ python3 -m http.server 8000   → http://localhost:8000
 
 ### ⬜ 待做
 
-- **P2 真機閘** — iPhone Safari、Android Chrome、iPad 多指、orientation、audio/autoplay 及完整核心玩法驗收。
+- **P2 真機閘** — 自動 iPhone WebKit、Android Chromium、iPad WebKit matrix 已完成；依 `docs/testing/DEVICE_ACCEPTANCE.md` 填寫三類實機 safe-area、多指、audio/autoplay 及 10 分鐘核心玩法記錄後才可關 Issue #3。
 - **P3 靚** — 四角 HUD wrapper 各自 `transform: scale(var(--hud-s))`（唔好成個 HUD 一次過 scale，錨點會飛）、
   選單 `flex-direction` 手機改 column、答題彈窗選項掣 ≥48px、填充題 `inputmode="numeric"`
 - **P4 打磨** — 真機測試（iPhone Safari / Android Chrome / iPad）、iOS AudioContext 解鎖時機、19MB 模型考慮壓縮

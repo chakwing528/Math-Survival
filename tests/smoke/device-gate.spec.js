@@ -1,0 +1,173 @@
+import { expect, test } from '@playwright/test';
+
+async function isolateExternalServices(page) {
+  const observed = { pageErrors: [], badLocalResponses: [], blockedMutations: 0 };
+
+  page.on('pageerror', error => observed.pageErrors.push(error.message));
+  page.on('response', response => {
+    const url = new URL(response.url());
+    if (['127.0.0.1', 'localhost'].includes(url.hostname) && response.status() >= 400) {
+      observed.badLocalResponses.push(`${response.status()} ${url.pathname}`);
+    }
+  });
+
+  await page.route('**/*', async route => {
+    const url = new URL(route.request().url());
+    if (url.hostname === 'script.google.com') {
+      const action = url.searchParams.get('action');
+      if (action === 'addScore') {
+        observed.blockedMutations += 1;
+        await route.abort('blockedbyclient');
+        return;
+      }
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(action === 'getLeaderboard' ? [] : {})
+      });
+      return;
+    }
+    if (!['127.0.0.1', 'localhost'].includes(url.hostname)) {
+      await route.abort('blockedbyclient');
+      return;
+    }
+    await route.continue();
+  });
+
+  return observed;
+}
+
+function expectSafeRun(observed) {
+  expect(observed.blockedMutations).toBe(0);
+  expect(observed.pageErrors).toEqual([]);
+  expect(observed.badLocalResponses).toEqual([]);
+}
+
+function boxesOverlap(a, b) {
+  return a.x < b.x + b.width && a.x + a.width > b.x
+    && a.y < b.y + b.height && a.y + a.height > b.y;
+}
+
+test('portrait guard and landscape touch HUD fit the emulated device viewport', async ({ page }) => {
+  const observed = await isolateExternalServices(page);
+  await page.goto('/?mode=touch');
+  await expect(page.locator('#loading-screen')).toBeHidden({ timeout: 10_000 });
+  await expect(page.locator('body')).toHaveClass(/mode-touch/);
+  await expect(page.locator('#rotate-block')).toBeVisible();
+
+  const portrait = page.viewportSize();
+  expect(portrait).not.toBeNull();
+  await page.setViewportSize({ width: portrait.height, height: portrait.width });
+  await expect(page.locator('#rotate-block')).toBeHidden({ timeout: 2_000 });
+
+  await page.evaluate(() => {
+    document.querySelector('#hud').style.display = 'block';
+  });
+
+  const viewport = page.viewportSize();
+  const selectors = [
+    '#touch-move-base', '#btn-touch-pause', '#btn-touch-aim',
+    '#btn-touch-reload', '#btn-touch-fire', '#btn-touch-melee'
+  ];
+  const boxes = await Promise.all(selectors.map(selector => page.locator(selector).boundingBox()));
+  expect(boxes.every(Boolean)).toBe(true);
+
+  for (const box of boxes) {
+    expect(box.x).toBeGreaterThanOrEqual(0);
+    expect(box.y).toBeGreaterThanOrEqual(0);
+    expect(box.x + box.width).toBeLessThanOrEqual(viewport.width);
+    expect(box.y + box.height).toBeLessThanOrEqual(viewport.height);
+  }
+  for (let i = 1; i < boxes.length; i++) {
+    for (let j = i + 1; j < boxes.length; j++) expect(boxesOverlap(boxes[i], boxes[j])).toBe(false);
+  }
+  expect(boxesOverlap(boxes[0], boxes[1])).toBe(false);
+  expectSafeRun(observed);
+});
+
+test('multi-pointer controls reset cleanly and autoplay rejection remains retryable', async ({ page }) => {
+  await page.addInitScript(() => {
+    globalThis.__mediaGate = { playCalls: 0, pauseCalls: 0 };
+    HTMLMediaElement.prototype.play = function play() {
+      globalThis.__mediaGate.playCalls += 1;
+      return Promise.reject(new DOMException('Autoplay blocked', 'NotAllowedError'));
+    };
+    HTMLMediaElement.prototype.pause = function pause() {
+      globalThis.__mediaGate.pauseCalls += 1;
+    };
+  });
+  const observed = await isolateExternalServices(page);
+  await page.goto('/?mode=touch');
+  await expect(page.locator('#loading-screen')).toBeHidden({ timeout: 10_000 });
+  const portrait = page.viewportSize();
+  await page.setViewportSize({ width: portrait.height, height: portrait.width });
+  await expect(page.locator('#rotate-block')).toBeHidden({ timeout: 2_000 });
+
+  await page.locator('#login-class').fill('TEST');
+  await page.locator('#login-sid').fill('00');
+  await page.locator('#btn-next').click();
+  await expect(page.locator('#diff-selection')).toBeVisible();
+  await expect.poll(() => page.evaluate(() => globalThis.__mediaGate.playCalls)).toBe(1);
+
+  await page.locator('#btn-back-login').click();
+  await page.locator('#btn-next').click();
+  await expect.poll(() => page.evaluate(() => globalThis.__mediaGate.playCalls)).toBe(2);
+
+  await page.evaluate(async () => {
+    document.querySelector('#hud').style.display = 'block';
+    const { InputController, TouchControlSurface } = await import('/js/input.js?device-gate');
+    const actions = [];
+    const input = new InputController({ target: document, pointerTarget: document.querySelector('#game-container') });
+    const surface = new TouchControlSurface({ root: document, input, onAction: action => actions.push(action) });
+    surface.bind();
+    globalThis.__deviceGate = { input, surface, actions };
+  });
+
+  const base = await page.locator('#touch-move-base').boundingBox();
+  const centerX = base.x + base.width / 2;
+  const centerY = base.y + base.height / 2;
+  await page.locator('#touch-move-zone').dispatchEvent('pointerdown', {
+    pointerId: 31, clientX: centerX, clientY: centerY - base.height / 2
+  });
+  await page.locator('#touch-look-zone').dispatchEvent('pointerdown', { pointerId: 32, clientX: 300, clientY: 180 });
+  await page.locator('#touch-look-zone').dispatchEvent('pointermove', { pointerId: 32, clientX: 326, clientY: 164 });
+  await page.locator('#btn-touch-fire').dispatchEvent('pointerdown', { pointerId: 33 });
+  await page.locator('#btn-touch-aim').dispatchEvent('pointerdown', { pointerId: 34 });
+
+  expect(await page.evaluate(() => ({
+    movement: globalThis.__deviceGate.input.movement,
+    sprint: globalThis.__deviceGate.input.sprint,
+    fire: globalThis.__deviceGate.input.fire,
+    aim: globalThis.__deviceGate.input.aim,
+    look: globalThis.__deviceGate.input.consumeLookDelta()
+  }))).toEqual({
+    movement: { w: true, a: false, s: false, d: false },
+    sprint: true,
+    fire: true,
+    aim: true,
+    look: { x: 26, y: -16 }
+  });
+
+  const resetState = await page.evaluate(() => {
+    globalThis.__deviceGate.surface.reset();
+    return {
+      movement: globalThis.__deviceGate.input.movement,
+      sprint: globalThis.__deviceGate.input.sprint,
+      fire: globalThis.__deviceGate.input.fire,
+      aim: globalThis.__deviceGate.input.aim,
+      look: globalThis.__deviceGate.input.consumeLookDelta(),
+      aimPressed: document.querySelector('#btn-touch-aim').getAttribute('aria-pressed')
+    };
+  });
+  expect(resetState).toEqual({
+    movement: { w: false, a: false, s: false, d: false },
+    sprint: false,
+    fire: false,
+    aim: false,
+    look: { x: 0, y: 0 },
+    aimPressed: 'false'
+  });
+
+  await page.evaluate(() => globalThis.__deviceGate.surface.dispose());
+  expectSafeRun(observed);
+});

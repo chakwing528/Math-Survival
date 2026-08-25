@@ -16,7 +16,23 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
+      testIgnore: /device-gate\.spec\.js/,
       use: { ...devices['Desktop Chrome'] }
+    },
+    {
+      name: 'iphone-safari',
+      testMatch: /device-gate\.spec\.js/,
+      use: { ...devices['iPhone 13'] }
+    },
+    {
+      name: 'android-chrome',
+      testMatch: /device-gate\.spec\.js/,
+      use: { ...devices['Pixel 7'] }
+    },
+    {
+      name: 'ipad-safari',
+      testMatch: /device-gate\.spec\.js/,
+      use: { ...devices['iPad (gen 7)'] }
     }
   ],
   webServer: {

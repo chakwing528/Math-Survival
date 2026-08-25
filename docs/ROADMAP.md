@@ -38,7 +38,7 @@
 
 ## Phase 2 — 輸入及遊戲狀態機
 
-**狀態（2026-08-25）**：Batch 1／2 程式及 browser 階段完成。已抽出 input/lifecycle、解耦 Pointer Lock，並加入多指虛擬搖桿、touch look、開火、toggle 瞄準、換彈、近戰、暫停／回復及 unit/browser 驗證；目標手機真機驗收仍待完成。
+**狀態（2026-08-25）**：Batch 1／2 程式及 browser 階段完成。最後裝置閘已加入 iPhone WebKit、Android Chromium、iPad WebKit 自動矩陣、autoplay rejection 及真機 runbook；Issue 仍待三類實機的 safe-area、音訊、多指及 10 分鐘長局記錄才可關閉。
 
 **結果**：desktop、touch、Pointer Lock、pause/resume 共用一致狀態模型。
 

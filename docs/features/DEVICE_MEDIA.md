@@ -52,6 +52,8 @@ touch controls 在 pause、visibility loss、resume 及 dispose 時 reset；透�
 
 ## 修改驗證
 
+完整自動矩陣、同一 Wi-Fi 預覽方法及真機記錄表見 `../testing/DEVICE_ACCEPTANCE.md`。自動 WebKit／Chromium profile 只作合併前 regression gate，不能取代實際 iPhone／Android／iPad 驗收。
+
 - Device：desktop mouse/keyboard、touch device、hybrid device、forced query modes；切頁後輸入狀態不可殘留。
 - Orientation：iOS Safari、Android Chrome、iPad landscape/portrait。
 - Quality：每 tier 的 pixel ratio、grass/tree/shard 數及自動降級。

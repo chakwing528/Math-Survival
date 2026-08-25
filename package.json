@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "check:static": "node scripts/validate.mjs",
+    "serve:device": "MATH_SURVIVAL_TEST_HOST=0.0.0.0 node scripts/serve.mjs",
     "test:unit": "node --test tests/unit/*.test.js",
     "test:smoke": "playwright test",
     "test:smoke:staging": "MATH_SURVIVAL_STAGING_CONFIG=1 playwright test tests/smoke/supabase-staging.spec.js",

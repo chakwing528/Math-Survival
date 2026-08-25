@@ -5,9 +5,14 @@ import { fileURLToPath } from 'node:url';
 
 const root = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const port = Number(process.env.PORT || 4173);
+const host = process.env.MATH_SURVIVAL_TEST_HOST || '127.0.0.1';
 const useStagingRuntime = process.env.MATH_SURVIVAL_STAGING_CONFIG === '1';
 const stagingSupabaseUrl = String(process.env.SUPABASE_URL ?? '').replace(/\/$/, '');
 const stagingPublishableKey = String(process.env.SUPABASE_PUBLISHABLE_KEY ?? '');
+
+if (!['127.0.0.1', '0.0.0.0'].includes(host)) {
+  throw new Error('MATH_SURVIVAL_TEST_HOST must be 127.0.0.1 or 0.0.0.0');
+}
 
 if (useStagingRuntime) {
   if (!/^https:\/\/[a-z]{20}\.supabase\.co$/.test(stagingSupabaseUrl)) {
@@ -52,6 +57,10 @@ const server = createServer((request, response) => {
     response.writeHead(400).end('Bad request');
     return;
   }
+  if (pathname.split('/').some(segment => segment.startsWith('.'))) {
+    response.writeHead(404).end('Not found');
+    return;
+  }
 
   if (useStagingRuntime && pathname === '/js/cloud-runtime-config.js') {
     const source = stagingRuntimeSource();
@@ -82,8 +91,8 @@ const server = createServer((request, response) => {
   else createReadStream(path).pipe(response);
 });
 
-server.listen(port, '127.0.0.1', () => {
-  console.log(`Math Survival test server listening on http://127.0.0.1:${port}`);
+server.listen(port, host, () => {
+  console.log(`Math Survival test server listening on http://${host}:${port}`);
 });
 
 for (const signal of ['SIGINT', 'SIGTERM']) {
