@@ -50,7 +50,6 @@
 
 ## 下一批建議工作
 
-1. 確認 Issue #2 本機階段的 GitHub Actions run 成功，再把 Issue 標記為本機範圍完成。
-2. 審查 Draft PR #1 的公開內容、完整 3D gameplay 及 GitHub Pages 影響；未完成必要人工測試前不要合併。
-3. 取得/審查 GAS handler、server schema、authentication/authorization 和學生資料政策，再執行 POST migration。
-4. 基於現有回歸安全網推進 Issue #3：解耦 Pointer Lock 狀態機並建立統一 input abstraction。
+1. 審查 Draft PR #1 的公開內容、完整 3D gameplay 及 GitHub Pages 影響；未完成必要人工測試前不要合併。
+2. 取得/審查 GAS handler、server schema、authentication/authorization 和學生資料政策，再完成 Issue #2 的 server POST migration。
+3. 基於現有回歸安全網推進 Issue #3：解耦 Pointer Lock 狀態機並建立統一 input abstraction。
