@@ -2,7 +2,7 @@
 
 ## 架構形態
 
-本專案沒有 build 或 backend。靜態 host 直接提供 HTML、JavaScript、GLB 和音訊；瀏覽器再從 jsDelivr 載入 Three.js/MathJax，並直接呼叫外部 Google Apps Script。
+本專案沒有前端 build。靜態 host 直接提供 HTML、JavaScript、GLB 和音訊；browser production 目前呼叫 GAS。`supabase/` 提供預設未啟用的 Postgres/Edge Function backend foundation。
 
 ```text
 Static host
@@ -11,13 +11,16 @@ Static host
 ├─ assets/models/*.glb
 └─ audio/*
 
-Browser
+Browser (`js/cloud-runtime-config.js` feature flag)
 ├─ jsDelivr: Three.js 0.160.0 / MathJax 3
 ├─ localStorage: UI/device preferences
-└─ Google Apps Script
+├─ Google Apps Script (current production)
    ├─ getGameData
    ├─ getLeaderboard
    └─ addScore
+└─ Supabase (local foundation; hosted rollout pending)
+   ├─ Data API: active config + redacted leaderboard
+   └─ Edge Function: score POST → service-only RPC → private schema
 ```
 
 ## 3D client 啟動流程
@@ -37,11 +40,12 @@ Browser
 | 當前難度、最近結算、提交狀態 | `main.js` | module variables |
 | 靈敏度、音量、輸入模式、畫質 | `main.js`/`device.js` | localStorage |
 | 武器、喪屍、掉落預設值 | `config.js` | module objects；可被 GAS response 覆寫 |
-| 排行榜及學生姓名 | 外部 GAS/Google Sheet | repository 外；政策未知 |
+| 排行榜及學生姓名 | GAS production／Supabase private schema design | Hosted ownership/retention 尚待確認 |
 
 ## 邊界
 
-- Browser/API 邊界：沒有 server-side proxy；GAS URL、actions 和資料欄位對用戶可見。
+- Browser/API 邊界：GAS 是 direct legacy path；Supabase 寫入以 Edge Function 作 server boundary，browser 只持 publishable key。
+- Supabase database 邊界：學生/原始成績在 unexposed private schema；public read 同時受 grants、RLS 或固定 redacted RPC 限制。
 - 3D/2D 邊界：兩者是獨立 client，只有題庫檔案實際共用；其他相似邏輯多為複製。
 - DOM/module 邊界：DOM IDs 充當非正式 component API，沒有型別或 runtime schema。
 - 資產邊界：`assets.js` 的 `MANIFEST` 是 GLB 使用清單；目錄內變更須同步 manifest 和 credits。
@@ -58,11 +62,12 @@ Browser
 
 - 可部署到任何能正確提供 ES Modules、GLB 和 audio MIME types 的靜態 host。
 - 公開 repository 為 `chakwing528/Math-Survival`，現有 GitHub Pages 網址是 `https://chakwing528.github.io/Math-Survival/`；repository 沒有 deployment workflow，實際 Pages source/settings 尚未記錄在程式碼內。
-- `?v=34` 只更新有 query 的 JS；不保證 `index.html` 本身立即失效。
+- `?v=35` 只更新有 query 的 JS；不保證 `index.html` 本身立即失效。
 - CDN 是 runtime dependency；離線或被網絡政策阻擋時 3D/MathJax 會受影響。
 
 ## 未確認邊界
 
 - GAS handler 實作、CORS、rate limit、身份驗證、授權、資料驗證及重複提交規則。
+- Hosted Supabase project 選擇、學生資料 owner/retention、正式 origins、backup/recovery。
 - GitHub Pages 的 source/settings、cache headers、CSP 和安全 headers。
 - production monitoring、backup 和 recovery。

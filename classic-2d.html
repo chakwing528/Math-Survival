@@ -284,7 +284,7 @@
             <button onclick="window.submitScore()" style="padding: 15px; font-size: 18px;">上傳成績並觀看排名</button>
         </div>
 
-        <div id="version-tag">Math Survival Classic V3.4</div>
+        <div id="version-tag">Math Survival Classic V3.5</div>
     </div>
 
     <audio id="bgm" src="audio/bgm.mp3" loop></audio>
@@ -292,7 +292,8 @@
     <audio id="reloadSfx" src="audio/reloadSfx.m4a"></audio>
     <audio id="emptyAmmoSfx" src="audio/emptyAmmoSfx.m4a"></audio>
 
-<script src="js/cloud-core.js?v=34"></script>
+<script src="js/cloud-runtime-config.js?v=35"></script>
+<script src="js/cloud-core.js?v=35"></script>
 <script>
 // ==============================================================================
 // CONFIGURATION & SETUP
@@ -714,7 +715,7 @@ window.backToLogin = function() {
 
 // --- 排行榜邏輯 ---
 async function fetchLeaderboard() {
-    if (!GAS_LEADERBOARD_URL) return;
+    if (!GAS_LEADERBOARD_URL && Cloud.PROVIDER !== 'supabase') return;
     try {
         renderLeaderboard(await Cloud.requestAction('getLeaderboard'));
     } catch (error) {
@@ -748,7 +749,7 @@ window.submitScore = Cloud.createSingleFlight(async function() {
         alert("班別為必填項目！"); 
         return; 
     }
-    if (!GAS_LEADERBOARD_URL) return;
+    if (!GAS_LEADERBOARD_URL && Cloud.PROVIDER !== 'supabase') return;
 
     const now = new Date();
     let mult = { '1': 1, '2': 1.2, '3': 1.4, '4': 1.6, '5': 1.8 }[currentDifficulty] || 1;

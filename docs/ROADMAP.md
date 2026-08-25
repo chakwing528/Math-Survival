@@ -1,6 +1,6 @@
 # Overhaul Roadmap
 
-本路線圖用於 V3.4 納入 `main` 後的大規模重整。原則是先建立安全網，再拆分架構；每個階段應使用獨立 branch／Pull Request，避免一次改動所有 gameplay、UI、資料和部署。
+本路線圖用於 V3.5 納入 `main` 後的大規模重整。原則是先建立安全網，再拆分架構；每個階段應使用獨立 branch／Pull Request，避免一次改動所有 gameplay、UI、資料和部署。
 
 ## 全程原則
 
@@ -8,7 +8,7 @@
 - 每個 PR 只處理一個可驗證結果，並同步相關 `docs/`。
 - 先寫 characterization tests 或記錄現有行為，再搬動高風險程式。
 - 任何 `main` 合併前都要確認 GitHub Pages 影響和 rollback 方法。
-- 修改已帶 `?v=34` 的前端模組時，同步更新 cache key 和畫面版本。
+- 修改已帶 `?v=35` 的前端模組時，同步更新 cache key 和畫面版本。
 
 ## Phase 0 — 建立可重現基線
 
@@ -25,13 +25,13 @@
 
 ## Phase 1 — 安全及資料邊界
 
-**狀態（2026-08-25）**：Client 本機階段已完成（共用 boundary、validation、安全 DOM、single-flight、tests、v1 contract 及 POST plan）；server 階段被 GAS source/owner、test deployment 和資料政策阻塞。
+**狀態（2026-08-25）**：Supabase 完整本機 foundation 已完成並通過 migration/RLS/Edge tests；hosted project 選擇、資料 owner/retention/origins 及 staging rollout 尚待決定。
 
 **結果**：學生資料、排行榜和雲端設定有明確 contract 及安全處理。
 
 - 取得 GAS handler、owner、schema、權限及資料保留政策。
 - 把班別、學號和成績由 GET query string 遷移到經驗證的 POST schema。
-- 移除不可信遠端資料直接進入 `innerHTML` 的路徑。
+- 已移除不可信排行榜資料直接進入 `innerHTML` 的路徑；維持 regression tests。
 - 加入 timeout、錯誤類型、重試／去重策略及測試環境。
 
 **完成條件**：API contract 有版本和測試；production／test endpoint 分離；資料政策有記錄。

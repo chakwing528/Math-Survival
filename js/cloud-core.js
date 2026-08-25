@@ -3,9 +3,27 @@
     'use strict';
 
     const GAS_URL = 'https://script.google.com/macros/s/AKfycbyhAYaMKRTbD_VyHDe-MZZ5OBZVdsvY2l9qcKWq8TuliBKptbhLpQsHbc4wdyKmX24Cvg/exec';
+    const RUNTIME = global.MathSurvivalCloudRuntime ?? {};
+    const PROVIDER = RUNTIME.provider === 'supabase' ? 'supabase' : 'gas';
+    const SUPABASE_URL = cleanBaseUrl(RUNTIME.supabaseUrl);
+    const SUPABASE_PUBLISHABLE_KEY = typeof RUNTIME.supabasePublishableKey === 'string'
+        ? RUNTIME.supabasePublishableKey.trim()
+        : '';
     const DEFAULT_TIMEOUT_MS = 6000;
     const MAX_LEADERBOARD_ITEMS = 100;
     const ALLOWED_ACTIONS = new Set(['getGameData', 'getLeaderboard', 'addScore']);
+
+    function cleanBaseUrl(value) {
+        if (typeof value !== 'string' || !value.trim()) return '';
+        try {
+            const url = new URL(value.trim());
+            const isLocalHttp = url.protocol === 'http:' && (url.hostname === '127.0.0.1' || url.hostname === 'localhost');
+            if (url.protocol !== 'https:' && !isLocalHttp) return '';
+            return url.toString().replace(/\/$/, '');
+        } catch {
+            return '';
+        }
+    }
 
     class CloudError extends Error {
         constructor(code, message, options = {}) {
@@ -128,11 +146,101 @@
         }
     }
 
-    async function requestAction(action, { params, timeoutMs, fetchImpl } = {}) {
-        const data = await fetchJson(buildActionUrl(action, params), { timeoutMs, fetchImpl });
+    function hasSupabaseConfig() {
+        return Boolean(SUPABASE_URL && SUPABASE_PUBLISHABLE_KEY);
+    }
+
+    function supabaseHeaders({ json = false } = {}) {
+        const headers = { apikey: SUPABASE_PUBLISHABLE_KEY };
+        if (json) headers['Content-Type'] = 'application/json';
+        return headers;
+    }
+
+    async function fetchSupabaseJson(path, { method = 'GET', body, timeoutMs, fetchImpl = global.fetch } = {}) {
+        if (!hasSupabaseConfig()) throw new CloudError('SUPABASE_NOT_CONFIGURED', 'Supabase runtime config is incomplete');
+        if (typeof fetchImpl !== 'function') throw new CloudError('NO_FETCH', 'Fetch is unavailable');
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), timeoutMs ?? DEFAULT_TIMEOUT_MS);
+        try {
+            const response = await fetchImpl(`${SUPABASE_URL}${path}`, {
+                method,
+                headers: supabaseHeaders({ json: body !== undefined }),
+                body: body === undefined ? undefined : JSON.stringify(body),
+                signal: controller.signal,
+                credentials: 'omit'
+            });
+            let data;
+            try {
+                data = await response.json();
+            } catch (error) {
+                throw new CloudError('INVALID_JSON', 'Supabase response was not valid JSON', { cause: error });
+            }
+            if (!response.ok) {
+                const code = typeof data?.code === 'string' ? data.code : 'SUPABASE_HTTP_ERROR';
+                throw new CloudError(code, `Supabase request failed with HTTP ${response.status}`);
+            }
+            return data;
+        } catch (error) {
+            if (error instanceof CloudError) throw error;
+            if (controller.signal.aborted) throw new CloudError('TIMEOUT', `Cloud request exceeded ${timeoutMs ?? DEFAULT_TIMEOUT_MS}ms`, { cause: error });
+            throw new CloudError('NETWORK_ERROR', 'Supabase request failed', { cause: error });
+        } finally {
+            clearTimeout(timeout);
+        }
+    }
+
+    async function requestSupabaseAction(action, { params = {}, timeoutMs, fetchImpl } = {}) {
+        if (action === 'getGameData') {
+            const rows = await fetchSupabaseJson('/rest/v1/game_config_versions?select=config&is_active=eq.true&limit=1', { timeoutMs, fetchImpl });
+            return normalizeGameData(rows?.[0]?.config ?? {});
+        }
+        if (action === 'getLeaderboard') {
+            const data = await fetchSupabaseJson('/rest/v1/rpc/get_leaderboard_v1', {
+                method: 'POST', body: { p_limit: MAX_LEADERBOARD_ITEMS }, timeoutMs, fetchImpl
+            });
+            return normalizeLeaderboard(data);
+        }
+        const submission = normalizeSubmission({
+            cls: params.cls,
+            sid: params.sid,
+            score: params.score,
+            difficulty: String(params.difficulty ?? params.diff ?? '').replace(/^程度\s*/, '')
+        });
+        const idempotencyKey = global.crypto?.randomUUID?.();
+        if (!idempotencyKey) throw new CloudError('NO_CRYPTO', 'Secure UUID generation is unavailable');
+        const data = await fetchSupabaseJson('/functions/v1/submit-score', {
+            method: 'POST',
+            body: {
+                classCode: submission.cls,
+                studentId: submission.sid,
+                score: submission.score,
+                difficulty: Number(submission.difficulty),
+                idempotencyKey
+            },
+            timeoutMs,
+            fetchImpl
+        });
+        return normalizeSubmitResponse(data);
+    }
+
+    async function requestGasAction(action, options = {}) {
+        const data = await fetchJson(buildActionUrl(action, options.params), options);
         if (action === 'getLeaderboard') return normalizeLeaderboard(data);
         if (action === 'getGameData') return normalizeGameData(data);
         return normalizeSubmitResponse(data);
+    }
+
+    async function requestAction(action, { params, timeoutMs, fetchImpl } = {}) {
+        if (!ALLOWED_ACTIONS.has(action)) throw new CloudError('INVALID_ACTION', `Unsupported cloud action: ${action}`);
+        const options = { params, timeoutMs, fetchImpl };
+        if (PROVIDER !== 'supabase') return requestGasAction(action, options);
+        try {
+            return await requestSupabaseAction(action, options);
+        } catch (error) {
+            const canFallback = action !== 'addScore' && RUNTIME.fallbackReadsToGas === true;
+            if (!canFallback) throw error;
+            return requestGasAction(action, options);
+        }
     }
 
     function createSingleFlight(task) {
@@ -239,6 +347,8 @@
 
     global.MathSurvivalCloud = Object.freeze({
         GAS_URL,
+        PROVIDER,
+        SUPABASE_URL,
         DEFAULT_TIMEOUT_MS,
         CloudError,
         buildActionUrl,
@@ -248,8 +358,10 @@
         normalizeGameData,
         normalizeLeaderboard,
         normalizeSubmission,
+        requestGasAction,
         renderLeaderboard,
         requestAction,
+        requestSupabaseAction,
         setListMessage
     });
 })(globalThis);

@@ -44,7 +44,7 @@ export const SETTINGS = {
 
 // 從 Google Sheet 讀取武器 / 魔物 / 箱子時間設定 (沿用原有 GAS API)
 export async function loadCloudConfig() {
-    if (!GAS_URL) return;
+    if (!GAS_URL && Cloud.PROVIDER !== 'supabase') return;
     const data = await Cloud.requestAction('getGameData');
 
     let weaponsData = data.weapons;

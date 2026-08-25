@@ -2,7 +2,7 @@
 
 ## 一句話
 
-Math Survival 是一個純靜態瀏覽器數學射擊遊戲：學生在 3D 或 2D 生存戰中完成數學題以升級武器，並可把成績提交到外部 Google Apps Script 排行榜。
+Math Survival 是一個靜態瀏覽器數學射擊遊戲：學生在 3D 或 2D 生存戰中完成數學題以升級武器。Production 排行榜目前使用 GAS；repository 已加入預設關閉的 Supabase backend foundation。
 
 ## 快速入口
 
@@ -14,7 +14,8 @@ Math Survival 是一個純靜態瀏覽器數學射擊遊戲：學生在 3D 或 2
 | 數學題 | `js/math.js`、`js/topics/` | 題目選擇、答題 UI、解釋和課題生成器 |
 | 雲端設定 | `js/config.js` | 本機預設值及 GAS game-data 覆寫 |
 | 排行榜 | `js/leaderboard.js` | 3D 版排行榜讀取、渲染和提交 |
-| Cloud boundary | `js/cloud-core.js` | 共用 GAS endpoint、timeout、validation、single-flight、安全排行榜 DOM |
+| Cloud boundary | `js/cloud-runtime-config.js`、`js/cloud-core.js` | GAS/Supabase feature flag、adapter、validation、安全排行榜 DOM |
+| Supabase backend | `supabase/` | Postgres migration、RLS/grants、Edge Function、synthetic seed、pgTAP |
 | 裝置/畫質 | `js/device.js` | desktop/touch、全螢幕、橫屏、品質分級 |
 | 3D 資產 | `js/assets.js`、`assets/models/` | GLB manifest、載入、clone、動畫映射 |
 | 音訊 | `js/audio.js`、`audio/` | BGM、錄製音效及 WebAudio 合成音效 |
@@ -38,8 +39,9 @@ Math Survival 是一個純靜態瀏覽器數學射擊遊戲：學生在 3D 或 2
 
 - `/` 或 `/index.html`：3D 主頁；`/` 是否映射到 `index.html` 由靜態 host 決定。
 - `/classic-2d.html`：2D 經典版。
-- 沒有本機 API routes、backend、database、ORM 或 migration。
+- `supabase/` 可啟動隔離本機 backend；正式 static site 尚未切換，亦未連接 hosted project。
 - 外部 GAS actions：`getGameData`、`getLeaderboard`、`addScore`；詳見 `api/API_MAP.md`。
+- Supabase v1 endpoints：詳見 `api/SUPABASE_CONTRACT_V1.md`。
 
 ## 共用依賴關係
 
@@ -64,6 +66,6 @@ classic-2d.html ─────────────┘
 
 - `game.js` 約 3,000 行，集中多個 subsystem；任何狀態機、render loop 或 dispose 修改都需要 browser smoke test。
 - 2D/3D 有重複雲端、題目及排行榜邏輯，容易只修正其中一版。
-- GAS 回傳資料會進入 `innerHTML`；遠端資料必須視為不可信。
+- GAS/Supabase 回傳資料一律視為不可信；排行榜現經 validation＋`textContent`，不可恢復 `innerHTML`。
 - 班別和學號經 GET query string 提交；更改前要先確認遠端 handler 及資料政策。
 - 3D touch P0 已存在，但核心 gameplay input P1 尚未完成。

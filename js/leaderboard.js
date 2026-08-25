@@ -2,13 +2,13 @@
 // 排行榜：讀取 / 安全渲染 / 上傳成績（保留現有 GAS GET contract）
 // ==============================================================================
 
-import { GAS_URL } from './config.js?v=34';
+import { GAS_URL } from './config.js?v=35';
 
 const Cloud = globalThis.MathSurvivalCloud;
 if (!Cloud) throw new Error('MathSurvivalCloud must load before leaderboard.js');
 
 export async function fetchLeaderboard() {
-    if (!GAS_URL) return [];
+    if (!GAS_URL && Cloud.PROVIDER !== 'supabase') return [];
     return Cloud.requestAction('getLeaderboard');
 }
 
@@ -17,13 +17,14 @@ export function renderLeaderboard(data, listEl, myRankEl) {
 }
 
 async function performSubmitScore(input) {
-    if (!GAS_URL) return [];
+    if (!GAS_URL && Cloud.PROVIDER !== 'supabase') return [];
     const submission = Cloud.normalizeSubmission(input);
     const now = new Date();
     const params = {
         date: now.toLocaleDateString('zh-HK'),
         time: now.toLocaleTimeString('zh-HK'),
         diff: `程度 ${submission.difficulty}`,
+        difficulty: submission.difficulty,
         cls: submission.cls,
         sid: submission.sid,
         score: submission.score,

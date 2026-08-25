@@ -1,6 +1,6 @@
 # GAS Client Contract v1
 
-狀態：2026-08-25 接受，適用於 Math Survival V3.4 client。
+狀態：2026-08-25 接受，適用於 Math Survival V3.4+ legacy GAS client。
 
 本文件描述 repository 內 client 會送出及接受的資料，不代表未取得原始碼的 Google Apps Script handler 已提供相同 server-side 保證。正式 server contract 仍需由 GAS owner 確認。
 

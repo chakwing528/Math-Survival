@@ -4,12 +4,12 @@
 
 import * as THREE from 'three';
 import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
-import { WEAPONS, MONSTER_BASE, SETTINGS, DIFF_MULT, DIFF_LABELS } from './config.js?v=34';
-import { playSfx, sfxZombieGrowl, sfxZombieAttack, sfxZombieDeath, sfxBossRoar, sfxCorrect, sfxWrong, sfxLevelUp, sfxHeartbeat, sfxVictory, sfxPanSwing, sfxPanClang } from './audio.js?v=34';
-import { showMathQuestion } from './math.js?v=34';
-import { ASSETS, GUN_BY_LEVEL, cloneCharacter, cloneProp, cloneGun, tintModel } from './assets.js?v=34';
-import { buildSchool, COURT_HX, COURT_HZ, BUILD_HX, BUILD_HZ } from './school.js?v=34';
-import { getQuality, downgradeQuality } from './device.js?v=34';
+import { WEAPONS, MONSTER_BASE, SETTINGS, DIFF_MULT, DIFF_LABELS } from './config.js?v=35';
+import { playSfx, sfxZombieGrowl, sfxZombieAttack, sfxZombieDeath, sfxBossRoar, sfxCorrect, sfxWrong, sfxLevelUp, sfxHeartbeat, sfxVictory, sfxPanSwing, sfxPanClang } from './audio.js?v=35';
+import { showMathQuestion } from './math.js?v=35';
+import { ASSETS, GUN_BY_LEVEL, cloneCharacter, cloneProp, cloneGun, tintModel } from './assets.js?v=35';
+import { buildSchool, COURT_HX, COURT_HZ, BUILD_HX, BUILD_HZ } from './school.js?v=35';
+import { getQuality, downgradeQuality } from './device.js?v=35';
 
 // 喪屍等級 → 模型
 const ZOMBIE_BY_TIER = { 1: 'zombie_b', 2: 'zombie_a', 3: 'zombie_c', 4: 'zombie_anim', 5: 'zombie_anim' };

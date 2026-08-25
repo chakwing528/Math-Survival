@@ -4,7 +4,15 @@
 
 Google Apps Script Web App URL 只定義於 `js/cloud-core.js`，3D 和 2D client 共用 `MathSurvivalCloud`。完整 v1 client contract 見 `GAS_CONTRACT_V1.md`。
 
-repository 沒有本機 handler、OpenAPI/GraphQL schema 或 server tests；`GAS_CONTRACT_V1.md` 是 client-observed contract，不是 server 保證。
+repository 沒有 GAS handler、OpenAPI/GraphQL schema 或 GAS server tests；`GAS_CONTRACT_V1.md` 是 client-observed contract，不是 server 保證。Supabase 本機 handler/tests 另見下節。
+
+## Supabase v1（本機已驗證，hosted 未啟用）
+
+- Active config：Data API `game_config_versions`，anon 只有 active-row `SELECT` grant＋RLS。
+- Leaderboard：`get_leaderboard_v1` RPC，只回傳班別、遮罩名、分數；不回傳學號／全名。
+- Submit：`POST /functions/v1/submit-score`，再呼叫只授權 server role 的 `submit_score_v1`。
+- 完整 headers、body、idempotency、rate limit 和 fallback 規則見 `SUPABASE_CONTRACT_V1.md`。
+- Migration/rollout 見 `../runbooks/SUPABASE_MIGRATION.md`。
 
 ## Endpoints/actions
 
@@ -54,3 +62,4 @@ repository 沒有本機 handler、OpenAPI/GraphQL schema 或 server tests；`GAS
 - 新增或改欄位前要同時更新兩個 clients、本文件及資料私隱文件。
 - POST v2 方案見 `GAS_POST_MIGRATION.md`；只能在取得 GAS handler、test deployment 和部署批准後執行。
 - browser tests 不應直接寫 production leaderboard；需要測試部署或 mock layer。
+- Hosted Supabase migration 必須先在獨立 staging project 驗證；不可因帳戶已有 production project 就直接套用。

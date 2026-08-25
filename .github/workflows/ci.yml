@@ -41,3 +41,34 @@ jobs:
           name: playwright-report
           path: playwright-report/
           retention-days: 14
+
+  database:
+    name: Supabase migration and security tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: lts/*
+          cache: npm
+
+      - name: Install pinned tooling
+        run: npm ci
+
+      - name: Start isolated Supabase stack
+        run: npx supabase start -x gotrue,realtime,storage-api,imgproxy,kong,mailpit,postgrest,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
+
+      - name: Run migration security tests
+        run: npm run test:db
+
+      - name: Lint database schemas
+        run: npm run lint:db
+
+      - name: Stop isolated Supabase stack
+        if: ${{ always() }}
+        run: npx supabase stop

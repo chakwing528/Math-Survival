@@ -25,12 +25,14 @@
 
 ## 重要工程規則
 
-- `index.html`、`js/main.js` 和其 ES Module imports 使用 `?v=34` cache key。修改已加版本參數的前端檔案時，發佈前應一致 bump 所有相關 `?v=` 及畫面版本標籤。
+- `index.html`、`js/main.js` 和其 ES Module imports 使用 `?v=35` cache key。修改已加版本參數的前端檔案時，發佈前應一致 bump 所有相關 `?v=` 及畫面版本標籤。
 - `js/helpers.js` 必須在 `js/topics/*.js` 之前載入；題庫依賴其 global helpers。
 - `index.html` 的 DOM IDs 是 `main.js`、`game.js`、`math.js`、`audio.js` 和 `device.js` 的共用介面，改名時必須搜尋所有 caller。
 - 3D 遊戲的相機/射擊、Sprite raycast、GLTF bbox、手骨武器 scale 及共用材質規則見 `docs/features/GAMEPLAY.md`。
 - `classic-2d.html` 是獨立單檔客戶端，包含與 3D 版重複的設定、數學和排行榜邏輯；修改共同行為時要檢查兩個入口。
-- `js/cloud-core.js` 必須在 3D modules 及 2D inline client 前載入；GAS endpoint、response validation、single-flight 和 leaderboard DOM rendering 以此為唯一共用邊界。
+- `js/cloud-runtime-config.js` 必須先於 `js/cloud-core.js`；後者是 GAS/Supabase request、response validation、single-flight 和 leaderboard DOM rendering 的唯一共用邊界。
+- Supabase browser source 只可使用 publishable key；secret/service-role key及 rate-limit salt只可存在 Edge Function secrets。
+- `math_survival_private` 不可加入 Data API exposed schemas；任何公開 table 同時需要明確 GRANT 及 RLS。
 - 遠端 leaderboard 欄位不可經 `innerHTML`；必須通過 `MathSurvivalCloud` validation 並使用安全 DOM/textContent。
 - 不要把班別、學號、姓名或成績加入 log、fixture、截圖或文件範例。
 - 不要在未審查 Google Apps Script handler 和資料政策前改動遠端資料格式。

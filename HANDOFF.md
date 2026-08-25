@@ -2,7 +2,7 @@
 
 > 新 Codex task 應先讀 `AGENTS.md`、`docs/PROJECT_MAP.md` 同 `docs/CURRENT_STATE.md`，再按任務讀相關 feature 文件。
 > 呢份文件只保留近期交接同歷史實作細節；架構、API、資料流同長期規則以 `docs/` 為準，實際行為以程式碼為準。
-> 目前 workspace：`/Users/cwchan/Downloads/Math-Survival-main/Math-Survival-main`。2026-08-25 盤點時缺少 `.git`；其後已確認並恢復公開 repository `chakwing528/Math-Survival` 的 Git 歷史及 `origin`。本機 V3.4 在 `codex/project-memory-v3.3`，Draft PR #1 尚未合併至 `main`。Issue #4 已完成；Issue #2 client 本機安全階段已完成，本機及 GitHub Actions 均通過，server POST migration 仍需 GAS source/owner/test deployment；後續見 Issue #3 及 `docs/ROADMAP.md`。
+> 目前 workspace：`/Users/cwchan/Downloads/Math-Survival-main/Math-Survival-main`。本機 V3.5 在 `codex/project-memory-v3.3`，Draft PR #1 尚未合併至 `main`。Issue #4 已完成；Issue #2 的 Supabase 本機 foundation（migration、RLS/grants、Edge Function、adapter、tests）已完成，hosted rollout 尚未選定 project 或確認學生資料政策；後續見 `docs/runbooks/SUPABASE_MIGRATION.md`、Issue #3 及 `docs/ROADMAP.md`。
 
 ---
 
@@ -14,7 +14,7 @@
 
 **目標用戶**：明愛聖若瑟中學學生（電腦版，需滑鼠鍵盤）
 
-**現時版本**：**V3.4**（快取版本號 `?v=34`）　← GAS／排行榜 client 安全邊界已完成本機階段；手機版改造見第九節
+**現時版本**：**V3.5**（快取版本號 `?v=35`）　← Supabase migration foundation 已完成本機階段；production 仍為 GAS
 
 ---
 
@@ -51,13 +51,13 @@ audio/              bgm.mp3 + 3 個槍聲音效
 
 ### 版本快取機制（重要！）
 
-目前已加 cache key 嘅 import 都掛 `?v=34`，例如 `import { x } from './config.js?v=34'`。
+目前已加 cache key 嘅 import 都掛 `?v=35`，例如 `import { x } from './config.js?v=35'`。
 **每次改完代碼必須 bump 版本號**，否則用戶瀏覽器會用舊快取。
 
 ```bash
 python3 - << 'PYEOF'
 import io, re, os
-OLD, NEW = '33', '34'   # ← 發佈前按實際版本改呢兩個數字
+OLD, NEW = '34', '35'   # ← 發佈前按實際版本改呢兩個數字
 for f in ['index.html','js/main.js','js/game.js','js/assets.js','js/math.js','js/school.js',
           'js/leaderboard.js','js/config.js','js/audio.js','js/helpers.js','js/ambient.js']:
     if os.path.exists(f):
@@ -65,7 +65,7 @@ for f in ['index.html','js/main.js','js/game.js','js/assets.js','js/math.js','js
         s2 = s.replace('?v='+OLD, '?v='+NEW)
         if s != s2: io.open(f,'w',encoding='utf-8').write(s2)
 h = io.open('index.html', encoding='utf-8').read()
-h = re.sub(r'Math Survival FPS V[0-9.]+', 'Math Survival FPS V3.4', h)  # ← 同步改顯示版本
+h = re.sub(r'Math Survival FPS V[0-9.]+', 'Math Survival FPS V3.5', h)  # ← 同步改顯示版本
 io.open('index.html','w',encoding='utf-8').write(h)
 print('bumped')
 PYEOF
