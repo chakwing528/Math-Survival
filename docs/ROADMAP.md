@@ -1,6 +1,6 @@
 # Overhaul Roadmap
 
-本路線圖用於 V3.5 納入 `main` 後的大規模重整。原則是先建立安全網，再拆分架構；每個階段應使用獨立 branch／Pull Request，避免一次改動所有 gameplay、UI、資料和部署。
+本路線圖用於安全基線納入 `main` 前後的大規模重整。原則是先建立安全網，再拆分架構；每個階段應使用獨立 branch／Pull Request，避免一次改動所有 gameplay、UI、資料和部署。
 
 ## 全程原則
 
@@ -8,7 +8,7 @@
 - 每個 PR 只處理一個可驗證結果，並同步相關 `docs/`。
 - 先寫 characterization tests 或記錄現有行為，再搬動高風險程式。
 - 任何 `main` 合併前都要確認 GitHub Pages 影響和 rollback 方法。
-- 修改已帶 `?v=35` 的前端模組時，同步更新 cache key 和畫面版本。
+- 修改已帶 `?v=36` 的前端模組時，同步更新 cache key 和畫面版本。
 
 ## Phase 0 — 建立可重現基線
 
@@ -37,6 +37,8 @@
 **完成條件**：API contract 有版本和測試；production／test endpoint 分離；資料政策有記錄。
 
 ## Phase 2 — 輸入及遊戲狀態機
+
+**狀態（2026-08-25）**：第一批完成。已抽出 input/lifecycle、解耦 Pointer Lock、加入 visibility pause、touch 暫停／回復及 unit/browser 驗證；完整 touch controls 待第二批。
 
 **結果**：desktop、touch、Pointer Lock、pause/resume 共用一致狀態模型。
 

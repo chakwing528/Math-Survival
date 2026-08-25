@@ -2,17 +2,17 @@
 // 主流程：載入 → 登入 → 選難度 → 遊戲 → 結算上傳 → 返回選單
 // ==============================================================================
 
-import { loadCloudConfig, DIFF_MULT } from './config.js?v=35';
-import { initAudio, setBgmVolume, setSfxVolume } from './audio.js?v=35';
-import { fetchLeaderboard, renderLeaderboard, submitScore } from './leaderboard.js?v=35';
-import { TOPIC_NAMES } from './math.js?v=35';
-import { initInputMode, initOrientationGuard, enterImmersive } from './device.js?v=35';
+import { loadCloudConfig, DIFF_MULT } from './config.js?v=36';
+import { initAudio, setBgmVolume, setSfxVolume } from './audio.js?v=36';
+import { fetchLeaderboard, renderLeaderboard, submitScore } from './leaderboard.js?v=36';
+import { TOPIC_NAMES } from './math.js?v=36';
+import { initInputMode, initOrientationGuard, enterImmersive } from './device.js?v=36';
 
 // 3D 引擎 (Three.js) 採用動態載入：就算 CDN 有問題，選單同排行榜都照常運作
 let GameClass = null;
 async function loadEngine() {
     if (!GameClass) {
-        const mod = await import('./game.js?v=35');
+        const mod = await import('./game.js?v=36');
         GameClass = mod.Game;
     }
     return GameClass;
@@ -57,7 +57,7 @@ function showMenu() {
 let ambientMod = null;
 function ensureAmbient() {
     if (ambientMod) { ambientMod.resumeAmbient(); return; }
-    import('./ambient.js?v=35')
+    import('./ambient.js?v=36')
         .then(m => { ambientMod = m; m.startAmbient($('game-container')); })
         .catch(() => {}); // 失敗都唔影響選單
 }
@@ -97,7 +97,7 @@ async function startGame(level) {
     try {
         Game = await loadEngine();
         // 載入 3D 模型 (首次需時，顯示進度)
-        const { loadAssets } = await import('./assets.js?v=35');
+        const { loadAssets } = await import('./assets.js?v=36');
         const ls = $('loading-screen');
         const sub = $('loading-subtext');
         ls.style.display = 'flex';
@@ -258,7 +258,7 @@ async function boot() {
 
     // 背景預載 3D 引擎 + 模型，令首次入場更快
     loadEngine()
-        .then(() => import('./assets.js?v=35'))
+        .then(() => import('./assets.js?v=36'))
         .then(m => m.loadAssets())
         .catch(() => {});
 }

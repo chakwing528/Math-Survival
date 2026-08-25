@@ -18,7 +18,7 @@ Browser (`js/cloud-runtime-config.js` feature flag)
    ├─ getGameData
    ├─ getLeaderboard
    └─ addScore
-└─ Supabase (local foundation; hosted rollout pending)
+└─ Supabase (獨立 hosted staging；production flag 預設關閉)
    ├─ Data API: active config + redacted leaderboard
    └─ Edge Function: score POST → service-only RPC → private schema
 ```
@@ -37,6 +37,7 @@ Browser (`js/cloud-runtime-config.js` feature flag)
 | 狀態 | Owner | 保存位置 |
 |---|---|---|
 | 遊戲實體、HP、敵人、武器、數學統計 | `Game` | 記憶體 |
+| keyboard/mouse/touch input 及 lifecycle | `input.js` | 記憶體；每局 dispose 清理 |
 | 當前難度、最近結算、提交狀態 | `main.js` | module variables |
 | 靈敏度、音量、輸入模式、畫質 | `main.js`/`device.js` | localStorage |
 | 武器、喪屍、掉落預設值 | `config.js` | module objects；可被 GAS response 覆寫 |
@@ -62,12 +63,12 @@ Browser (`js/cloud-runtime-config.js` feature flag)
 
 - 可部署到任何能正確提供 ES Modules、GLB 和 audio MIME types 的靜態 host。
 - 公開 repository 為 `chakwing528/Math-Survival`，現有 GitHub Pages 網址是 `https://chakwing528.github.io/Math-Survival/`；repository 沒有 deployment workflow，實際 Pages source/settings 尚未記錄在程式碼內。
-- `?v=35` 只更新有 query 的 JS；不保證 `index.html` 本身立即失效。
+- `?v=36` 只更新有 query 的 JS；不保證 `index.html` 本身立即失效。
 - CDN 是 runtime dependency；離線或被網絡政策阻擋時 3D/MathJax 會受影響。
 
 ## 未確認邊界
 
 - GAS handler 實作、CORS、rate limit、身份驗證、授權、資料驗證及重複提交規則。
-- Hosted Supabase project 選擇、學生資料 owner/retention、正式 origins、backup/recovery。
+- Supabase 學生資料 owner/retention、正式 origins、backup/recovery 及 production cutover。
 - GitHub Pages 的 source/settings、cache headers、CSP 和安全 headers。
 - production monitoring、backup 和 recovery。

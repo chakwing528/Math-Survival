@@ -2,7 +2,7 @@
 
 > 新 Codex task 應先讀 `AGENTS.md`、`docs/PROJECT_MAP.md` 同 `docs/CURRENT_STATE.md`，再按任務讀相關 feature 文件。
 > 呢份文件只保留近期交接同歷史實作細節；架構、API、資料流同長期規則以 `docs/` 為準，實際行為以程式碼為準。
-> 目前 workspace：`/Users/cwchan/Downloads/Math-Survival-main/Math-Survival-main`。本機 V3.5 在 `codex/project-memory-v3.3`，Draft PR #1 尚未合併至 `main`。Issue #4 已完成；Issue #2 的本機 foundation 及獨立 Free `Math-Survival-Staging` hosted rollout 已完成，production 仍為 GAS，真實資料 owner／retention／匯入及 cutover 未決；後續見 `docs/runbooks/SUPABASE_MIGRATION.md`、Issue #3 及 `docs/ROADMAP.md`。
+> 目前 workspace：`/Users/cwchan/Downloads/Math-Survival-main/Math-Survival-main`。Draft PR #1 尚未合併至 `main`；V3.6 Issue #3 第一批在 `codex/input-state-machine-p1` 疊加分支。Issue #2 的獨立 `Math-Survival-Staging` rollout 已完成，production 仍為 GAS；後續見 `docs/runbooks/SUPABASE_MIGRATION.md`、Issue #3 及 `docs/ROADMAP.md`。
 
 ---
 
@@ -14,7 +14,7 @@
 
 **目標用戶**：明愛聖若瑟中學學生（電腦版，需滑鼠鍵盤）
 
-**現時版本**：**V3.5**（快取版本號 `?v=35`）　← Supabase migration foundation 已完成本機階段；production 仍為 GAS
+**現時版本**：**V3.6**（快取版本號 `?v=36`）　← Issue #3 第一批 input/lifecycle 重構；production 仍為 GAS
 
 ---
 
@@ -51,7 +51,7 @@ audio/              bgm.mp3 + 3 個槍聲音效
 
 ### 版本快取機制（重要！）
 
-目前已加 cache key 嘅 import 都掛 `?v=35`，例如 `import { x } from './config.js?v=35'`。
+目前已加 cache key 嘅 import 都掛 `?v=36`，例如 `import { x } from './config.js?v=36'`。
 **每次改完代碼必須 bump 版本號**，否則用戶瀏覽器會用舊快取。
 
 ```bash
@@ -65,7 +65,7 @@ for f in ['index.html','js/main.js','js/game.js','js/assets.js','js/math.js','js
         s2 = s.replace('?v='+OLD, '?v='+NEW)
         if s != s2: io.open(f,'w',encoding='utf-8').write(s2)
 h = io.open('index.html', encoding='utf-8').read()
-h = re.sub(r'Math Survival FPS V[0-9.]+', 'Math Survival FPS V3.5', h)  # ← 同步改顯示版本
+h = re.sub(r'Math Survival FPS V[0-9.]+', 'Math Survival FPS V3.6', h)  # ← 同步改顯示版本
 io.open('index.html','w',encoding='utf-8').write(h)
 print('bumped')
 PYEOF
@@ -227,17 +227,16 @@ python3 -m http.server 8000   → http://localhost:8000
 
 舊交接紀錄：當時桌面版數值同改造前一致（草 700 / 樹 40 / 霧 60-150 / antialias 開），並記錄為冇新 console 錯誤；目前未重新驗證。
 
+### ✅ P1 第一批已完成（V3.6）
+
+- `js/input.js`：keyboard/mouse/touch input state、look delta API、允許的 lifecycle transitions 及 listener cleanup。
+- `Game.pause()`／`resume()` 已與 Pointer Lock 解耦；desktop lock/unlock、touch 暫停鍵、答題回復及 `visibilitychange` 共用同一狀態機。
+- 遊戲由 `RESUME_WAIT` 開始；Pointer Lock 失敗不再讓模擬在背景繼續，並顯示可退出的暫停選單。
+- 18 個 unit tests及實際 forced-touch 3D browser pause/resume 計時驗證通過。
+
 ### ⬜ 待做
 
-- **P1 能玩**（最關鍵）
-  1. ⚠️ **暫停狀態機解耦** — 而家 `PLAYING⇄PAUSED` 完全靠 PointerLock 嘅 lock/unlock 事件驅動
-     （`game.js` `_onLock`/`_onUnlock`、`start()` 嘅 `controls.lock()`、答題時嘅 `controls.unlock()`）。
-     手機冇 Pointer Lock，唔拆呢個就會一開波卡死喺 `RESUME_WAIT`。要抽 `pause()` / `resume()` 方法，
-     desktop 由 lock 事件叫、touch 由暫停掣同 `visibilitychange` 叫。
-  2. 輸入抽象層 `js/input.js`，輸出統一 state：`moveX/moveZ`(類比)、`lookDX/DY`、`shooting/aiming/sprinting`、
-     `reload/toggleView/melee`。game.js 只需改兩處：讀 `keys.wasd` 嗰段、同埋相機轉向。
-     **移動唔使改** —— `controls.moveForward/moveRight` 唔依賴 pointer lock。
-  3. 左下虛擬搖桿（推到最外圈＝疾跑）、右半屏拖動轉視角、右下開火掣
+- **P1 第二批能玩**：左下虛擬搖桿（推到最外圈＝疾跑）、右半屏拖動轉視角、右下開火掣，接駁現有 `InputController`。
 - **P2 好玩** — 拖動即射（開火掣按住可同時轉視角，要追 pointerId）、開鏡改 toggle、換彈/切視角/近戰掣、磁吸加大
 - **P3 靚** — 四角 HUD wrapper 各自 `transform: scale(var(--hud-s))`（唔好成個 HUD 一次過 scale，錨點會飛）、
   選單 `flex-direction` 手機改 column、答題彈窗選項掣 ≥48px、填充題 `inputmode="numeric"`

@@ -6,8 +6,8 @@
 
 - **3D 主版**：開啟 `index.html`，正式控制方式為滑鼠和鍵盤。
 - **2D 經典版**：開啟 `classic-2d.html`，保留觸控和舊裝置 fallback。
-- 3D 主版已有 touch/畫質偵測 P0，但完整虛擬搖桿、touch look、射擊及暫停流程尚未完成；手機目前優先使用 2D 版。
-- 畫面版本為 V3.5，module cache key 為 `?v=35`。
+- 3D 主版已有共用輸入狀態、touch 暫停／回復及畫質偵測，但完整虛擬搖桿、touch look 和射擊按鈕尚未完成；手機目前仍可使用 2D fallback。
+- 畫面版本為 V3.6，module cache key 為 `?v=36`。
 
 > 3D 版使用 ES Modules，必須經 HTTP server 開啟。直接雙擊 `index.html` 會因 `file://` 限制而無法載入 modules。
 
@@ -74,6 +74,7 @@ classic-2d.html         2D 經典版完整 client
 js/
   main.js               選單、boot、遊戲建立、結算
   game.js               Three.js runtime、戰鬥、AI、場景、HUD
+  input.js              keyboard/mouse/touch 輸入狀態及 lifecycle 狀態機
   config.js             遊戲預設值及 cloud 覆寫
   cloud-runtime-config.js GAS/Supabase public feature flag
   cloud-core.js         共用 GAS/Supabase adapter、validation、timeout、安全排行榜 DOM
@@ -115,7 +116,7 @@ supabase/               migrations、Edge Function、synthetic seed、pgTAP test
 
 ## 雲端設定和排行榜
 
-Production 目前仍由 Google Apps Script/Sheet 提供雲端設定及排行榜。V3.5 已加入預設關閉的 Supabase adapter、private schema、RLS/grants、Edge Function 和本機 security tests；尚未套用 hosted project，詳見 `docs/features/CLOUD_AND_LEADERBOARD.md`。
+Production 目前仍由 Google Apps Script/Sheet 提供雲端設定及排行榜。獨立 Supabase staging project 已部署 adapter、private schema、RLS/grants、Edge Function 及安全測試，但 public runtime flag 預設仍關閉，詳見 `docs/features/CLOUD_AND_LEADERBOARD.md`。
 
 班別和學號會在玩家主動提交成績時傳送到 GAS。開發和測試不要使用真實學生資料，也不要直接向 production 排行榜寫入測試紀錄。
 

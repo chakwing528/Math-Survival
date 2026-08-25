@@ -18,7 +18,7 @@
 ### 主要入口和 components
 
 - Layout/UI：`index.html` 內的 `#loading-screen`、`#start-menu`、`#hud`、`#math-overlay`、`#pause-menu`、`#gameover-overlay`。
-- Controller：`js/main.js`。
+- Controller：`js/main.js`；輸入／lifecycle：`js/input.js`。
 - Game canvas：由 `js/game.js` 或 `js/ambient.js` 動態加入 `#game-container`。
 - 題目：`js/math.js` 操作 `#math-*` DOM。
 - 排行榜：`js/leaderboard.js` 操作 `#menu-lb-list` 和 `#go-lb-list`。
@@ -40,7 +40,7 @@
 
 - Models：`WEAPONS`、`MONSTER_BASE`、`SETTINGS`、`mathStats`、leaderboard item。
 - API：三個 GAS actions，詳見 `../api/API_MAP.md`。
-- Tests：沒有自動測試。
+- Tests：啟動／雲端隔離 browser smoke、input/lifecycle unit tests；完整 gameplay 仍需實際瀏覽器驗收。
 
 ## 2D 經典版
 
@@ -67,4 +67,3 @@
 - 更改題庫函數 contract：檢查 `js/math.js` 和 2D `triggerMath()`。
 - 更改難度名稱/倍率：檢查 `index.html`、`config.js` 和 `classic-2d.html`。
 - 更改 cache version：檢查 `index.html` 及所有 ES Module imports。
-
