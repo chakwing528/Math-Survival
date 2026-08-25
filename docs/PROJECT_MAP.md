@@ -18,6 +18,7 @@ Math Survival 是一個靜態瀏覽器數學射擊遊戲：學生在 3D 或 2D �
 | Supabase backend | `supabase/` | Postgres migrations、RLS/grants、Edge Function、synthetic seed、pgTAP 及 hosted staging |
 | Staging validation | `scripts/validate-hosted-supabase.mjs`、`tests/smoke/supabase-staging.spec.js` | Hosted HTTP 安全邊界及 3D／2D 無 GAS fallback 驗收 |
 | 裝置/畫質 | `js/device.js` | desktop/touch、全螢幕、橫屏、品質分級 |
+| 輸入/狀態 | `js/input.js` | keyboard/mouse/touch input state、遊戲 lifecycle transition |
 | 3D 資產 | `js/assets.js`、`assets/models/` | GLB manifest、載入、clone、動畫映射 |
 | 音訊 | `js/audio.js`、`audio/` | BGM、錄製音效及 WebAudio 合成音效 |
 | 場景 | `js/ambient.js`、`js/school.js` | 選單背景；備用學校場景 |
@@ -69,4 +70,4 @@ classic-2d.html ─────────────┘
 - 2D/3D 有重複雲端、題目及排行榜邏輯，容易只修正其中一版。
 - GAS/Supabase 回傳資料一律視為不可信；排行榜現經 validation＋`textContent`，不可恢復 `innerHTML`。
 - 班別和學號經 GET query string 提交；更改前要先確認遠端 handler 及資料政策。
-- 3D touch P0 已存在，但核心 gameplay input P1 尚未完成。
+- 3D touch P1 第一批狀態機／暫停流程已完成；虛擬移動、視角及戰鬥控制仍未完成。

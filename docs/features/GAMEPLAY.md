@@ -14,13 +14,13 @@
 
 | State | 意義 | 主要進入方式 | 主要離開方式 |
 |---|---|---|---|
-| `PLAYING` | 正常模擬、輸入及 render | 建立 Game；Pointer Lock lock | unlock、數學題、結束 |
-| `PAUSED` | 暫停選單 | `PointerLockControls` unlock | resume button/lock |
+| `PLAYING` | 正常模擬、輸入及 render | `resume()`；desktop lock 或 touch start | `pause()`、數學題、結束 |
+| `PAUSED` | 暫停選單 | desktop unlock、touch 暫停鍵、分頁隱藏 | resume button；desktop 再 lock |
 | `MATH` | 題目 overlay；遊戲輸入停止 | 接觸補給並 `_triggerMath()` | 題目 resolve |
-| `RESUME_WAIT` | 等玩家重新取得 Pointer Lock | `_onMathResolved()` | overlay click/lock |
+| `RESUME_WAIT` | 等待安全恢復遊戲控制 | 建立 Game、desktop 答題完成 | desktop lock；touch 直接 `resume()` |
 | `OVER` | 勝利、死亡或放棄 | `_endGame()`/`abort()` | `main.js` dispose/重開 |
 
-目前 touch gameplay 的核心限制是此狀態機直接依賴 Pointer Lock。手機工作應先抽出 `pause()`/`resume()`，再讓 desktop lock events 和 touch controls 共用。
+`js/input.js` 擁有允許的 lifecycle transition 及共用 input state；Pointer Lock callback 只呼叫 `pause()`／`resume()`。不合法 transition 會立即報錯，pause/resume 會清空輸入避免殘留開火或移動。
 
 ## Gameplay systems
 
@@ -58,9 +58,8 @@
 - WebAudio failure 多數不阻止 gameplay。
 - 沒有 deterministic RNG、save game、replay 或 server authority。
 - `window.__game` 暴露 debug instance；production 是否保留尚未決定。
-- 目前沒有自動測試。修改 render loop、狀態機、collision 或 dispose 至少需要 desktop browser smoke test。
+- input/lifecycle 有 unit tests；完整 render loop、collision、Pointer Lock 及 dispose 修改仍至少需要 desktop browser smoke test。
 
 ## 2D 對照
 
 `classic-2d.html` 有獨立 game loop、state、武器、敵人、補給、數學及排行榜。它不是 `Game` 的另一個 renderer。任何共通規則變更都要明確決定是否同步兩版。
-

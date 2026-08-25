@@ -9,7 +9,9 @@
 - 真實 touch、mouse movement 或實體 keyboard 事件可在 runtime 切換模式。
 - `<body>` 使用 `mode-touch`/`mode-desktop` class 作 UI hook。
 
-目前 `game.js` 仍直接讀 keyboard/mouse/Pointer Lock；輸入模式偵測不等於 3D touch gameplay 已完成。
+`js/input.js` 統一保存 keyboard/mouse/touch control state；`game.js` 經它讀取移動、疾跑、開火及瞄準。touch HUD 可用 `setControl()`／`addLookDelta()` 接駁，但虛擬搖桿、touch look 和戰鬥按鈕尚未建立。
+
+Pointer Lock 只負責 desktop 取得滑鼠控制；`Game.pause()`／`resume()`、數學題回復及 `visibilitychange` 已使用共用 lifecycle。touch HUD 現有獨立暫停鍵，回復不要求 Pointer Lock。
 
 ## 沉浸和 orientation
 
@@ -48,9 +50,8 @@
 
 ## 修改驗證
 
-- Device：desktop mouse/keyboard、touch device、hybrid device、forced query modes。
+- Device：desktop mouse/keyboard、touch device、hybrid device、forced query modes；切頁後輸入狀態不可殘留。
 - Orientation：iOS Safari、Android Chrome、iPad landscape/portrait。
 - Quality：每 tier 的 pixel ratio、grass/tree/shard 數及自動降級。
 - Assets：24 個 manifest 路徑、load progress、角色動畫、gun mapping、dispose/restart。
 - Audio：autoplay rejection、mute/volume、visibility change、iOS AudioContext unlock。
-

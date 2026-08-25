@@ -4,12 +4,13 @@
 
 import * as THREE from 'three';
 import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
-import { WEAPONS, MONSTER_BASE, SETTINGS, DIFF_MULT, DIFF_LABELS } from './config.js?v=35';
-import { playSfx, sfxZombieGrowl, sfxZombieAttack, sfxZombieDeath, sfxBossRoar, sfxCorrect, sfxWrong, sfxLevelUp, sfxHeartbeat, sfxVictory, sfxPanSwing, sfxPanClang } from './audio.js?v=35';
-import { showMathQuestion } from './math.js?v=35';
-import { ASSETS, GUN_BY_LEVEL, cloneCharacter, cloneProp, cloneGun, tintModel } from './assets.js?v=35';
-import { buildSchool, COURT_HX, COURT_HZ, BUILD_HX, BUILD_HZ } from './school.js?v=35';
-import { getQuality, downgradeQuality } from './device.js?v=35';
+import { WEAPONS, MONSTER_BASE, SETTINGS, DIFF_MULT, DIFF_LABELS } from './config.js?v=36';
+import { playSfx, sfxZombieGrowl, sfxZombieAttack, sfxZombieDeath, sfxBossRoar, sfxCorrect, sfxWrong, sfxLevelUp, sfxHeartbeat, sfxVictory, sfxPanSwing, sfxPanClang } from './audio.js?v=36';
+import { showMathQuestion } from './math.js?v=36';
+import { ASSETS, GUN_BY_LEVEL, cloneCharacter, cloneProp, cloneGun, tintModel } from './assets.js?v=36';
+import { buildSchool, COURT_HX, COURT_HZ, BUILD_HX, BUILD_HZ } from './school.js?v=36';
+import { getQuality, downgradeQuality, isTouchMode } from './device.js?v=36';
+import { GAME_STATES, GameStateMachine, InputController } from './input.js?v=36';
 
 // 喪屍等級 → 模型
 const ZOMBIE_BY_TIER = { 1: 'zombie_b', 2: 'zombie_a', 3: 'zombie_c', 4: 'zombie_anim', 5: 'zombie_anim' };
@@ -166,7 +167,8 @@ export class Game {
         this.onGameOver = onGameOver;
         this.onAbort = onAbort;
 
-        this.state = 'PLAYING';
+        this.lifecycle = new GameStateMachine();
+        Object.defineProperty(this, 'state', { get: () => this.lifecycle.state });
         this.disposed = false;
 
         // 玩家狀態
@@ -175,13 +177,10 @@ export class Game {
         this.magazine = 0; this.totalAmmo = 0;
         this.isReloading = false; this.reloadTimer = 0;
         this.lastFireTime = -99; this.emptyMsgTime = -99;
-        this.isShooting = false;
         this.bobPhase = 0;
         this.fovPunch = 0;
 
         // PUBG 式狀態
-        this.isSprinting = false;
-        this.isAiming = false;
         this.baseSens = 0.8;
         this.boost = 0;          // 能量 (0-100)：答啱數學題增加，提供緩慢回血 + 加速
         this.healAcc = 0;
@@ -225,8 +224,6 @@ export class Game {
 
         // 實體
         this.enemies = []; this.pickups = []; this.bursts = []; this.tracers = []; this.shatters = [];
-
-        this.keys = { w: false, a: false, s: false, d: false };
 
         this.viewMode = 'TPP'; // 預設第三人稱 (V 鍵切換)
         this._tppOffsetVec = null;   // 每幀渲染時記低 TPP 相機偏移，射擊用同一偏移 (修正準星視差)
@@ -1347,31 +1344,23 @@ export class Game {
 
     // -------------------------------------------------------------- 事件綁定
     _bindEvents() {
-        this._onKeyDown = (e) => {
-            const key = e.key.toLowerCase();
-            if (key in this.keys) this.keys[key] = true;
-            if (key === 'shift') this.isSprinting = true;
-            if (this.state !== 'PLAYING') return;
-            if (key === 'r') this._startReload();
-            if (key === 'v') {
-                this.viewMode = this.viewMode === 'TPP' ? 'FPP' : 'TPP';
-                this._addMsg(this.viewMode === 'TPP' ? '👤 第三人稱視角' : '👁️ 第一人稱視角', '#e5e5e5');
+        this.input = new InputController({
+            target: document,
+            pointerTarget: this.renderer.domElement,
+            onAction: action => {
+                if (action === 'pause') {
+                    this.pause('keyboard');
+                    return;
+                }
+                if (this.state !== GAME_STATES.PLAYING) return;
+                if (action === 'reload') this._startReload();
+                if (action === 'toggle-view') {
+                    this.viewMode = this.viewMode === 'TPP' ? 'FPP' : 'TPP';
+                    this._addMsg(this.viewMode === 'TPP' ? '👤 第三人稱視角' : '👁️ 第一人稱視角', '#e5e5e5');
+                }
             }
-        };
-        this._onKeyUp = (e) => {
-            const key = e.key.toLowerCase();
-            if (key in this.keys) this.keys[key] = false;
-            if (key === 'shift') this.isSprinting = false;
-        };
-        this._onMouseDown = (e) => {
-            if (!this.controls.isLocked || this.state !== 'PLAYING') return;
-            if (e.button === 0) this.isShooting = true;
-            if (e.button === 2) this.isAiming = true;
-        };
-        this._onMouseUp = (e) => {
-            if (e.button === 0) this.isShooting = false;
-            if (e.button === 2) this.isAiming = false;
-        };
+        });
+        this.input.bind();
         this._onContextMenu = (e) => { e.preventDefault(); };
         this._onResize = () => {
             this.camera.aspect = window.innerWidth / window.innerHeight;
@@ -1379,41 +1368,33 @@ export class Game {
             this.renderer.setSize(window.innerWidth, window.innerHeight);
         };
         this._onLock = () => {
-            if (this.state === 'PAUSED' || this.state === 'RESUME_WAIT') {
-                this.state = 'PLAYING';
-                this.ui.pauseMenu.style.display = 'none';
-                this.ui.resumeOverlay.style.display = 'none';
-                this.clock.getDelta(); // 重置 delta，避免暫停後跳幀
+            if (document.hidden) {
+                this.controls.unlock();
+                return;
             }
+            this.resume('pointer-lock');
         };
-        this._onUnlock = () => {
-            if (this.state === 'PLAYING') {
-                this.state = 'PAUSED';
-                this.isShooting = false;
-                this.isAiming = false;
-                this.isSprinting = false;
-                Object.keys(this.keys).forEach(k => this.keys[k] = false);
-                this.ui.pauseMenu.style.display = 'flex';
-            }
-        };
-        this._onResumeClick = () => {
-            if (this.state === 'RESUME_WAIT') this.controls.lock();
+        this._onUnlock = () => this.pause('pointer-lock');
+        this._onPointerLockError = () => this.pause('pointer-lock-error');
+        this._onResumeClick = () => this.requestResume();
+        this._onVisibilityChange = () => {
+            if (document.hidden) this.pause('visibility');
         };
 
-        document.addEventListener('keydown', this._onKeyDown);
-        document.addEventListener('keyup', this._onKeyUp);
-        document.addEventListener('mousedown', this._onMouseDown);
-        document.addEventListener('mouseup', this._onMouseUp);
         document.addEventListener('contextmenu', this._onContextMenu);
+        document.addEventListener('visibilitychange', this._onVisibilityChange);
+        document.addEventListener('pointerlockerror', this._onPointerLockError);
         window.addEventListener('resize', this._onResize);
         this.controls.addEventListener('lock', this._onLock);
         this.controls.addEventListener('unlock', this._onUnlock);
         this.ui.resumeOverlay.addEventListener('click', this._onResumeClick);
 
         // 暫停選單按鈕
-        this._onBtnResume = () => this.controls.lock();
+        this._onBtnResume = () => this.requestResume();
+        this._onBtnTouchPause = () => this.pause('touch-control');
         this._onBtnQuit = () => this.abort();
         document.getElementById('btn-resume').addEventListener('click', this._onBtnResume);
+        document.getElementById('btn-touch-pause').addEventListener('click', this._onBtnTouchPause);
         document.getElementById('btn-quit').addEventListener('click', this._onBtnQuit);
         this._onSens = (e) => {
             this.baseSens = parseFloat(e.target.value);
@@ -1426,8 +1407,35 @@ export class Game {
     }
 
     start() {
-        this.controls.lock();
+        if (!isTouchMode()) this.ui.resumeOverlay.style.display = 'flex';
+        this.requestResume();
         this._animate();
+    }
+
+    pause(reason = 'manual') {
+        if (this.state !== GAME_STATES.PLAYING && this.state !== GAME_STATES.RESUME_WAIT) return false;
+        this.lifecycle.transition(GAME_STATES.PAUSED);
+        this.input.reset();
+        this.ui.resumeOverlay.style.display = 'none';
+        this.ui.pauseMenu.style.display = 'flex';
+        if (reason !== 'pointer-lock' && this.controls.isLocked) this.controls.unlock();
+        return true;
+    }
+
+    resume() {
+        if (this.state !== GAME_STATES.PAUSED && this.state !== GAME_STATES.RESUME_WAIT) return false;
+        this.lifecycle.transition(GAME_STATES.PLAYING);
+        this.input.reset();
+        this.ui.pauseMenu.style.display = 'none';
+        this.ui.resumeOverlay.style.display = 'none';
+        this.clock.getDelta();
+        return true;
+    }
+
+    requestResume() {
+        if (isTouchMode()) return this.resume('touch');
+        this.controls.lock();
+        return true;
     }
 
     // -------------------------------------------------------------- 瞄準/射擊輔助
@@ -1501,7 +1509,7 @@ export class Game {
         let gap = 7 + this.bloom * 16;
         if (this._movingNow) gap += 5;
         if (this._sprintingNow) gap += 8;
-        if (this.isAiming) gap = 3 + this.bloom * 5;
+        if (this.input.aim) gap = 3 + this.bloom * 5;
         if (Math.abs(gap - (this._lastGap || 0)) > 0.4) {
             this._lastGap = gap;
             const q = ch.querySelectorAll('.ch');
@@ -1513,7 +1521,7 @@ export class Game {
         }
 
         // 指住喪屍 → 準星變紅 (每幀一條中心射線，只測喪屍 hitbox)
-        if (this.state === 'PLAYING' && this.enemies.length) {
+        if (this.state === GAME_STATES.PLAYING && this.enemies.length) {
             this._setAimRay(0, 0);
             this.raycaster.far = 120;
             const hits = this.raycaster.intersectObject(this.enemiesGroup, true);
@@ -1597,7 +1605,7 @@ export class Game {
 
         for (let k = 0; k < wep.bullets; k++) {
             // 開鏡瞄準時散佈更細 (更準)；bloom 連射擴散
-            const spread = (wep.bullets > 1 ? 0.045 : 0.012) * (this.isAiming ? 0.4 : 1) * (1 + this.bloom * 0.6);
+            const spread = (wep.bullets > 1 ? 0.045 : 0.012) * (this.input.aim ? 0.4 : 1) * (1 + this.bloom * 0.6);
             this._setAimRay((Math.random() - 0.5) * spread * 2, (Math.random() - 0.5) * spread * 2);
             this.raycaster.far = 150;
             const hits = this.raycaster.intersectObjects(targets, true);
@@ -1704,7 +1712,7 @@ export class Game {
         this.flashTimer = 0.06;
         this.gunKick = Math.min(0.16, this.gunKick + 0.06);
         // 後座上抬 (累積落 recoilAccum，鬆手自動回復)
-        const kick = wep.recoil * 0.0011 * (this.isAiming ? 0.65 : 1);
+        const kick = wep.recoil * 0.0011 * (this.input.aim ? 0.65 : 1);
         this.camera.rotateX(kick);
         this.recoilAccum = Math.min(0.35, this.recoilAccum + kick);
         // 準星擴散
@@ -1920,9 +1928,8 @@ export class Game {
 
     // -------------------------------------------------------------- 數學題流程
     _triggerMath(type) {
-        this.state = 'MATH';
-        this.isShooting = false;
-        Object.keys(this.keys).forEach(k => this.keys[k] = false);
+        this.lifecycle.transition(GAME_STATES.MATH);
+        this.input.reset();
         this.controls.unlock();
 
         showMathQuestion({
@@ -2004,8 +2011,9 @@ export class Game {
         this.freezeTimer = FREEZE_AFTER_MATH;
 
         // 等玩家點擊畫面重新鎖定滑鼠
-        this.state = 'RESUME_WAIT';
-        this.ui.resumeOverlay.style.display = 'flex';
+        this.lifecycle.transition(GAME_STATES.RESUME_WAIT);
+        if (isTouchMode()) this.resume('math-complete');
+        else this.ui.resumeOverlay.style.display = 'flex';
     }
 
     _updateComboTag() {
@@ -2123,10 +2131,10 @@ export class Game {
     }
 
     _endGame(victory) {
-        if (this.state === 'OVER') return;
-        this.state = 'OVER';
+        if (this.state === GAME_STATES.OVER) return;
+        this.lifecycle.transition(GAME_STATES.OVER);
         if (victory) sfxVictory();
-        this.isShooting = false;
+        this.input.reset();
         const weaponName = this.weaponLevel >= 0 ? WEAPONS[this.weaponLevel].name : '無';
         setTimeout(() => {
             if (this.disposed) return;
@@ -2136,7 +2144,8 @@ export class Game {
     }
 
     abort() {
-        this.state = 'OVER';
+        if (this.state !== GAME_STATES.OVER) this.lifecycle.transition(GAME_STATES.OVER);
+        this.input.reset();
         this.ui.pauseMenu.style.display = 'none';
         this.controls.unlock();
         this.onAbort();
@@ -2370,7 +2379,7 @@ export class Game {
         this._raf = requestAnimationFrame(() => this._animate());
         const dt = Math.min(this.clock.getDelta(), 0.05);
 
-        if (this.state === 'PLAYING') {
+        if (this.state === GAME_STATES.PLAYING) {
             this.time += dt;
             this._updatePlaying(dt);
         }
@@ -2387,7 +2396,7 @@ export class Game {
 
     // 實測跌幀 → 即時降 pixelRatio (唯一唔使重建場景就見效嘅手段)，並記低下一局降級
     _watchPerf(dt) {
-        if (this.state !== 'PLAYING') return;
+        if (this.state !== GAME_STATES.PLAYING) return;
         const p = this._perf || (this._perf = { t: 0, frames: 0, drops: 0 });
         p.t += dt; p.frames++;
         if (p.t < 3) return;
@@ -2417,7 +2426,7 @@ export class Game {
 
         // 四邊各記錄最強威脅 (越近越強)
         const intensity = { top: 0, bottom: 0, left: 0, right: 0 };
-        if (this.state === 'PLAYING') {
+        if (this.state === GAME_STATES.PLAYING) {
             for (const e of this.enemies) {
                 if (e.dying) continue;
                 const dx = e.group.position.x - pos.x;
@@ -2471,10 +2480,10 @@ export class Game {
         this.playerModel.position.set(pivot.x, pivot.y - EYE_HEIGHT, pivot.z);
         this.playerModel.rotation.y = Math.atan2(dir.x, dir.z);
         // 士兵骨骼動畫：企定 Idle / 移動 Run_Gun / 開槍 Idle_Shoot
-        if (this.playerMixer && this.state !== 'PAUSED') {
+        if (this.playerMixer && this.state === GAME_STATES.PLAYING) {
             let anim = 'idle';
             if (this._movingNow) anim = 'run';
-            else if (this.isShooting && this.weaponLevel >= 0) anim = 'shoot';
+            else if (this.input.fire && this.weaponLevel >= 0) anim = 'shoot';
             this._setPlayerAnim(anim);
             // 疾跑時動畫加速
             this.playerMixer.timeScale = this._sprintingNow ? 1.5 : 1;
@@ -2482,7 +2491,7 @@ export class Game {
         }
 
         // 相機退後過肩 (右肩 + 升高)，並防止穿牆
-        let dist = this.isAiming ? 2.2 : 4.3;
+        let dist = this.input.aim ? 2.2 : 4.3;
         this._tppRaycaster.camera = this.camera; // Sprite 射線判定需要 camera，唔設會 throw
         this._tppRaycaster.set(pivot, dir.clone().negate());
         this._tppRaycaster.far = dist + 0.5;
@@ -2536,15 +2545,15 @@ export class Game {
         const speedCfg = this.weaponLevel >= 0 ? WEAPONS[this.weaponLevel].playerSpeed : SETTINGS.basePlayerSpeed;
         let speed = speedCfg * 1.5;
         let mx = 0, mz = 0;
-        if (this.keys.w) mz += 1;
-        if (this.keys.s) mz -= 1;
-        if (this.keys.a) mx -= 1;
-        if (this.keys.d) mx += 1;
+        if (this.input.movement.w) mz += 1;
+        if (this.input.movement.s) mz -= 1;
+        if (this.input.movement.a) mx -= 1;
+        if (this.input.movement.d) mx += 1;
         const moving = (mx !== 0 || mz !== 0);
         this._movingNow = moving;
-        const sprinting = this.isSprinting && moving && !this.isAiming;
+        const sprinting = this.input.sprint && moving && !this.input.aim;
         if (sprinting) speed *= 1.4;
-        if (this.isAiming) speed *= 0.6;
+        if (this.input.aim) speed *= 0.6;
         if (this.boost > 70) speed *= 1.12;
         else if (this.boost > 30) speed *= 1.06;
         if (moving) {
@@ -2575,10 +2584,10 @@ export class Game {
 
         // ---- 藍圈
         this._updateZone(dt);
-        if (this.state !== 'PLAYING') return;
+        if (this.state !== GAME_STATES.PLAYING) return;
 
         // ---- 開鏡瞄準時滑鼠減速
-        this.controls.pointerSpeed = this.baseSens * (this.isAiming ? 0.55 : 1);
+        this.controls.pointerSpeed = this.baseSens * (this.input.aim ? 0.55 : 1);
 
         // 邊界 + 障礙物碰撞
         const pos = this.camera.position;
@@ -2599,7 +2608,7 @@ export class Game {
         pos.y = EYE_HEIGHT + (moving ? Math.sin(this.bobPhase) * 0.045 : 0);
 
         // ---- 射擊 (疾跑中不能開槍，同 PUBG 一樣)
-        if (this.isShooting && !this._sprintingNow) this._tryShoot();
+        if (this.input.fire && !this._sprintingNow) this._tryShoot();
 
         // ---- 魔物 AI
         const frozen = this.freezeTimer > 0;
@@ -2672,7 +2681,7 @@ export class Game {
                 e.attackCd = 1;
                 sfxZombieAttack();
                 this._hurtPlayer(10 + e.tier * 5, g.position);
-                if (this.state !== 'PLAYING') return;
+                if (this.state !== GAME_STATES.PLAYING) return;
             }
         }
 
@@ -2808,7 +2817,7 @@ export class Game {
             }
         }
         // 後座力自動回復 (鬆手後鏡頭滑返落原位，PUBG 式)
-        if (this.recoilAccum > 0 && !this.isShooting) {
+        if (this.recoilAccum > 0 && !this.input.fire) {
             const rec = Math.min(this.recoilAccum, dt * 0.5);
             this.camera.rotateX(-rec);
             this.recoilAccum -= rec;
@@ -2892,8 +2901,8 @@ export class Game {
                 // 疾跑收槍 / 開鏡舉槍至中央 (PUBG 式)
                 const hasGun = this.weaponLevel >= 0;
                 const sprintLower = this._sprintingNow ? 0.18 : 0;
-                const aimX = (this.isAiming && hasGun) ? 0.02 : this.gunBase.x;
-                const aimY = (this.isAiming && hasGun) ? -0.18 : this.gunBase.y;
+                const aimX = (this.input.aim && hasGun) ? 0.02 : this.gunBase.x;
+                const aimY = (this.input.aim && hasGun) ? -0.18 : this.gunBase.y;
                 this.gunGroup.position.x += (aimX - this.gunGroup.position.x) * Math.min(1, dt * 12);
                 this.gunGroup.position.y += ((aimY - sprintLower) - this.gunGroup.position.y) * Math.min(1, dt * 10);
                 this.gunGroup.position.z = this.gunBase.z + this.gunKick;
@@ -2911,7 +2920,7 @@ export class Game {
         }
         // FOV：開鏡縮放 + 受傷震動
         if (this.fovPunch > 0) this.fovPunch = Math.max(0, this.fovPunch - dt * 4);
-        const targetFov = (this.isAiming ? 52 : 75) + this.fovPunch * 5;
+        const targetFov = (this.input.aim ? 52 : 75) + this.fovPunch * 5;
         if (Math.abs(this.camera.fov - targetFov) > 0.1) {
             this.camera.fov += (targetFov - this.camera.fov) * Math.min(1, dt * 10);
             this.camera.updateProjectionMatrix();
@@ -2923,16 +2932,16 @@ export class Game {
         this.disposed = true;
         cancelAnimationFrame(this._raf);
 
-        document.removeEventListener('keydown', this._onKeyDown);
-        document.removeEventListener('keyup', this._onKeyUp);
-        document.removeEventListener('mousedown', this._onMouseDown);
-        document.removeEventListener('mouseup', this._onMouseUp);
+        this.input.dispose();
         document.removeEventListener('contextmenu', this._onContextMenu);
+        document.removeEventListener('visibilitychange', this._onVisibilityChange);
+        document.removeEventListener('pointerlockerror', this._onPointerLockError);
         window.removeEventListener('resize', this._onResize);
         this.controls.removeEventListener('lock', this._onLock);
         this.controls.removeEventListener('unlock', this._onUnlock);
         this.ui.resumeOverlay.removeEventListener('click', this._onResumeClick);
         document.getElementById('btn-resume').removeEventListener('click', this._onBtnResume);
+        document.getElementById('btn-touch-pause').removeEventListener('click', this._onBtnTouchPause);
         document.getElementById('btn-quit').removeEventListener('click', this._onBtnQuit);
         document.getElementById('sens-slider').removeEventListener('input', this._onSens);
 
