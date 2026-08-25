@@ -1,0 +1,22 @@
+# macOS
+.DS_Store
+
+# Local editor / knowledge-tool state
+.obsidian/workspace.json
+.obsidian/workspaces.json
+graphify-out/
+
+# Generated development output
+coverage/
+dist/
+build/
+.cache/
+node_modules/
+playwright-report/
+test-results/
+
+# Local secrets and hosted-staging runtime values
+.env
+.env.*
+!.env.example
+!.env.staging.example
