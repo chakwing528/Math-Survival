@@ -75,6 +75,7 @@ HANDOFF.md              近期工作狀態
 - 專案地圖：[docs/PROJECT_MAP.md](docs/PROJECT_MAP.md)
 - 當前狀態：[docs/CURRENT_STATE.md](docs/CURRENT_STATE.md)
 - 工作管理：[docs/WORKFLOW.md](docs/WORKFLOW.md)
+- 大規模重整路線圖：[docs/ROADMAP.md](docs/ROADMAP.md)
 - 架構：[docs/architecture/OVERVIEW.md](docs/architecture/OVERVIEW.md)
 - 頁面及 routes：[docs/pages/PAGES.md](docs/pages/PAGES.md)
 - 外部 API：[docs/api/API_MAP.md](docs/api/API_MAP.md)

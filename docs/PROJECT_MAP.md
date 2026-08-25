@@ -31,7 +31,7 @@ Math Survival 是一個純靜態瀏覽器數學射擊遊戲：學生在 3D 或 2
 | 改模型或音效 | `features/DEVICE_MEDIA.md` | `js/assets.js`、`js/audio.js`、資產目錄 |
 | 改學生資料流程 | `data/DATA_FLOWS_AND_PRIVACY.md` | `js/main.js`、`js/leaderboard.js`、`classic-2d.html` |
 | 改架構 | `architecture/OVERVIEW.md`、`decisions/` | 相關入口及 imports |
-| 規劃或交接工作 | `WORKFLOW.md`、`CURRENT_STATE.md` | 相關 feature 文件及程式碼證據 |
+| 規劃或交接工作 | `WORKFLOW.md`、`CURRENT_STATE.md`、`ROADMAP.md` | 相關 feature 文件及程式碼證據 |
 
 ## Routes 和外部介面
 

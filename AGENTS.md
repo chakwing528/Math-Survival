@@ -20,6 +20,7 @@
 - 個人資料及 browser storage：`docs/data/DATA_FLOWS_AND_PRIVACY.md`
 - 長期技術選擇：`docs/decisions/`
 - 工作項目狀態及完成規則：`docs/WORKFLOW.md`
+- 大規模重整次序及完成條件：`docs/ROADMAP.md`
 - 近期工作狀態：`HANDOFF.md`
 
 ## 重要工程規則
