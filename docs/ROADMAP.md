@@ -12,7 +12,7 @@
 
 ## Phase 0 — 建立可重現基線
 
-**狀態（2026-08-25）**：已在 Draft PR #1 實作；本機 `npm test` 通過，等待首次 GitHub Actions run 確認。
+**狀態（2026-08-25）**：已完成。Draft PR #1 的本機 `npm test` 及 GitHub Actions Linux run 均通過。
 
 **結果**：任何人可用一致指令驗證語法、文件和兩個遊戲入口。
 
