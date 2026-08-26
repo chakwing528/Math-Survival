@@ -2,7 +2,7 @@
 
 > 新 Codex task 應先讀 `AGENTS.md`、`docs/PROJECT_MAP.md` 同 `docs/CURRENT_STATE.md`，再按任務讀相關 feature 文件。
 > 呢份文件只保留近期交接同歷史實作細節；架構、API、資料流同長期規則以 `docs/` 為準，實際行為以程式碼為準。
-> 目前 workspace：`/Users/cwchan/Downloads/Math-Survival-main/Math-Survival-main`。Draft PR #1 尚未合併至 `main`；Issue #3 Batch 1 在 PR #5，V3.7 Batch 2 在 `codex/touch-controls-p2` 疊加分支。Issue #2 的獨立 `Math-Survival-Staging` rollout 已完成，production 仍為 GAS。
+> 目前 workspace：`/Users/cwchan/Downloads/Math-Survival-main/Math-Survival-main`。Draft PR #1／#5／#7／#8 組成 Issue #3 stack，尚未合併至 `main`。2026-08-26 自動、本機 Supabase、LAN 及 forced-touch 瀏覽器閘已通過，但 iPhone／Android／iPad 真機記錄仍未完成；合併次序及回滾見 `docs/runbooks/PR_STACK_RELEASE.md`。Issue #2 的獨立 `Math-Survival-Staging` rollout 已完成，production 仍為 GAS。
 
 ---
 

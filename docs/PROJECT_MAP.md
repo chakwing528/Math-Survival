@@ -18,6 +18,7 @@ Math Survival 是一個靜態瀏覽器數學射擊遊戲：學生在 3D 或 2D �
 | Supabase backend | `supabase/` | Postgres migrations、RLS/grants、Edge Function、synthetic seed、pgTAP 及 hosted staging |
 | Staging validation | `scripts/validate-hosted-supabase.mjs`、`tests/smoke/supabase-staging.spec.js` | Hosted HTTP 安全邊界及 3D／2D 無 GAS fallback 驗收 |
 | Device acceptance | `tests/smoke/device-gate.spec.js`、`docs/testing/DEVICE_ACCEPTANCE.md` | iPhone／Android／iPad 自動矩陣及真機完成閘 |
+| PR stack release | `docs/runbooks/PR_STACK_RELEASE.md` | 疊加 PR 合併前閘、逐層次序、Pages 檢查及回滾 |
 | 裝置/畫質 | `js/device.js` | desktop/touch、全螢幕、橫屏、品質分級 |
 | 輸入/狀態 | `js/input.js` | keyboard/mouse/touch input state、遊戲 lifecycle transition |
 | 3D 資產 | `js/assets.js`、`assets/models/` | GLB manifest、載入、clone、動畫映射 |
@@ -37,6 +38,7 @@ Math Survival 是一個靜態瀏覽器數學射擊遊戲：學生在 3D 或 2D �
 | 改學生資料流程 | `data/DATA_FLOWS_AND_PRIVACY.md` | `js/main.js`、`js/leaderboard.js`、`classic-2d.html` |
 | 改架構 | `architecture/OVERVIEW.md`、`decisions/` | 相關入口及 imports |
 | 規劃或交接工作 | `WORKFLOW.md`、`CURRENT_STATE.md`、`ROADMAP.md` | 相關 feature 文件及程式碼證據 |
+| 合併 Issue #3 PR stack | `testing/DEVICE_ACCEPTANCE.md`、`runbooks/PR_STACK_RELEASE.md` | GitHub PR／checks、Pages 及相關 smoke |
 
 ## Routes 和外部介面
 

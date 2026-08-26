@@ -2,6 +2,13 @@
 
 Issue #3 只有在目標真機完成本清單後才可關閉。Playwright 裝置模擬是合併前自動閘，不等於真實 iOS／Android 的 GPU、safe-area、音訊或多指驗收。
 
+## 目前準備狀態（2026-08-26）
+
+- `npm test` 重跑通過：12 passed、2 個 hosted-staging cases 在沒有 secrets 時按設計 skipped；三個裝置 profile 的自動閘全綠。
+- 844×390 forced-touch 本機瀏覽器成功載入 3D touch HUD，無 console error；這項只證明入口和基本 UI，不取代下方真機記錄。
+- LAN 預覽已驗證首頁／touch URL 200、dotfile 404；測試後 server 已停止。下次執行 `npm run serve:device` 並重新取得 LAN IP，不能假設舊 IP 不變。
+- iPhone、Android phone、iPad 的實際型號／版本尚未提供，三行仍是 blocking gate。
+
 ## 自動閘
 
 `npm run test:smoke` 會執行以下矩陣：
@@ -49,3 +56,5 @@ Issue #3 只有在目標真機完成本清單後才可關閉。Playwright 裝置
 | iPad | 待填 | ⬜ | ⬜ | ⬜ | ⬜ | 待真機 |
 
 如任何一格失敗，記錄重現步驟、方向、輸入組合及可公開的畫面；不得把真實學生資料、排行榜內容或 secrets 放入 screenshot／Issue。
+
+完成三行後，按 `docs/runbooks/PR_STACK_RELEASE.md` 逐層執行 PR stack 合併；未完成前保持 Draft。

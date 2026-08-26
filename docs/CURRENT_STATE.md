@@ -1,6 +1,6 @@
 # Current State
 
-更新基準：2026-08-25，以目前 workspace 程式碼為準。
+更新基準：2026-08-26，以目前 workspace 程式碼為準。
 
 ## 當前版本
 
@@ -36,7 +36,7 @@
 ## 已知文件／設定問題
 
 - Git 歷史及 `origin` 已於 2026-08-25 恢復；`origin` 是公開 repository `chakwing528/Math-Survival`，預設分支為 `main`。
-- PR #1 的 V3.5 文件／安全基線仍未合併；V3.6 Issue #3 Batch 1 在 PR #5，V3.7 Batch 2 使用再上一層疊加分支，避免直接改動 GitHub Pages。
+- PR #1 的 V3.5 文件／安全基線仍未合併；V3.6 Issue #3 Batch 1 在 PR #5，V3.7 Batch 2 在 PR #7，自動裝置閘及合併準備在 PR #8；四層都保持 Draft，避免直接改動 GitHub Pages。
 - Draft PR #1 由 `codex/project-memory-v3.3` 指向 `main`；目前可合併但仍保持 Draft，未改動正式網站。
 - 大規模重整路線圖見 `docs/ROADMAP.md`；Issue #4（測試/CI 基線）已完成，後續首輪工作為 #2（GAS/學生資料安全邊界）及 #3（desktop/touch 輸入與狀態機）。
 - `.claude/launch.json` 已改為本機可用的 `python3` 和相對工作目錄，但仍需由實際 launcher 驗證。
@@ -46,6 +46,8 @@
 
 ## 驗證狀態
 
+- 2026-08-26：PR #1／#5／#7／#8 都顯示 clean／mergeable；`npm test` 重跑為 12 passed、2 hosted-staging skipped，20 unit tests 及 static 全通過。本機 Supabase 18 pgTAP tests 與兩個 schema lint 亦通過。
+- 2026-08-26：844×390 forced-touch 本機瀏覽器成功載入 3D HUD且無 console error；LAN 首頁／touch URL 200、dotfile 404。三類實際裝置仍未驗收，所以 PR stack gate 只屬 conditional pass，詳細次序及回滾見 `docs/runbooks/PR_STACK_RELEASE.md`。
 - 2026-08-25：V3.7 static、20 個 unit tests、6 個 desktop Chromium smoke，以及 iPhone／Android／iPad 6 個裝置閘案例通過（`npm test` 共 12 passed、2 個 hosted staging cases 無 secrets 時按設計 skipped）；實際 touch 3D/WebGL HUD、戰鬥鍵、pause/reset/resume 亦已驗證。
 - Node unit tests：20 tests passed；cloud/Supabase 13 個，input/lifecycle/touch 7 個。
 - Supabase pgTAP：18 tests passed；database lint 0 errors；local HTTP 驗證 read 200、direct submit 401、Edge accepted/duplicate 200、bad origin 403。
@@ -57,6 +59,6 @@
 
 ## 下一批建議工作
 
-1. 審查 Draft PR #1 的公開內容、完整 3D gameplay 及 GitHub Pages 影響；未完成必要人工測試前不要合併。
+1. 完成 `docs/testing/DEVICE_ACCEPTANCE.md` 三類真機記錄，再依 `docs/runbooks/PR_STACK_RELEASE.md` 逐層合併；未完成必要人工測試前不要合併。
 2. 按 Supabase migration runbook 完成資料 owner/retention/import approval；先以現有獨立 staging 驗收真實流程，再決定 production cutover，唔好套用 `School Platform Production`。
 3. 依 `docs/testing/DEVICE_ACCEPTANCE.md` 完成 Issue #3 實機記錄：iPhone Safari、Android Chrome、iPad 的 safe-area、多指、audio/autoplay 及 10 分鐘核心玩法；全部通過後才關 Issue。
