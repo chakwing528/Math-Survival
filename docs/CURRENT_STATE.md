@@ -49,6 +49,7 @@
 
 ## 驗證狀態
 
+- 2026-08-26：V3.8 Cloudflare deployment `e9b0d989` 已驗證 3D／2D 200、敏感路徑自訂 404、874×402 單欄選單、完整 touch HUD及效能診斷列；browser console 無 error，測試只用 `TEST/00` 且沒有上傳成績。真實 iPhone 17 Pro 仍待重測。
 - 2026-08-26：iPhone 17 Pro／Safari 的 V3.7 真機驗收失敗（選單未縮放、3D 像素化、移動約 10 秒後 lag）；iOS／Safari 版本待補。V3.8 修正候選的本機 smoke matrix 為 15 passed、2 hosted-staging skipped，仍須在同一部 iPhone 重測，不能當作真機通過。
 - 2026-08-26：PR #1／#5／#7／#8 都顯示 clean／mergeable；`npm test` 重跑為 12 passed、2 hosted-staging skipped，20 unit tests 及 static 全通過。本機 Supabase 18 pgTAP tests 與兩個 schema lint 亦通過。
 - 2026-08-26：844×390 forced-touch 本機瀏覽器成功載入 3D HUD且無 console error；LAN 首頁／touch URL 200、dotfile 404。三類實際裝置仍未驗收，所以 PR stack gate 只屬 conditional pass，詳細次序及回滾見 `docs/runbooks/PR_STACK_RELEASE.md`。

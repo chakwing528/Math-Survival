@@ -7,11 +7,13 @@
 - Project：`math-survival-device-staging`
 - Branch：`device-gate-p3`
 - 固定 branch URL：`https://device-gate-p3.math-survival-device-staging.pages.dev/`
-- 本次版本 URL：`https://eeec2186.math-survival-device-staging.pages.dev/`
-- 本次程式碼 SHA：`ac9cb5c56c3449eade4bcc27174e86a29dfc1fe7`
-- 真機入口：`https://device-gate-p3.math-survival-device-staging.pages.dev/?mode=touch`
+- 本次版本 URL：`https://e9b0d989.math-survival-device-staging.pages.dev/`
+- 本次程式碼 SHA：`bc703d6ffeb0523009fb720f8b8a6d2bc0556ba9`
+- 真機入口：`https://device-gate-p3.math-survival-device-staging.pages.dev/?mode=touch&debug=perf`
 
 Project 的 production branch 是 `main`，但沒有 production deployment、custom domain 或 GitHub integration。Branch URL 會指向同名 branch 最近一次上傳；版本 URL 則保留本次 deployment。
+
+2026-08-26 的 V3.8 hosted 驗證：branch URL 與 2D fallback 回應 200；`package.json`、`.git/HEAD` 回應自訂 404；874×402 forced-touch 選單使用單欄且所有必需控制在 viewport 內；程度 1 可載入完整 3D HUD及 `?debug=perf` 診斷列，console 無 error。測試只用 `TEST/00`，沒有按上傳成績；真實 iPhone 17 Pro 仍須重測。
 
 ## 公開及資料邊界
 

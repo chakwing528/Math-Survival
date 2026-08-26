@@ -247,7 +247,7 @@ python3 -m http.server 8000   → http://localhost:8000
 - touch 選單已改單欄並隱藏桌面側欄；874×402 橫屏的 safe-area、搖桿、戰鬥鍵和四角 HUD 已重新排位並加入防重疊 smoke assertions。
 - medium DPR 提升至 1.35 並設最低 1.0；同時減少草木與碎片，把畫質預算由密度移到清晰度。
 - touch HUD／雷達／羅盤降至 15Hz，準星／威脅提示及第三身相機 raycast 降至 20Hz；重用 raycast 結果和暫存向量以降低 GC 壓力。`?debug=perf` 每秒顯示 FPS／DPR／draw calls。
-- 本機 smoke matrix 為 15 passed、2 hosted-staging skipped；新版 Cloudflare preview 及同一部 iPhone 17 Pro 10 分鐘重測仍未完成，所以不可合併或關閉 Issue #3。
+- 本機 smoke matrix 為 15 passed、2 hosted-staging skipped；新版 Cloudflare deployment `e9b0d989` 的 3D／2D、874×402 UI、診斷列和嚴格 404 已通過。仍須同一部 iPhone 17 Pro 完成 10 分鐘重測，所以不可合併或關閉 Issue #3。
 
 ### ⬜ 待做
 

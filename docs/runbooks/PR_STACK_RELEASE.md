@@ -54,7 +54,7 @@
 ## 2026-08-26 gate 結果
 
 - iPhone 17 Pro／Safari 的 V3.7 真機驗收發現選單未縮放、像素化及約 10 秒後 lag，因此先前 conditional pass 已被真機結果擋下。iOS／Safari 版本待補。
-- V3.8 iPhone P0 本機修正候選已通過 15 個 smoke cases（另 2 個 hosted-staging cases 按設計 skipped），但同機 10 分鐘重測和新版 Cloudflare preview 驗證完成前仍不可合併。
+- V3.8 iPhone P0 修正候選已通過 15 個 smoke cases（另 2 個 hosted-staging cases 按設計 skipped）；Cloudflare deployment `e9b0d989` 的 3D／2D、874×402 UI、診斷列及嚴格 404 亦通過。仍須同一部 iPhone 17 Pro 完成 10 分鐘重測，才可合併。
 - `npm test`：12 passed、2 hosted-staging cases 因無 secrets 按設計 skipped；static 及 20 unit tests 通過。
 - 本機 Supabase：18 pgTAP tests 通過；`public`、`math_survival_private` lint 無錯誤。
 - 844×390 forced-touch 瀏覽器：3D 戰場和 touch HUD 載入，無 console error；只用 `TEST/00`，沒有上傳成績。
