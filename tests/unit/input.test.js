@@ -6,6 +6,7 @@ import {
   GameStateMachine,
   InputController,
   TouchControlSurface,
+  beginMathChallenge,
   getJoystickState
 } from '../../js/input.js';
 
@@ -30,6 +31,58 @@ test('game lifecycle rejects transitions that skip required states', () => {
     () => lifecycle.transition(GAME_STATES.MATH),
     /RESUME_WAIT -> MATH/
   );
+});
+
+test('math challenge displays before optional Pointer Lock release on iPhone-like controls', () => {
+  const lifecycle = new GameStateMachine(GAME_STATES.PLAYING);
+  const order = [];
+  const controls = {
+    isLocked: false,
+    unlock() {
+      order.push('unlock');
+      throw new TypeError('document.exitPointerLock is not a function');
+    }
+  };
+
+  assert.equal(beginMathChallenge({
+    lifecycle,
+    controls,
+    resetInput: () => order.push('reset'),
+    showQuestion: () => order.push('show')
+  }), true);
+  assert.equal(lifecycle.state, GAME_STATES.MATH);
+  assert.deepEqual(order, ['reset', 'show']);
+});
+
+test('math challenge ignores a locked Pointer Lock release failure after showing the question', () => {
+  const lifecycle = new GameStateMachine(GAME_STATES.PLAYING);
+  const order = [];
+  const controls = {
+    isLocked: true,
+    unlock() {
+      order.push('unlock');
+      throw new TypeError('document.exitPointerLock is not a function');
+    }
+  };
+
+  assert.doesNotThrow(() => beginMathChallenge({
+    lifecycle,
+    controls,
+    resetInput: () => order.push('reset'),
+    showQuestion: () => order.push('show')
+  }));
+  assert.equal(lifecycle.state, GAME_STATES.MATH);
+  assert.deepEqual(order, ['reset', 'show', 'unlock']);
+});
+
+test('math challenge rolls back to resume wait when question construction fails', () => {
+  const lifecycle = new GameStateMachine(GAME_STATES.PLAYING);
+  assert.throws(() => beginMathChallenge({
+    lifecycle,
+    resetInput: () => {},
+    showQuestion: () => { throw new Error('question DOM unavailable'); }
+  }), /question DOM unavailable/);
+  assert.equal(lifecycle.state, GAME_STATES.RESUME_WAIT);
 });
 
 test('input controller maps keyboard and pointer state and resets stuck controls', () => {

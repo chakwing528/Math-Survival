@@ -4,12 +4,13 @@ Issue #3 只有在目標真機完成本清單後才可關閉。Playwright 裝置
 
 ## 目前準備狀態（2026-08-26）
 
-- `npm test` 重跑通過：12 passed、2 個 hosted-staging cases 在沒有 secrets 時按設計 skipped；三個裝置 profile 的自動閘全綠。
+- V3.9 本機閘通過：static、23 unit tests，以及 18 passed／2 個 hosted-staging cases 按設計 skipped；三個裝置 profile 均覆蓋答題包顯示與安全返回。
 - 844×390 forced-touch 本機瀏覽器成功載入 3D touch HUD，無 console error；這項只證明入口和基本 UI，不取代下方真機記錄。
 - V3.8 獨立 Cloudflare Pages branch preview 已上線：`https://device-gate-p3.math-survival-device-staging.pages.dev/?mode=touch&debug=perf`。874×402 單欄選單、3D／2D、觸控 HUD、效能診斷列、安全返回及嚴格 404 已驗證，console 無 error；但仍未在用戶的實際 iPhone 17 Pro 完成下方重測。
 - LAN 預覽已驗證首頁／touch URL 200、dotfile 404；測試後 server 已停止。下次執行 `npm run serve:device` 並重新取得 LAN IP，不能假設舊 IP 不變。
-- 第一部真機 iPhone 17 Pro／Safari 在 2026-08-26 驗收失敗：開始選單沒有手機縮放、3D 畫面明顯像素化，移動約 10 秒後 lag。iOS／Safari 版本待填；修正及同機重測前保持 blocking。Android phone、iPad 的實際型號／版本尚未提供。
+- 第一部真機 iPhone 17 Pro／Safari 在 2026-08-26 驗收失敗：開始選單沒有手機縮放、3D 畫面明顯像素化、移動約 10 秒後 lag；其後拾取答題包會卡死且題目不彈出。iOS／Safari 版本待填；修正及同機重測前保持 blocking。Android phone、iPad 的實際型號／版本尚未提供。
 - V3.8 本機修正候選已針對 874×402 加入單欄選單、HUD 防重疊、medium DPR 1.35／最低 1.0、場景減量及每幀工作節流；自動 smoke matrix 15 passed、2 hosted-staging skipped。這只代表 regression gate 通過，仍須以同一部 iPhone 17 Pro 重做下方完整流程。
+- V3.9 答題包候選已改為先顯示題目再安全 unlock，並加入橫屏答題框邊界；三個模擬裝置均已完成「拾取後顯示、作答、返回 PLAYING」。這不取代真實 iPhone Safari 驗收。
 
 ## 自動閘
 
@@ -18,7 +19,7 @@ Issue #3 只有在目標真機完成本清單後才可關閉。Playwright 裝置
 | Project | Engine / profile | 自動檢查 |
 |---|---|---|
 | `chromium` | Desktop Chrome | 3D／2D 啟動、雲端隔離、惡意排行榜內容、重複提交保護、既有 touch smoke |
-| `iphone-safari` | WebKit / iPhone 13 | portrait guard、landscape HUD 邊界及防重疊、多指 reset、autoplay rejection retry |
+| `iphone-safari` | WebKit / iPhone 13 | portrait guard、landscape HUD／答題框邊界、無 Pointer Lock 答題流程、多指 reset、autoplay rejection retry |
 | `android-chrome` | Chromium / Pixel 7 | 同上 |
 | `ipad-safari` | WebKit / iPad (gen 7) | 同上 |
 
@@ -63,7 +64,7 @@ preview 的部署邊界、固定／版本 URL 及重建方法見 `docs/runbooks/
 
 | Device | OS / browser | Portrait / safe-area | Multi-touch / lifecycle | Audio | 10-min run | Result / notes |
 |---|---|---|---|---|---|---|
-| iPhone 17 Pro | iOS／Safari 待填 | ❌ | ❌ | ⬜ | ⬜ | 2026-08-26：選單未縮放、3D 像素化、移動約 10 秒後 lag；停止測試，待修正後重測 |
+| iPhone 17 Pro | iOS／Safari 待填 | ❌ | ❌ | ⬜ | ❌ | 2026-08-26：選單未縮放、3D 像素化、約 10 秒後 lag；另拾取答題包卡死且題目不彈出。V3.9 候選待同機重測 |
 | Android phone | 待填 | ⬜ | ⬜ | ⬜ | ⬜ | 待真機 |
 | iPad | 待填 | ⬜ | ⬜ | ⬜ | ⬜ | 待真機 |
 

@@ -4,13 +4,13 @@
 
 import * as THREE from 'three';
 import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
-import { WEAPONS, MONSTER_BASE, SETTINGS, DIFF_MULT, DIFF_LABELS } from './config.js?v=38';
-import { playSfx, sfxZombieGrowl, sfxZombieAttack, sfxZombieDeath, sfxBossRoar, sfxCorrect, sfxWrong, sfxLevelUp, sfxHeartbeat, sfxVictory, sfxPanSwing, sfxPanClang } from './audio.js?v=38';
-import { showMathQuestion } from './math.js?v=38';
-import { ASSETS, GUN_BY_LEVEL, cloneCharacter, cloneProp, cloneGun, tintModel } from './assets.js?v=38';
-import { buildSchool, COURT_HX, COURT_HZ, BUILD_HX, BUILD_HZ } from './school.js?v=38';
-import { getQuality, getQualityTier, downgradeQuality, isTouchMode } from './device.js?v=38';
-import { GAME_STATES, GameStateMachine, InputController, TouchControlSurface } from './input.js?v=38';
+import { WEAPONS, MONSTER_BASE, SETTINGS, DIFF_MULT, DIFF_LABELS } from './config.js?v=39';
+import { playSfx, sfxZombieGrowl, sfxZombieAttack, sfxZombieDeath, sfxBossRoar, sfxCorrect, sfxWrong, sfxLevelUp, sfxHeartbeat, sfxVictory, sfxPanSwing, sfxPanClang } from './audio.js?v=39';
+import { dismissMathQuestion, showMathQuestion } from './math.js?v=39';
+import { ASSETS, GUN_BY_LEVEL, cloneCharacter, cloneProp, cloneGun, tintModel } from './assets.js?v=39';
+import { buildSchool, COURT_HX, COURT_HZ, BUILD_HX, BUILD_HZ } from './school.js?v=39';
+import { getQuality, getQualityTier, downgradeQuality, isTouchMode } from './device.js?v=39';
+import { beginMathChallenge, GAME_STATES, GameStateMachine, InputController, TouchControlSurface } from './input.js?v=39';
 
 // 喪屍等級 → 模型
 const ZOMBIE_BY_TIER = { 1: 'zombie_b', 2: 'zombie_a', 3: 'zombie_c', 4: 'zombie_anim', 5: 'zombie_anim' };
@@ -1958,17 +1958,29 @@ export class Game {
 
     // -------------------------------------------------------------- 數學題流程
     _triggerMath(type) {
-        this.lifecycle.transition(GAME_STATES.MATH);
-        this.input.reset();
-        this.controls.unlock();
-
-        showMathQuestion({
-            type,
-            difficulty: this.difficulty,
-            questionsSolved: this.questionsSolved,
-            weaponLevel: this.weaponLevel,
-            onResolve: (correct, topic) => this._onMathResolved(type, correct, topic)
-        });
+        try {
+            beginMathChallenge({
+                lifecycle: this.lifecycle,
+                controls: this.controls,
+                resetInput: () => {
+                    this.touchControls.reset();
+                    this.input.reset();
+                },
+                showQuestion: () => showMathQuestion({
+                    type,
+                    difficulty: this.difficulty,
+                    questionsSolved: this.questionsSolved,
+                    weaponLevel: this.weaponLevel,
+                    onResolve: (correct, topic) => this._onMathResolved(type, correct, topic)
+                })
+            });
+        } catch (error) {
+            console.error('數學題顯示失敗，已安全恢復遊戲。', error);
+            this._addMsg('⚠️ 題目暫時無法顯示，補給已重新投放。', '#fbbf24');
+            this._spawnPickup(type);
+            if (isTouchMode() || this.controls.isLocked) this.resume('math-display-error');
+            else this.ui.resumeOverlay.style.display = 'flex';
+        }
     }
 
     _onMathResolved(type, correct, topic) {
@@ -3051,6 +3063,8 @@ export class Game {
     dispose() {
         this.disposed = true;
         cancelAnimationFrame(this._raf);
+
+        dismissMathQuestion();
 
         this.touchControls.dispose();
         this.input.dispose();

@@ -13,6 +13,8 @@
 
 Pointer Lock 只負責 desktop 取得滑鼠控制；`Game.pause()`／`resume()`、數學題回復及 `visibilitychange` 已使用共用 lifecycle。touch HUD 現有獨立暫停鍵，回復不要求 Pointer Lock。
 
+iPhone Safari 沒有完整 Pointer Lock API；答題流程只會在 controls 確實 locked 時嘗試 unlock，並吞掉 API failure。數學題 overlay 會在這個可選步驟之前同步顯示。
+
 touch controls 在 pause、visibility loss、resume 及 dispose 時 reset；透明 look zone 位於戰鬥鍵下層，避免攔截按鈕。
 
 ## 沉浸和 orientation
@@ -39,6 +41,7 @@ touch controls 在 pause、visibility loss、resume 及 dispose 時 reset；透�
 
 - touch 開始畫面使用單欄，桌面操作說明和排行榜側欄隱藏；字級、輸入框及按鈕按實際 CSS viewport 收窄，並套用 safe-area inset。
 - 高度不超過 500px 的橫屏 HUD 會獨立縮放／移位羅盤、四角資訊、搖桿和戰鬥鍵，避免 iPhone 874×402 viewport 重疊。
+- 同一高度範圍的答題 overlay 使用 safe-area padding、viewport 內容器、六欄 numpad 及至少 44px 操作鍵，避免 iPhone 橫屏要捲動或按不到。
 - touch HUD、雷達和羅盤以 15Hz 更新，準星和威脅提示以 20Hz 更新；第三身相機碰撞 raycast 以 20Hz 更新並重用結果陣列及向量，減少每幀 DOM/canvas 工作與垃圾回收壓力。
 
 ## 3D assets

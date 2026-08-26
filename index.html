@@ -11,13 +11,13 @@
     <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 
     <!-- 全域工具函數 (題庫依賴，必須先載入) -->
-    <script src="js/helpers.js?v=38"></script>
-    <script src="js/topics/indices.js?v=38"></script>
-    <script src="js/topics/expansion.js?v=38"></script>
-    <script src="js/topics/factorization.js?v=38"></script>
-    <script src="js/topics/rounding.js?v=38"></script>
-    <script src="js/cloud-runtime-config.js?v=38"></script>
-    <script src="js/cloud-core.js?v=38"></script>
+    <script src="js/helpers.js?v=39"></script>
+    <script src="js/topics/indices.js?v=39"></script>
+    <script src="js/topics/expansion.js?v=39"></script>
+    <script src="js/topics/factorization.js?v=39"></script>
+    <script src="js/topics/rounding.js?v=39"></script>
+    <script src="js/cloud-runtime-config.js?v=39"></script>
+    <script src="js/cloud-core.js?v=39"></script>
 
     <script type="importmap">
     {
@@ -266,11 +266,13 @@
 
         /* ---------- 數學題彈窗 ---------- */
         #math-overlay {
+            box-sizing: border-box;
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.85); z-index: 600; display: none;
             flex-direction: column; justify-content: center; align-items: center;
         }
         .math-container {
+            box-sizing: border-box;
             background: #1e293b; padding: 30px; border-radius: 12px;
             border: 4px solid #38bdf8; width: 85%; max-width: 600px; max-height: 90%; overflow-y: auto;
             text-align: center; color: white; box-shadow: 0 0 20px rgba(0,0,0,0.5);
@@ -286,6 +288,44 @@
         }
         .mcq-btn:hover { background: #475569; border-color: #fbbf24; }
         .mcq-label { color: #fbbf24; font-weight: bold; font-size: 24px; }
+
+        @media (orientation: landscape) and (max-height: 500px) {
+            body.mode-touch #math-overlay {
+                padding:
+                    max(4px, env(safe-area-inset-top))
+                    max(10px, env(safe-area-inset-right))
+                    max(4px, env(safe-area-inset-bottom))
+                    max(10px, env(safe-area-inset-left));
+            }
+            body.mode-touch .math-container {
+                width: 100%; max-width: 760px; max-height: 100%;
+                padding: 8px 14px; border-width: 2px; border-radius: 8px;
+            }
+            body.mode-touch #math-header { margin: 0 0 4px !important; font-size: 18px; }
+            body.mode-touch #math-timer-bg { height: 8px; margin-bottom: 5px; }
+            body.mode-touch #math-question-content {
+                font-size: 16px; line-height: 1.2; margin-bottom: 5px; padding: 4px;
+            }
+            body.mode-touch #math-options-container { gap: 5px !important; }
+            body.mode-touch .math-num-display {
+                width: min(220px, 100%) !important; min-height: 34px !important;
+                padding: 4px !important; font-size: 24px !important;
+            }
+            body.mode-touch .math-numpad {
+                grid-template-columns: repeat(6, 1fr) !important;
+                width: min(600px, 100%) !important; gap: 5px !important; margin-top: 0 !important;
+            }
+            body.mode-touch .math-key-btn {
+                min-height: 44px; padding: 4px !important; font-size: 18px !important;
+            }
+            body.mode-touch .math-submit-btn,
+            body.mode-touch .math-continue-btn {
+                min-height: 44px; padding: 7px 18px !important; font-size: 17px !important;
+            }
+            body.mode-touch .math-submit-btn { width: min(260px, 100%) !important; margin-top: 0 !important; }
+            body.mode-touch .mcq-btn { min-height: 48px; padding: 8px; font-size: 16px; }
+            body.mode-touch #math-hint { margin-top: 6px !important; padding: 8px !important; }
+        }
 
         /* ---------- PUBG 風格 HUD ---------- */
         #hud { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 100; font-family: 'Segoe UI', 'Arial Narrow', sans-serif; }
@@ -877,7 +917,7 @@
     </div>
 
     <!-- ===================== 數學題彈窗 ===================== -->
-    <div id="math-overlay">
+    <div id="math-overlay" aria-hidden="true">
         <div id="math-container" class="math-container">
             <h2 id="math-header" style="margin-top: 0;"></h2>
             <div id="math-timer-bg"><div id="math-timer-bar"></div></div>
@@ -1021,7 +1061,7 @@
         <button id="btn-go-menu">🏠 返回主選單</button>
     </div>
 
-    <div id="version-tag">Math Survival FPS V3.8</div>
+    <div id="version-tag">Math Survival FPS V3.9</div>
     <div style="position: absolute; bottom: 5px; left: 10px; color: rgba(255,255,255,0.35); font-size: 11px; z-index: 100; pointer-events: none;">3D 模型: Quaternius (poly.pizza) CC-BY 3.0</div>
 
     <audio id="bgm" src="audio/bgm.mp3" loop></audio>
@@ -1029,7 +1069,7 @@
     <audio id="reloadSfx" src="audio/reloadSfx.m4a"></audio>
     <audio id="emptyAmmoSfx" src="audio/emptyAmmoSfx.m4a"></audio>
 
-    <script type="module" src="js/main.js?v=38"></script>
+    <script type="module" src="js/main.js?v=39"></script>
 
 </body>
 </html>

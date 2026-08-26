@@ -37,6 +37,34 @@ export class GameStateMachine {
     }
 }
 
+// Pointer Lock 唔係 touch gameplay 的必要條件。iPhone Safari 沒有
+// document.exitPointerLock()；只可在確實 locked 時嘗試解鎖，而且失敗
+// 不得阻止數學題 UI 顯示。
+export function releasePointerLockSafely(controls) {
+    if (!controls || !controls.isLocked || typeof controls.unlock !== 'function') return false;
+    try {
+        controls.unlock();
+        return true;
+    } catch (error) {
+        return false;
+    }
+}
+
+// 數學題進場次序是 lifecycle invariant：先停止輸入、同步顯示題目，
+// 最後才處理可選的 desktop Pointer Lock。題目建立失敗時回到可恢復狀態。
+export function beginMathChallenge({ lifecycle, resetInput, showQuestion, controls }) {
+    lifecycle.transition(GAME_STATES.MATH);
+    if (typeof resetInput === 'function') resetInput();
+    try {
+        showQuestion();
+    } catch (error) {
+        lifecycle.transition(GAME_STATES.RESUME_WAIT);
+        throw error;
+    }
+    releasePointerLockSafely(controls);
+    return true;
+}
+
 const KEY_CONTROLS = Object.freeze({
     w: 'forward', arrowup: 'forward',
     s: 'backward', arrowdown: 'backward',

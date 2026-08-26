@@ -25,7 +25,7 @@
 
 ## 重要工程規則
 
-- `index.html`、`js/main.js` 和其 ES Module imports 使用 `?v=38` cache key。修改已加版本參數的前端檔案時，發佈前應一致 bump 所有相關 `?v=` 及畫面版本標籤。
+- `index.html`、`js/main.js` 和其 ES Module imports 使用 `?v=39` cache key。修改已加版本參數的前端檔案時，發佈前應一致 bump 所有相關 `?v=` 及畫面版本標籤。
 - `js/helpers.js` 必須在 `js/topics/*.js` 之前載入；題庫依賴其 global helpers。
 - `index.html` 的 DOM IDs 是 `main.js`、`game.js`、`math.js`、`audio.js` 和 `device.js` 的共用介面，改名時必須搜尋所有 caller。
 - 3D 遊戲的相機/射擊、Sprite raycast、GLTF bbox、手骨武器 scale 及共用材質規則見 `docs/features/GAMEPLAY.md`。

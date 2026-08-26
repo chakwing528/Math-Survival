@@ -51,7 +51,7 @@ test('3D client boots and reaches difficulty selection without production servic
   await page.goto('/');
   await expect(page.locator('#loading-screen')).toBeHidden({ timeout: 10_000 });
   await expect(page.locator('#start-menu')).toBeVisible();
-  await expect(page.locator('#version-tag')).toHaveText('Math Survival FPS V3.8');
+  await expect(page.locator('#version-tag')).toHaveText('Math Survival FPS V3.9');
 
   await page.locator('#login-class').fill('TEST');
   await page.locator('#login-sid').fill('00');

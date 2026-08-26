@@ -128,6 +128,70 @@ test('touch medium quality preserves readable render scale with a safe adaptive 
   expectSafeRun(observed);
 });
 
+test('touch upgrade question displays and resumes without a Pointer Lock API', async ({ page }) => {
+  const observed = await isolateExternalServices(page);
+  await page.goto('/?mode=touch');
+  await expect(page.locator('#loading-screen')).toBeHidden({ timeout: 10_000 });
+  const portrait = page.viewportSize();
+  await page.setViewportSize({ width: portrait.height, height: portrait.width });
+  await expect(page.locator('#rotate-block')).toBeHidden({ timeout: 2_000 });
+
+  await page.evaluate(async () => {
+    const [{ showMathQuestion }, { beginMathChallenge, GAME_STATES, GameStateMachine }] = await Promise.all([
+      import('/js/math.js?iphone-math-gate'),
+      import('/js/input.js?iphone-math-gate')
+    ]);
+    const lifecycle = new GameStateMachine(GAME_STATES.PLAYING);
+    globalThis.__mathGate = { lifecycle, result: null, unlockCalls: 0 };
+    beginMathChallenge({
+      lifecycle,
+      resetInput: () => {},
+      controls: {
+        isLocked: false,
+        unlock() {
+          globalThis.__mathGate.unlockCalls += 1;
+          throw new TypeError('document.exitPointerLock is not a function');
+        }
+      },
+      showQuestion: () => showMathQuestion({
+        type: 'UPGRADE', difficulty: '1', questionsSolved: 0, weaponLevel: -1,
+        timeLimitSeconds: 60,
+        onResolve: (correct, topic) => {
+          lifecycle.transition(GAME_STATES.RESUME_WAIT);
+          lifecycle.transition(GAME_STATES.PLAYING);
+          globalThis.__mathGate.result = { correct, topic, state: lifecycle.state };
+        }
+      })
+    });
+  });
+
+  await expect(page.locator('#math-overlay')).toBeVisible();
+  await expect(page.locator('#math-header')).toHaveText('⚡ 武器進化程序 ⚡');
+  await expect(page.locator('#math-num-display')).toBeVisible();
+  await expect(page.locator('.math-key-btn')).toHaveCount(12);
+  expect(await page.evaluate(() => globalThis.__mathGate.unlockCalls)).toBe(0);
+
+  const overlay = await page.locator('#math-overlay').boundingBox();
+  const container = await page.locator('#math-container').boundingBox();
+  const viewport = page.viewportSize();
+  expect(overlay).not.toBeNull();
+  expect(container).not.toBeNull();
+  expect(container.x).toBeGreaterThanOrEqual(0);
+  expect(container.y).toBeGreaterThanOrEqual(0);
+  expect(container.x + container.width).toBeLessThanOrEqual(viewport.width);
+  expect(container.y + container.height).toBeLessThanOrEqual(viewport.height);
+
+  await page.getByRole('button', { name: '-', exact: true }).click();
+  await page.getByRole('button', { name: '確定', exact: true }).click();
+  await expect(page.getByRole('button', { name: '明白了，繼續戰鬥 ▶', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: '明白了，繼續戰鬥 ▶', exact: true }).click();
+  await expect(page.locator('#math-overlay')).toBeHidden();
+  expect(await page.evaluate(() => globalThis.__mathGate.result)).toEqual({
+    correct: false, topic: 'arithmetic', state: 'PLAYING'
+  });
+  expectSafeRun(observed);
+});
+
 test('multi-pointer controls reset cleanly and autoplay rejection remains retryable', async ({ page }) => {
   await page.addInitScript(() => {
     globalThis.__mediaGate = { playCalls: 0, pauseCalls: 0 };
