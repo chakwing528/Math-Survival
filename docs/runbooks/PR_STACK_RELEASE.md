@@ -29,7 +29,7 @@
 
 1. 記錄合併前 `main` SHA，建立可追溯 release tag 或保留明確 rollback SHA。
 2. 重新審查 PR #1。這個 PR 是大型基線匯入（盤點時 88 files），亦包含既有 trailing-whitespace；不要在 release gate 進行全倉格式化。確認 checks 後以 **merge commit** 合併。
-3. 等待 CI 及 GitHub Pages 完成；實測 `/`、`/classic-2d.html`、版本標籤和 `?v=37` cache key。任何失敗即停止，不要繼續下一層。
+3. 等待 CI 及 GitHub Pages 完成；實測 `/`、`/classic-2d.html`、版本標籤和 `?v=38` cache key。任何失敗即停止，不要繼續下一層。
 4. Fetch 最新 `main`，確認 PR #5 的 diff 仍只包含該層內容；必要時把 base 改為 `main`。再次 review／checks 後以 merge commit 合併。
 5. 對 PR #7、#8 逐一重複第 3–4 步。每次只處理一層，不能一次按下四個 merge。
 6. PR #8 通過發佈 smoke 且三類真機記錄完整後，才可關閉 Issue #3。
@@ -53,6 +53,8 @@
 
 ## 2026-08-26 gate 結果
 
+- iPhone 17 Pro／Safari 的 V3.7 真機驗收發現選單未縮放、像素化及約 10 秒後 lag，因此先前 conditional pass 已被真機結果擋下。iOS／Safari 版本待補。
+- V3.8 iPhone P0 本機修正候選已通過 15 個 smoke cases（另 2 個 hosted-staging cases 按設計 skipped），但同機 10 分鐘重測和新版 Cloudflare preview 驗證完成前仍不可合併。
 - `npm test`：12 passed、2 hosted-staging cases 因無 secrets 按設計 skipped；static 及 20 unit tests 通過。
 - 本機 Supabase：18 pgTAP tests 通過；`public`、`math_survival_private` lint 無錯誤。
 - 844×390 forced-touch 瀏覽器：3D 戰場和 touch HUD 載入，無 console error；只用 `TEST/00`，沒有上傳成績。

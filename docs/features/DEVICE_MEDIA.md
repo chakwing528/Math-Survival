@@ -25,14 +25,21 @@ touch controls 在 pause、visibility loss、resume 及 dispose 時 reset；透�
 
 | Tier | 主要差異 |
 |---|---|
-| high | desktop baseline、antialias、較多草/樹/碎片、較遠 fog |
-| medium | 較低 pixel ratio、無 antialias、中等場景密度 |
-| low | 0.75 pixel ratio、最低場景密度和碎片量 |
+| high | DPR 上限 1.5／最低 1.0、antialias、草 700／場外樹 40／碎片 150·500、fog 60–150 |
+| medium | DPR 上限 1.35／最低 1.0、無 antialias、草 160／場外樹 10／碎片 45·120、fog 40–92 |
+| low | DPR 上限 1.0／最低 0.85、無 antialias、草 80／場外樹 5／碎片 20·55、fog 35–75 |
 
 - `?quality=` 可強制 tier。
 - 否則讀 localStorage；touch 再按 CPU cores/device memory 猜測。
-- `game.js` 每三秒監察 FPS；低於門檻可即時降低 pixel ratio，並把下一局 tier 降一級。
+- `game.js` 每五秒取樣 FPS；連續兩段低於 touch 32／desktop 40 FPS 才降低 0.2 DPR，最多兩次且不可低於該 tier 的最低值。這避免開局第 3／6 秒連續重建 framebuffer。
 - 自動降級刻意不寫 localStorage。
+- `?debug=perf` 顯示每秒更新的 FPS、實際／裝置 DPR、tier、viewport 和 draw calls，供真機驗收；不包含學生資料。
+
+## 手機 UI 與執行期節流
+
+- touch 開始畫面使用單欄，桌面操作說明和排行榜側欄隱藏；字級、輸入框及按鈕按實際 CSS viewport 收窄，並套用 safe-area inset。
+- 高度不超過 500px 的橫屏 HUD 會獨立縮放／移位羅盤、四角資訊、搖桿和戰鬥鍵，避免 iPhone 874×402 viewport 重疊。
+- touch HUD、雷達和羅盤以 15Hz 更新，準星和威脅提示以 20Hz 更新；第三身相機碰撞 raycast 以 20Hz 更新並重用結果陣列及向量，減少每幀 DOM/canvas 工作與垃圾回收壓力。
 
 ## 3D assets
 

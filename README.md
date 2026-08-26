@@ -7,7 +7,8 @@
 - **3D 主版**：開啟 `index.html`，支援滑鼠鍵盤及完整 touch HUD。
 - **2D 經典版**：開啟 `classic-2d.html`，保留觸控和舊裝置 fallback。
 - 3D touch 支援虛擬搖桿、拖動視角、開火、toggle 瞄準、換彈、近戰及暫停；手機仍可選用 2D fallback。
-- 畫面版本為 V3.7，module cache key 為 `?v=37`。
+- V3.8 為 iPhone 橫屏加入單欄選單、safe-area HUD、防重疊排位、較清晰的 medium render scale 及手機執行期節流；`?debug=perf` 可顯示不含個人資料的效能診斷列。
+- 畫面版本為 V3.8，module cache key 為 `?v=38`。
 
 > 3D 版使用 ES Modules，必須經 HTTP server 開啟。直接雙擊 `index.html` 會因 `file://` 限制而無法載入 modules。
 

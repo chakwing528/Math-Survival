@@ -2,7 +2,7 @@
 
 > 新 Codex task 應先讀 `AGENTS.md`、`docs/PROJECT_MAP.md` 同 `docs/CURRENT_STATE.md`，再按任務讀相關 feature 文件。
 > 呢份文件只保留近期交接同歷史實作細節；架構、API、資料流同長期規則以 `docs/` 為準，實際行為以程式碼為準。
-> 目前 workspace：`/Users/cwchan/Downloads/Math-Survival-main/Math-Survival-main`。Draft PR #1／#5／#7／#8 組成 Issue #3 stack，尚未合併至 `main`。2026-08-26 自動、本機 Supabase、LAN、forced-touch 及獨立 Cloudflare Pages preview 閘已通過，但 iPhone／Android／iPad 真機記錄仍未完成；真機 URL／規則見 `docs/testing/DEVICE_ACCEPTANCE.md`，合併次序及回滾見 `docs/runbooks/PR_STACK_RELEASE.md`。Issue #2 的獨立 `Math-Survival-Staging` rollout 已完成，production 仍為 GAS。
+> 目前 workspace：`/Users/cwchan/Downloads/Math-Survival-main/Math-Survival-main`。Draft PR #1／#5／#7／#8 組成 Issue #3 stack，尚未合併至 `main`。iPhone 17 Pro 的 V3.7 真機驗收在 2026-08-26 因選單未縮放、像素化及 lag 失敗；V3.8 iPhone P0 修正候選已通過本機自動閘，但同機重測前仍是 blocking。真機 URL／規則見 `docs/testing/DEVICE_ACCEPTANCE.md`，合併次序及回滾見 `docs/runbooks/PR_STACK_RELEASE.md`。Issue #2 的獨立 `Math-Survival-Staging` rollout 已完成，production 仍為 GAS。
 
 ---
 
@@ -14,7 +14,7 @@
 
 **目標用戶**：明愛聖若瑟中學學生（滑鼠鍵盤或 touch 裝置）
 
-**現時版本**：**V3.7**（快取版本號 `?v=37`）　← Issue #3 Batch 2 touch controls；production 仍為 GAS
+**現時版本**：**V3.8**（快取版本號 `?v=38`）　← Issue #3 iPhone P0 畫質／效能／手機 UI 修正候選；production 仍為 GAS
 
 ---
 
@@ -51,7 +51,7 @@ audio/              bgm.mp3 + 3 個槍聲音效
 
 ### 版本快取機制（重要！）
 
-目前已加 cache key 嘅 import 都掛 `?v=37`，例如 `import { x } from './config.js?v=37'`。
+目前已加 cache key 嘅 import 都掛 `?v=38`，例如 `import { x } from './config.js?v=38'`。
 **每次改完代碼必須 bump 版本號**，否則用戶瀏覽器會用舊快取。
 
 ```bash
@@ -65,7 +65,7 @@ for f in ['index.html','js/main.js','js/game.js','js/assets.js','js/math.js','js
         s2 = s.replace('?v='+OLD, '?v='+NEW)
         if s != s2: io.open(f,'w',encoding='utf-8').write(s2)
 h = io.open('index.html', encoding='utf-8').read()
-h = re.sub(r'Math Survival FPS V[0-9.]+', 'Math Survival FPS V3.7', h)  # ← 同步改顯示版本
+h = re.sub(r'Math Survival FPS V[0-9.]+', 'Math Survival FPS V3.8', h)  # ← 同步改顯示版本
 io.open('index.html','w',encoding='utf-8').write(h)
 print('bumped')
 PYEOF
@@ -222,8 +222,8 @@ python3 -m http.server 8000   → http://localhost:8000
 | 沉浸模式 | 開波時 `requestFullscreen()` + `orientation.lock('landscape')`（必須喺 user gesture 內同步呼叫） |
 | 直屏提示 | `#rotate-block` 遮罩，orientationchange / matchMedia 雙保險 + 補幾次 timeout（iOS 時序唔穩） |
 | 防手勢 | `overscroll-behavior:none`、`touch-action:none`（輸入框例外，否則打唔到班別學號）、`user-scalable=no`、`viewport-fit=cover` |
-| 畫質分級 | high(桌面，數值同 V3.2 一模一樣) / medium / low：pixelRatio、antialias、草叢 700→250→120、場外樹 40→15→8、解體碎片 150·500→60·180→30·90、霧距離 |
-| 動態降級 | `_watchPerf()` 每 3 秒實測 fps，<40 即時降 pixelRatio（最多兩次）+ 下一局降一級。**刻意唔存 localStorage** —— 偶發卡頓唔應該永久調低畫質 |
+| 畫質分級 | high / medium / low 的 DPR 上限為 1.5／1.35／1.0，最低為 1.0／1.0／0.85；場景密度依序為草 700／160／80、場外樹 40／10／5、碎片 150·500／45·120／20·55 |
+| 動態降級 | `_watchPerf()` 每 5 秒取樣，連續兩段低 FPS 才降 0.2 DPR（最多兩次且受 tier 最低值保護）+ 下一局降一級。**刻意唔存 localStorage** |
 
 舊交接紀錄：當時桌面版數值同改造前一致（草 700 / 樹 40 / 霧 60-150 / antialias 開），並記錄為冇新 console 錯誤；目前未重新驗證。
 
@@ -241,9 +241,16 @@ python3 -m http.server 8000   → http://localhost:8000
 - 20 個 unit tests、6 個隔離 Chromium smoke tests及實際 3D/WebGL HUD／戰鬥鍵／pause-reset-resume 驗證通過。
 - 仍需 iPhone Safari、Android Chrome、iPad 的 orientation、audio/autoplay 及完整長局真機驗收。
 
+### ⏳ Issue #3 iPhone P0 修正候選（V3.8）
+
+- iPhone 17 Pro 的 V3.7 真機驗收失敗：選單維持桌面三欄、3D 像素化、移動約 10 秒後 lag；iOS／Safari 版本待補。
+- touch 選單已改單欄並隱藏桌面側欄；874×402 橫屏的 safe-area、搖桿、戰鬥鍵和四角 HUD 已重新排位並加入防重疊 smoke assertions。
+- medium DPR 提升至 1.35 並設最低 1.0；同時減少草木與碎片，把畫質預算由密度移到清晰度。
+- touch HUD／雷達／羅盤降至 15Hz，準星／威脅提示及第三身相機 raycast 降至 20Hz；重用 raycast 結果和暫存向量以降低 GC 壓力。`?debug=perf` 每秒顯示 FPS／DPR／draw calls。
+- 本機 smoke matrix 為 15 passed、2 hosted-staging skipped；新版 Cloudflare preview 及同一部 iPhone 17 Pro 10 分鐘重測仍未完成，所以不可合併或關閉 Issue #3。
+
 ### ⬜ 待做
 
-- **P2 真機閘** — 自動 iPhone WebKit、Android Chromium、iPad WebKit matrix 及獨立 Cloudflare preview 已完成；依 `docs/testing/DEVICE_ACCEPTANCE.md` 填寫三類實機 safe-area、多指、audio/autoplay 及 10 分鐘核心玩法記錄後才可關 Issue #3。
-- **P3 靚** — 四角 HUD wrapper 各自 `transform: scale(var(--hud-s))`（唔好成個 HUD 一次過 scale，錨點會飛）、
-  選單 `flex-direction` 手機改 column、答題彈窗選項掣 ≥48px、填充題 `inputmode="numeric"`
+- **P2 真機閘** — 先用同一部 iPhone 17 Pro 驗證 V3.8 選單、清晰度、控制和 10 分鐘 FPS／DPR，再依 `docs/testing/DEVICE_ACCEPTANCE.md` 完成 Android／iPad 的 safe-area、多指、audio/autoplay 及長局記錄。
+- **P3 靚** — 答題彈窗選項掣 ≥48px、填充題 `inputmode="numeric"`；選單單欄及四角 HUD 防重疊已在 V3.8 P0 完成。
 - **P4 打磨** — 真機測試（iPhone Safari / Android Chrome / iPad）、iOS AudioContext 解鎖時機、19MB 模型考慮壓縮

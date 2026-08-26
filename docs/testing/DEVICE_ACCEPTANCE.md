@@ -8,7 +8,8 @@ Issue #3 只有在目標真機完成本清單後才可關閉。Playwright 裝置
 - 844×390 forced-touch 本機瀏覽器成功載入 3D touch HUD，無 console error；這項只證明入口和基本 UI，不取代下方真機記錄。
 - 獨立 Cloudflare Pages branch preview 已上線：`https://device-gate-p3.math-survival-device-staging.pages.dev/?mode=touch`。3D／2D、觸控控制、暫停／返回及嚴格 404 已驗證，但仍未在用戶的實際裝置完成下方清單。
 - LAN 預覽已驗證首頁／touch URL 200、dotfile 404；測試後 server 已停止。下次執行 `npm run serve:device` 並重新取得 LAN IP，不能假設舊 IP 不變。
-- iPhone、Android phone、iPad 的實際型號／版本尚未提供，三行仍是 blocking gate。
+- 第一部真機 iPhone 17 Pro／Safari 在 2026-08-26 驗收失敗：開始選單沒有手機縮放、3D 畫面明顯像素化，移動約 10 秒後 lag。iOS／Safari 版本待填；修正及同機重測前保持 blocking。Android phone、iPad 的實際型號／版本尚未提供。
+- V3.8 本機修正候選已針對 874×402 加入單欄選單、HUD 防重疊、medium DPR 1.35／最低 1.0、場景減量及每幀工作節流；自動 smoke matrix 15 passed、2 hosted-staging skipped。這只代表 regression gate 通過，仍須以同一部 iPhone 17 Pro 重做下方完整流程。
 
 ## 自動閘
 
@@ -25,7 +26,7 @@ Issue #3 只有在目標真機完成本清單後才可關閉。Playwright 裝置
 
 ## Cloudflare 真機 preview（建議）
 
-1. 真機開啟 `https://device-gate-p3.math-survival-device-staging.pages.dev/?mode=touch`；不需要與 Mac 同一 Wi-Fi。
+1. 真機開啟 `https://device-gate-p3.math-survival-device-staging.pages.dev/?mode=touch&debug=perf`；不需要與 Mac 同一 Wi-Fi。重測時請記錄底部診斷列在開始、約 5 分鐘及約 10 分鐘的 FPS／DPR（不需截到排行榜）。
 2. 這是公開但不影響 production 的 branch preview。`noindex` 不是存取控制，切勿把真實班別、學號、姓名或成績放進測試。
 3. 班別／學號只用 `TEST`／`00`。
 4. 在勝負／結算前按暫停，再選「放棄本局，返回主選單」。如意外到達結算畫面，不要按「上傳成績」。
@@ -62,7 +63,7 @@ preview 的部署邊界、固定／版本 URL 及重建方法見 `docs/runbooks/
 
 | Device | OS / browser | Portrait / safe-area | Multi-touch / lifecycle | Audio | 10-min run | Result / notes |
 |---|---|---|---|---|---|---|
-| iPhone | 待填 | ⬜ | ⬜ | ⬜ | ⬜ | 待真機 |
+| iPhone 17 Pro | iOS／Safari 待填 | ❌ | ❌ | ⬜ | ⬜ | 2026-08-26：選單未縮放、3D 像素化、移動約 10 秒後 lag；停止測試，待修正後重測 |
 | Android phone | 待填 | ⬜ | ⬜ | ⬜ | ⬜ | 待真機 |
 | iPad | 待填 | ⬜ | ⬜ | ⬜ | ⬜ | 待真機 |
 

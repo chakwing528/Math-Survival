@@ -60,6 +60,22 @@ test('portrait guard and landscape touch HUD fit the emulated device viewport', 
   await page.setViewportSize({ width: portrait.height, height: portrait.width });
   await expect(page.locator('#rotate-block')).toBeHidden({ timeout: 2_000 });
 
+  await expect(page.locator('#start-menu > .desktop-only')).toHaveCount(2);
+  await expect(page.locator('#start-menu > .desktop-only').first()).toBeHidden();
+  const menuViewport = page.viewportSize();
+  const menuBoxes = await Promise.all(
+    ['.game-title', '#login-class', '#login-sid', '#btn-next']
+      .map(selector => page.locator(selector).first().boundingBox())
+  );
+  expect(menuBoxes.every(Boolean)).toBe(true);
+  for (const box of menuBoxes) {
+    expect(box.x).toBeGreaterThanOrEqual(0);
+    expect(box.y).toBeGreaterThanOrEqual(0);
+    expect(box.x + box.width).toBeLessThanOrEqual(menuViewport.width);
+    expect(box.y + box.height).toBeLessThanOrEqual(menuViewport.height);
+  }
+  expect(await page.locator('#start-menu').evaluate(element => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
+
   await page.evaluate(() => {
     document.querySelector('#hud').style.display = 'block';
   });
@@ -82,6 +98,33 @@ test('portrait guard and landscape touch HUD fit the emulated device viewport', 
     for (let j = i + 1; j < boxes.length; j++) expect(boxesOverlap(boxes[i], boxes[j])).toBe(false);
   }
   expect(boxesOverlap(boxes[0], boxes[1])).toBe(false);
+  if (viewport.height <= 500) {
+    const hudBoxes = await Promise.all(
+      ['#hud-top-right', '#hud-bottom-right', '#hud-health-wrap']
+        .map(selector => page.locator(selector).boundingBox())
+    );
+    expect(hudBoxes.every(Boolean)).toBe(true);
+    for (const actionBox of boxes.slice(1)) {
+      for (const hudBox of hudBoxes) expect(boxesOverlap(actionBox, hudBox)).toBe(false);
+    }
+    expect(boxesOverlap(boxes[0], hudBoxes[2])).toBe(false);
+  }
+  expectSafeRun(observed);
+});
+
+test('touch medium quality preserves readable render scale with a safe adaptive floor', async ({ page }) => {
+  const observed = await isolateExternalServices(page);
+  await page.goto('/?mode=touch&quality=medium');
+  await expect(page.locator('#loading-screen')).toBeHidden({ timeout: 10_000 });
+  const quality = await page.evaluate(async () => {
+    const device = await import('/js/device.js?quality-gate');
+    return device.getQuality();
+  });
+  expect(quality.pixelRatio).toBe(1.35);
+  expect(quality.minPixelRatio).toBe(1.0);
+  expect(quality.antialias).toBe(false);
+  expect(quality.grass).toBeLessThanOrEqual(160);
+  expect(quality.outerTrees).toBeLessThanOrEqual(10);
   expectSafeRun(observed);
 });
 

@@ -56,7 +56,7 @@ npx wrangler pages deploy <artifact-directory> \
 
 ## 每次上傳後驗證
 
-- Branch URL 和新版本 URL 都能載入 3D 主頁；顯示 `Math Survival FPS V3.7`。
+- Branch URL 和新版本 URL 都能載入 3D 主頁；顯示 `Math Survival FPS V3.8`。
 - `?mode=touch` 橫屏可進入程度 1，移動、瞄準、換彈、開火、近戰和暫停控制都存在。
 - 暫停後可放棄本局並返回主選單，測試過程沒有按上傳成績。
 - `/classic-2d.html` 可載入 2D fallback。
