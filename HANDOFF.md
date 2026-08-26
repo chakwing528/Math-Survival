@@ -258,7 +258,7 @@ python3 -m http.server 8000   → http://localhost:8000
 - iPhone Game Over／abort 不再依賴 Pointer Lock API 成功；成績上傳 exception 會恢復按鈕供重試。
 - medium 為 DPR 1.25／最低 1.0、45 FPS、同場敵人 4；low 為 30 FPS／同場 3。答題、暫停及結算期間停止持續 WebGL effects/render，連續低 FPS 再降低 DPR／敵人上限／裝飾雲。
 - `npm test`：static、25 unit、21 browser passed；2 個 hosted-Supabase cases無 secrets 按設計 skipped。Playwright 本機 worker 固定為 2，避免四個 19 MB WebGL clients 同時載入造成非功能性 timeout。
-- 下一步把同一 commit 推上 Draft PR #8，並用獨立 public repository `Math-Survival-Device-Staging` 建立 GitHub Pages；原 repository `main`／production Pages 不變，舊 Cloudflare preview 不更新。
+- Draft PR #8 source 已推至 `f9ce9d6`。獨立 public repository `Math-Survival-Device-Staging` 只發佈 50 個前端 allowlist 檔案；artifact `b3e0fbe` 的 Pages build #1 成功。3D／2D 200、敏感路徑 404、874×402 V3.10/cache40、精簡 HUD、敵人 4/4 上限及安全退出 hosted 閘通過；原 repository `main`／production Pages 不變，舊 Cloudflare preview 不更新。
 
 ### ⬜ 待做
 

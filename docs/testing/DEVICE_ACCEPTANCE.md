@@ -6,7 +6,7 @@ Issue #3 只有在目標真機完成本清單後才可關閉。Playwright 裝置
 
 - V3.10 完整 `npm test` 已通過：static、25 unit tests、21 browser tests passed，2 個 hosted-Supabase cases 因無 secrets 按設計 skipped；三個裝置 profile 覆蓋雙欄答題、簡化 HUD、多指 reset 及無 Pointer Lock 的 Game Over 結算。
 - 844×390 forced-touch 本機瀏覽器成功載入 3D touch HUD，無 console error；這項只證明入口和基本 UI，不取代下方真機記錄。
-- V3.10 將以獨立 public repository 的 GitHub Pages staging 驗收；不改原 repository `main`／production Pages。舊 Cloudflare V3.9 preview 保留但不再更新。
+- V3.10 獨立 public GitHub Pages staging 已上線；Pages build成功，3D／2D、V3.10/cache40、874×402 精簡 HUD、敵人 4/4 上限、安全退出、console及嚴格 404 hosted 閘通過。不改原 repository `main`／production Pages；舊 Cloudflare V3.9 preview 保留但不再更新。
 - LAN 預覽已驗證首頁／touch URL 200、dotfile 404；測試後 server 已停止。下次執行 `npm run serve:device` 並重新取得 LAN IP，不能假設舊 IP 不變。
 - 第一部真機 iPhone 17 Pro／Safari 在 2026-08-26 驗收失敗：開始選單沒有手機縮放、3D 畫面明顯像素化、移動約 10 秒後 lag；其後拾取答題包會卡死且題目不彈出。iOS／Safari 版本待填；修正及同機重測前保持 blocking。Android phone、iPad 的實際型號／版本尚未提供。
 - V3.8 本機修正候選已針對 874×402 加入單欄選單、HUD 防重疊、medium DPR 1.35／最低 1.0、場景減量及每幀工作節流；自動 smoke matrix 15 passed、2 hosted-staging skipped。這只代表 regression gate 通過，仍須以同一部 iPhone 17 Pro 重做下方完整流程。

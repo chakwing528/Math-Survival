@@ -48,10 +48,12 @@
 - 模型授權不是全部 CC-BY 3.0；個別授權以 `assets/models/credits.txt` 為準。
 - Hosted staging 已選用另一帳戶的獨立 Free project `Math-Survival-Staging`（ref `mtwhanvpaqgdlhbxzyhu`，Tokyo）；未使用 `School Platform Production`。真實資料 owner、retention、匯入批准及 production cutover 仍待確認。
 - Cloudflare Pages project `math-survival-device-staging` 只用作 Issue #3 公開 preview；production branch 設為 `main` 但未部署，亦沒有自動連接 GitHub。preview 仍使用程式碼內預設 GAS runtime，不是 Supabase staging。
+- V3.10 另建 public repository `chakwing528/Math-Survival-Device-Staging`，只含 50 個前端 allowlist 檔案；GitHub Pages source 為該 repo `main` root。原 repository `main`／production Pages 未改，舊 Cloudflare preview 不再更新。
 - Legacy `addScore` 仍以 GET 傳送班別/學號；POST v2 只完成本機 contract/遷移設計，未改 production。
 
 ## 驗證狀態
 
+- 2026-08-26：V3.10 GitHub Pages staging build #1 成功；3D／2D 200，`package.json`／`.git/HEAD` 自訂 404。874×402 hosted 3D 可進場，V3.10/cache40、精簡 HUD、敵人 4/4 上限、安全退出及 console 閘通過；只用 `TEST/00`，沒有上傳成績。
 - 2026-08-26：V3.10 完整 `npm test` 通過：static、25 unit tests、21 browser tests passed，2 個 hosted-Supabase cases 因無 secrets 按設計 skipped。iPhone WebKit、Android Chromium、iPad WebKit 均覆蓋雙欄答題、簡化多指控制及無 Pointer Lock 的 Game Over 結算；公開 GitHub Pages staging hosted gate仍須完成。
 - 2026-08-26：V3.9 Cloudflare deployment `275b7e05`（code `dc94bdc`）已驗證 3D 200、2D redirect 後 200、敏感路徑 404、V3.9/cache 39、874×402 3D HUD、medium DPR 1.35 及 console 無 error；只用 `TEST/00`，沒有上傳成績。真實 iPhone 答題包重測仍是 blocking。
 - 2026-08-26：V3.9 答題包候選的 static、23 unit tests 及單線完整 Playwright matrix 通過；browser 結果為 18 passed、2 hosted-staging skipped，iPhone WebKit／Android Chromium／iPad WebKit 均驗證「無 Pointer Lock API → 題目可見 → 答錯解釋 → 返回 PLAYING」及答題框不越界。這仍不等於真實 iPhone 通過。
@@ -71,6 +73,6 @@
 
 ## 下一批建議工作
 
-1. 用獨立公開 GitHub Pages staging 完成 `docs/testing/DEVICE_ACCEPTANCE.md` 三類真機記錄；舊 Cloudflare deployment 保留但不再更新。未完成必要人工測試前不要合併 production PR stack。
+1. 用已上線的獨立公開 GitHub Pages staging 完成 `docs/testing/DEVICE_ACCEPTANCE.md` 三類真機記錄；舊 Cloudflare deployment 保留但不再更新。未完成必要人工測試前不要合併 production PR stack。
 2. 按 Supabase migration runbook 完成資料 owner/retention/import approval；先以現有獨立 staging 驗收真實流程，再決定 production cutover，唔好套用 `School Platform Production`。
 3. 依 `docs/testing/DEVICE_ACCEPTANCE.md` 完成 Issue #3 實機記錄：iPhone Safari、Android Chrome、iPad 的 safe-area、多指、audio/autoplay 及 10 分鐘核心玩法；全部通過後才關 Issue。
