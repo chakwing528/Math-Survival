@@ -147,9 +147,9 @@ export function initOrientationGuard() {
 // ------------------------------------------------------------------ 畫質分級
 // high = 現有桌面設定，數值必須同改造前一模一樣，確保電腦版零變化
 const QUALITY_PRESETS = {
-    high:   { pixelRatio: 1.5,  minPixelRatio: 1.0,  antialias: true,  grass: 700, outerTrees: 40, shardsNormal: 150, shardsBoss: 500, fogNear: 60, fogFar: 150 },
-    medium: { pixelRatio: 1.35, minPixelRatio: 1.0,  antialias: false, grass: 160, outerTrees: 10, shardsNormal: 45,  shardsBoss: 120, fogNear: 40, fogFar: 92  },
-    low:    { pixelRatio: 1.0,  minPixelRatio: 0.85, antialias: false, grass: 80,  outerTrees: 5,  shardsNormal: 20,  shardsBoss: 55,  fogNear: 35, fogFar: 75  },
+    high:   { pixelRatio: 1.5,  minPixelRatio: 1.0,  antialias: true,  grass: 700, outerTrees: 40, shardsNormal: 150, shardsBoss: 500, fogNear: 60, fogFar: 150, maxActiveEnemies: 999, renderFps: 0  },
+    medium: { pixelRatio: 1.25, minPixelRatio: 1.0,  antialias: false, grass: 120, outerTrees: 8,  shardsNormal: 30,  shardsBoss: 80,  fogNear: 40, fogFar: 88,  maxActiveEnemies: 4,   renderFps: 45 },
+    low:    { pixelRatio: 1.0,  minPixelRatio: 0.85, antialias: false, grass: 60,  outerTrees: 4,  shardsNormal: 15,  shardsBoss: 40,  fogNear: 35, fogFar: 72,  maxActiveEnemies: 3,   renderFps: 30 },
 };
 const TIER_ORDER = ['high', 'medium', 'low'];
 

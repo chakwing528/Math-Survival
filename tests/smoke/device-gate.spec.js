@@ -81,10 +81,9 @@ test('portrait guard and landscape touch HUD fit the emulated device viewport', 
   });
 
   const viewport = page.viewportSize();
-  const selectors = [
-    '#touch-move-base', '#btn-touch-pause', '#btn-touch-aim',
-    '#btn-touch-reload', '#btn-touch-fire', '#btn-touch-melee'
-  ];
+  await expect(page.locator('#btn-touch-aim, #btn-touch-reload, #btn-touch-melee')).toHaveCount(0);
+  await expect(page.locator('#hud-bottom-right')).toBeHidden();
+  const selectors = ['#touch-move-base', '#btn-touch-pause', '#btn-touch-fire'];
   const boxes = await Promise.all(selectors.map(selector => page.locator(selector).boundingBox()));
   expect(boxes.every(Boolean)).toBe(true);
 
@@ -100,14 +99,14 @@ test('portrait guard and landscape touch HUD fit the emulated device viewport', 
   expect(boxesOverlap(boxes[0], boxes[1])).toBe(false);
   if (viewport.height <= 500) {
     const hudBoxes = await Promise.all(
-      ['#hud-top-right', '#hud-bottom-right', '#hud-health-wrap']
+      ['#hud-top-right', '#hud-health-wrap']
         .map(selector => page.locator(selector).boundingBox())
     );
     expect(hudBoxes.every(Boolean)).toBe(true);
     for (const actionBox of boxes.slice(1)) {
       for (const hudBox of hudBoxes) expect(boxesOverlap(actionBox, hudBox)).toBe(false);
     }
-    expect(boxesOverlap(boxes[0], hudBoxes[2])).toBe(false);
+    expect(boxesOverlap(boxes[0], hudBoxes[1])).toBe(false);
   }
   expectSafeRun(observed);
 });
@@ -120,11 +119,13 @@ test('touch medium quality preserves readable render scale with a safe adaptive 
     const device = await import('/js/device.js?quality-gate');
     return device.getQuality();
   });
-  expect(quality.pixelRatio).toBe(1.35);
+  expect(quality.pixelRatio).toBe(1.25);
   expect(quality.minPixelRatio).toBe(1.0);
   expect(quality.antialias).toBe(false);
-  expect(quality.grass).toBeLessThanOrEqual(160);
-  expect(quality.outerTrees).toBeLessThanOrEqual(10);
+  expect(quality.grass).toBeLessThanOrEqual(120);
+  expect(quality.outerTrees).toBeLessThanOrEqual(8);
+  expect(quality.maxActiveEnemies).toBe(4);
+  expect(quality.renderFps).toBe(45);
   expectSafeRun(observed);
 });
 
@@ -180,6 +181,14 @@ test('touch upgrade question displays and resumes without a Pointer Lock API', a
   expect(container.y).toBeGreaterThanOrEqual(0);
   expect(container.x + container.width).toBeLessThanOrEqual(viewport.width);
   expect(container.y + container.height).toBeLessThanOrEqual(viewport.height);
+  if (viewport.height <= 500) {
+    const questionPane = await page.locator('.math-question-pane').boundingBox();
+    const answerPane = await page.locator('.math-answer-pane').boundingBox();
+    expect(questionPane).not.toBeNull();
+    expect(answerPane).not.toBeNull();
+    expect(questionPane.x + questionPane.width).toBeLessThanOrEqual(answerPane.x);
+    expect(Math.abs(questionPane.y - answerPane.y)).toBeLessThanOrEqual(1);
+  }
 
   await page.getByRole('button', { name: '-', exact: true }).click();
   await page.getByRole('button', { name: '確定', exact: true }).click();
@@ -239,7 +248,6 @@ test('multi-pointer controls reset cleanly and autoplay rejection remains retrya
   await page.locator('#touch-look-zone').dispatchEvent('pointerdown', { pointerId: 32, clientX: 300, clientY: 180 });
   await page.locator('#touch-look-zone').dispatchEvent('pointermove', { pointerId: 32, clientX: 326, clientY: 164 });
   await page.locator('#btn-touch-fire').dispatchEvent('pointerdown', { pointerId: 33 });
-  await page.locator('#btn-touch-aim').dispatchEvent('pointerdown', { pointerId: 34 });
 
   expect(await page.evaluate(() => ({
     movement: globalThis.__deviceGate.input.movement,
@@ -251,7 +259,7 @@ test('multi-pointer controls reset cleanly and autoplay rejection remains retrya
     movement: { w: true, a: false, s: false, d: false },
     sprint: true,
     fire: true,
-    aim: true,
+    aim: false,
     look: { x: 26, y: -16 }
   });
 
@@ -263,7 +271,7 @@ test('multi-pointer controls reset cleanly and autoplay rejection remains retrya
       fire: globalThis.__deviceGate.input.fire,
       aim: globalThis.__deviceGate.input.aim,
       look: globalThis.__deviceGate.input.consumeLookDelta(),
-      aimPressed: document.querySelector('#btn-touch-aim').getAttribute('aria-pressed')
+      removedActions: document.querySelectorAll('#btn-touch-aim, #btn-touch-reload, #btn-touch-melee').length
     };
   });
   expect(resetState).toEqual({
@@ -272,9 +280,46 @@ test('multi-pointer controls reset cleanly and autoplay rejection remains retrya
     fire: false,
     aim: false,
     look: { x: 0, y: 0 },
-    aimPressed: 'false'
+    removedActions: 0
   });
 
   await page.evaluate(() => globalThis.__deviceGate.surface.dispose());
+  expectSafeRun(observed);
+});
+
+test('touch game over settlement survives an unavailable Pointer Lock API', async ({ page }) => {
+  const observed = await isolateExternalServices(page);
+  await page.goto('/?mode=touch');
+  await expect(page.locator('#loading-screen')).toBeHidden({ timeout: 10_000 });
+  const portrait = page.viewportSize();
+  await page.setViewportSize({ width: portrait.height, height: portrait.width });
+
+  await page.evaluate(async () => {
+    const { finishGameSessionSafely } = await import('/js/input.js?iphone-settlement-gate');
+    globalThis.__settlementGate = { unlockCalls: 0, completeCalls: 0 };
+    finishGameSessionSafely({
+      controls: {
+        isLocked: true,
+        unlock() {
+          globalThis.__settlementGate.unlockCalls += 1;
+          throw new TypeError('document.exitPointerLock is not a function');
+        }
+      },
+      onComplete: () => {
+        globalThis.__settlementGate.completeCalls += 1;
+        document.querySelector('#hud').style.display = 'none';
+        document.querySelector('#go-title').textContent = '你已陣亡';
+        document.querySelector('#go-detail').textContent = '擊殺數: 0 / 5　總得分: 0 分';
+        document.querySelector('#gameover-overlay').style.display = 'flex';
+      }
+    });
+  });
+
+  await expect(page.locator('#gameover-overlay')).toBeVisible();
+  await expect(page.locator('#go-title')).toHaveText('你已陣亡');
+  await expect(page.locator('#btn-submit-score')).toBeVisible();
+  await expect(page.locator('#btn-play-again')).toBeVisible();
+  await expect(page.locator('#btn-go-menu')).toBeVisible();
+  expect(await page.evaluate(() => globalThis.__settlementGate)).toEqual({ unlockCalls: 1, completeCalls: 1 });
   expectSafeRun(observed);
 });

@@ -177,6 +177,7 @@ export function showMathQuestion({
             }, 1500);
             return;
         }
+        optsContainer.style.display = 'none';
         hintBox.innerHTML = `<div style="color:#fca5a5; font-weight:bold; font-size:16px; margin-bottom:8px;">📖 解題步驟</div><div style="font-size:17px; line-height:1.7;">${hintHTML}</div>`;
         const contBtn = document.createElement('button');
         contBtn.textContent = '明白了，繼續戰鬥 ▶';

@@ -8,7 +8,7 @@
 - 每個 PR 只處理一個可驗證結果，並同步相關 `docs/`。
 - 先寫 characterization tests 或記錄現有行為，再搬動高風險程式。
 - 任何 `main` 合併前都要確認 GitHub Pages 影響和 rollback 方法。
-- 修改已帶 `?v=39` 的前端模組時，同步更新 cache key 和畫面版本。
+- 修改已帶 `?v=40` 的前端模組時，同步更新 cache key 和畫面版本。
 
 ## Phase 0 — 建立可重現基線
 

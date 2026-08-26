@@ -57,7 +57,7 @@
 - `onResolve(isCorrect, topic)` 只應呼叫一次。
 - MathJax 只負責排版；同步 throw 或 promise rejection 都不應令 gameplay 停止。
 - 重複出題及 `Game.dispose()` 必須清除 keydown、timer、延遲 resolve，並同步更新 overlay 的 `aria-hidden`。
-- 高度不超過 500px 的 touch 橫屏使用六欄 numpad；答題容器必須留在 safe-area／viewport 內。
+- 高度不超過 500px 的 touch 橫屏使用左題右答雙欄及六欄 numpad；選擇題／輸入答案位於右欄，答錯解釋取代右欄 controls，容器必須留在 safe-area／viewport 內。
 
 ## 學習報告
 

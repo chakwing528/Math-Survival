@@ -4,13 +4,13 @@
 
 import * as THREE from 'three';
 import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
-import { WEAPONS, MONSTER_BASE, SETTINGS, DIFF_MULT, DIFF_LABELS } from './config.js?v=39';
-import { playSfx, sfxZombieGrowl, sfxZombieAttack, sfxZombieDeath, sfxBossRoar, sfxCorrect, sfxWrong, sfxLevelUp, sfxHeartbeat, sfxVictory, sfxPanSwing, sfxPanClang } from './audio.js?v=39';
-import { dismissMathQuestion, showMathQuestion } from './math.js?v=39';
-import { ASSETS, GUN_BY_LEVEL, cloneCharacter, cloneProp, cloneGun, tintModel } from './assets.js?v=39';
-import { buildSchool, COURT_HX, COURT_HZ, BUILD_HX, BUILD_HZ } from './school.js?v=39';
-import { getQuality, getQualityTier, downgradeQuality, isTouchMode } from './device.js?v=39';
-import { beginMathChallenge, GAME_STATES, GameStateMachine, InputController, TouchControlSurface } from './input.js?v=39';
+import { WEAPONS, MONSTER_BASE, SETTINGS, DIFF_MULT, DIFF_LABELS } from './config.js?v=40';
+import { playSfx, sfxZombieGrowl, sfxZombieAttack, sfxZombieDeath, sfxBossRoar, sfxCorrect, sfxWrong, sfxLevelUp, sfxHeartbeat, sfxVictory, sfxPanSwing, sfxPanClang } from './audio.js?v=40';
+import { dismissMathQuestion, showMathQuestion } from './math.js?v=40';
+import { ASSETS, GUN_BY_LEVEL, cloneCharacter, cloneProp, cloneGun, tintModel } from './assets.js?v=40';
+import { buildSchool, COURT_HX, COURT_HZ, BUILD_HX, BUILD_HZ } from './school.js?v=40';
+import { getQuality, getQualityTier, downgradeQuality, isTouchMode } from './device.js?v=40';
+import { beginMathChallenge, finishGameSessionSafely, GAME_STATES, GameStateMachine, InputController, shouldAutoReload, TouchControlSurface } from './input.js?v=40';
 
 // 喪屍等級 → 模型
 const ZOMBIE_BY_TIER = { 1: 'zombie_b', 2: 'zombie_a', 3: 'zombie_c', 4: 'zombie_anim', 5: 'zombie_anim' };
@@ -246,6 +246,8 @@ export class Game {
         this._crosshairTick = 0;
         this._threatTick = 0;
         this._perfDebugTick = 0;
+        this._lastFrameAt = 0;
+        this._lastRenderedState = null;
         this.recoilAccum = 0;        // 累積後座上抬，鬆手自動回復
         this.panSwing = 0;           // 平底鑊揮擊動畫進度
         this.bloom = 0;              // 準星擴散量 (開槍增加)
@@ -318,6 +320,7 @@ export class Game {
     _initScene() {
         const Q = this.quality = getQuality();     // 畫質分級 (桌面 high / 手機 medium-low)
         this._qualityTierAtStart = getQualityTier();
+        this._activeEnemyLimit = Q.maxActiveEnemies || 4;
 
         this.scene = new THREE.Scene();
         this.scene.background = new THREE.Color(0x8ec9ed);
@@ -1457,6 +1460,7 @@ export class Game {
         this.input.reset();
         this.ui.pauseMenu.style.display = 'none';
         this.ui.resumeOverlay.style.display = 'none';
+        this._lastFrameAt = 0;
         this.clock.getDelta();
         return true;
     }
@@ -2180,8 +2184,10 @@ export class Game {
         const weaponName = this.weaponLevel >= 0 ? WEAPONS[this.weaponLevel].name : '無';
         setTimeout(() => {
             if (this.disposed) return;
-            this.controls.unlock();
-            this.onGameOver(victory, this.kills, this.TOTAL_MONSTERS, weaponName, this.mathStats);
+            finishGameSessionSafely({
+                controls: this.controls,
+                onComplete: () => this.onGameOver(victory, this.kills, this.TOTAL_MONSTERS, weaponName, this.mathStats)
+            });
         }, victory ? 1200 : 800);
     }
 
@@ -2189,8 +2195,7 @@ export class Game {
         if (this.state !== GAME_STATES.OVER) this.lifecycle.transition(GAME_STATES.OVER);
         this.input.reset();
         this.ui.pauseMenu.style.display = 'none';
-        this.controls.unlock();
-        this.onAbort();
+        finishGameSessionSafely({ controls: this.controls, onComplete: this.onAbort });
     }
 
     // -------------------------------------------------------------- HUD
@@ -2416,37 +2421,57 @@ export class Game {
     }
 
     // -------------------------------------------------------------- 主迴圈
-    _animate() {
+    _animate(frameNow = 0) {
         if (this.disposed) return;
-        this._raf = requestAnimationFrame(() => this._animate());
+        this._raf = requestAnimationFrame(now => this._animate(now));
+
+        // 手機用穩定 frame budget，避免 60 Hz 長時間滿載引致 Safari 熱降頻。
+        // 暫停／答題／結算時 DOM 已負責畫面，WebGL 只需在狀態轉換時補畫一格。
+        const targetFps = isTouchMode()
+            ? (this.state === GAME_STATES.PLAYING ? (this.quality.renderFps || 30) : 10)
+            : 0;
+        if (targetFps > 0 && frameNow) {
+            const interval = 1000 / targetFps;
+            if (this._lastFrameAt) {
+                const elapsed = frameNow - this._lastFrameAt;
+                if (elapsed + 0.5 < interval) return;
+                this._lastFrameAt = frameNow - (elapsed % interval);
+            } else {
+                this._lastFrameAt = frameNow;
+            }
+        }
         const rawDt = this.clock.getDelta();
         const dt = Math.min(rawDt, 0.05);
 
         if (this.state === GAME_STATES.PLAYING) {
             this.time += dt;
             this._updatePlaying(dt);
+            this._updateEffects(dt);
         }
-        this._updateEffects(dt);
         this._lastDt = dt;
         const uiDt = Math.min(rawDt, 0.25);
         const hudInterval = isTouchMode() ? 1 / 15 : 1 / 30;
-        this._hudTick += uiDt;
-        if (this._hudTick >= hudInterval) {
-            this._hudTick %= hudInterval;
-            this._updateHUD(false);
-            this._drawMinimap();
-            this._drawCompass();
-        }
-        this._renderView();
-        this._crosshairTick += uiDt;
-        if (this._crosshairTick >= 1 / 20) {
-            this._crosshairTick %= 1 / 20;
-            this._updateCrosshair();
-        }
-        this._threatTick += uiDt;
-        if (this._threatTick >= 1 / 20) {
-            this._threatTick %= 1 / 20;
-            this._updateThreatEdges();
+        const shouldRender = this.state === GAME_STATES.PLAYING || this._lastRenderedState !== this.state;
+        if (shouldRender) {
+            this._hudTick += uiDt;
+            if (this._hudTick >= hudInterval) {
+                this._hudTick %= hudInterval;
+                this._updateHUD(false);
+                this._drawMinimap();
+                this._drawCompass();
+            }
+            this._renderView();
+            this._crosshairTick += uiDt;
+            if (this._crosshairTick >= 1 / 20) {
+                this._crosshairTick %= 1 / 20;
+                this._updateCrosshair();
+            }
+            this._threatTick += uiDt;
+            if (this._threatTick >= 1 / 20) {
+                this._threatTick %= 1 / 20;
+                this._updateThreatEdges();
+            }
+            this._lastRenderedState = this.state;
         }
         this._perfDebugTick += uiDt;
         if (this._perfDebugTick >= 1) {
@@ -2470,7 +2495,9 @@ export class Game {
         const fps = p.frames / p.t;
         p.fps = fps;
         p.t = 0; p.frames = 0;
-        const targetFps = isTouchMode() ? 32 : 40;
+        const targetFps = isTouchMode()
+            ? Math.max(24, (this.quality.renderFps || 30) * 0.72)
+            : 40;
         if (fps >= targetFps) {
             p.badSamples = 0;
             this._updatePerfDebug();
@@ -2490,6 +2517,10 @@ export class Game {
         p.drops++;
         this._pixelRatio = nextRatio;
         this.renderer.setPixelRatio(this._pixelRatio);
+        this._activeEnemyLimit = Math.max(3, this._activeEnemyLimit - 1);
+        if (p.drops >= 2 && this.clouds) {
+            for (const cloud of this.clouds) cloud.sprite.visible = false;
+        }
         downgradeQuality();     // 下一局用低一級設定開場
         console.warn(`[perf] ${fps.toFixed(1)} fps → pixelRatio ${this._pixelRatio.toFixed(2)}`);
         this._updatePerfDebug();
@@ -2505,7 +2536,9 @@ export class Game {
             devicePixelRatio: window.devicePixelRatio || 1,
             viewport: { width: window.innerWidth, height: window.innerHeight },
             drawCalls: render.calls || 0,
-            triangles: render.triangles || 0
+            triangles: render.triangles || 0,
+            activeEnemies: this.enemies.length,
+            activeEnemyLimit: this._activeEnemyLimit
         };
     }
 
@@ -2516,7 +2549,7 @@ export class Game {
         if (!el || !enabled) return;
         const s = this.getPerformanceSnapshot();
         el.style.display = 'block';
-        el.textContent = `FPS ${s.fps || '…'} · DPR ${s.pixelRatio}/${s.devicePixelRatio} · ${s.quality} · ${s.viewport.width}×${s.viewport.height} · calls ${s.drawCalls}`;
+        el.textContent = `FPS ${s.fps || '…'} · DPR ${s.pixelRatio}/${s.devicePixelRatio} · ${s.quality} · ${s.viewport.width}×${s.viewport.height} · calls ${s.drawCalls} · enemies ${s.activeEnemies}/${s.activeEnemyLimit}`;
     }
 
     // 近距喪屍：喺畫面對應嗰邊亮紅色警告 (方便學生辨方向)
@@ -2647,7 +2680,7 @@ export class Game {
         this.lootTimer += dt; this.ammoTimer += dt; this.spawnTimer += dt;
         if (this.lootTimer >= SETTINGS.lootBoxInterval) { this.lootTimer = 0; this._spawnPickup('UPGRADE'); }
         if (this.weaponLevel >= 0 && this.ammoTimer >= SETTINGS.ammoBoxInterval) { this.ammoTimer = 0; this._spawnPickup('AMMO'); }
-        if (this.monsterQueue.length > 0 && (this.enemies.length < 4 ? this.spawnTimer >= 0.6 : this.spawnTimer >= 3)) {
+        if (this.monsterQueue.length > 0 && this.enemies.length < this._activeEnemyLimit && this.spawnTimer >= 0.6) {
             this.spawnTimer = 0;
             this._spawnEnemy();
         }
@@ -2671,6 +2704,9 @@ export class Game {
                 this.totalAmmo -= load;
                 this.isReloading = false;
             }
+        }
+        if (shouldAutoReload(this)) {
+            this._startReload();
         }
 
         // ---- 移動 (Shift 疾跑 / 能量加速 / 開鏡減速)

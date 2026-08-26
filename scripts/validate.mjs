@@ -76,7 +76,7 @@ if (cacheVersions.size !== 1) {
   const screenVersion = index.match(/Math Survival FPS V(\d+)\.(\d+)/);
   const cacheVersion = [...cacheVersions][0];
   if (!screenVersion) fail('index.html: screen version tag not found');
-  else if (`${screenVersion[1]}${screenVersion[2]}` !== cacheVersion) {
+  else if (String(Number(screenVersion[1]) * 10 + Number(screenVersion[2])) !== cacheVersion) {
     fail(`screen version V${screenVersion[1]}.${screenVersion[2]} does not match cache version ${cacheVersion}`);
   }
 }

@@ -2,17 +2,17 @@
 // 主流程：載入 → 登入 → 選難度 → 遊戲 → 結算上傳 → 返回選單
 // ==============================================================================
 
-import { loadCloudConfig, DIFF_MULT } from './config.js?v=39';
-import { initAudio, setBgmVolume, setSfxVolume } from './audio.js?v=39';
-import { fetchLeaderboard, renderLeaderboard, submitScore } from './leaderboard.js?v=39';
-import { TOPIC_NAMES } from './math.js?v=39';
-import { initInputMode, initOrientationGuard, enterImmersive } from './device.js?v=39';
+import { loadCloudConfig, DIFF_MULT } from './config.js?v=40';
+import { initAudio, setBgmVolume, setSfxVolume } from './audio.js?v=40';
+import { fetchLeaderboard, renderLeaderboard, submitScore } from './leaderboard.js?v=40';
+import { TOPIC_NAMES } from './math.js?v=40';
+import { initInputMode, initOrientationGuard, enterImmersive } from './device.js?v=40';
 
 // 3D 引擎 (Three.js) 採用動態載入：就算 CDN 有問題，選單同排行榜都照常運作
 let GameClass = null;
 async function loadEngine() {
     if (!GameClass) {
-        const mod = await import('./game.js?v=39');
+        const mod = await import('./game.js?v=40');
         GameClass = mod.Game;
     }
     return GameClass;
@@ -57,7 +57,7 @@ function showMenu() {
 let ambientMod = null;
 function ensureAmbient() {
     if (ambientMod) { ambientMod.resumeAmbient(); return; }
-    import('./ambient.js?v=39')
+    import('./ambient.js?v=40')
         .then(m => { ambientMod = m; m.startAmbient($('game-container')); })
         .catch(() => {}); // 失敗都唔影響選單
 }
@@ -97,7 +97,7 @@ async function startGame(level) {
     try {
         Game = await loadEngine();
         // 載入 3D 模型 (首次需時，顯示進度)
-        const { loadAssets } = await import('./assets.js?v=39');
+        const { loadAssets } = await import('./assets.js?v=40');
         const ls = $('loading-screen');
         const sub = $('loading-subtext');
         ls.style.display = 'flex';
@@ -201,11 +201,17 @@ $('btn-submit-score').addEventListener('click', async () => {
     const mult = DIFF_MULT[currentDifficulty] || 1;
     const score = Math.round(lastResult.kills * mult);
 
-    const data = await submitScore({ cls, sid, score, difficulty: currentDifficulty });
-
-    btn.style.display = 'none';
-    $('go-lb-box').style.display = 'block';
-    renderLeaderboard(data, $('go-lb-list'), $('go-my-rank'));
+    try {
+        const data = await submitScore({ cls, sid, score, difficulty: currentDifficulty });
+        btn.style.display = 'none';
+        $('go-lb-box').style.display = 'block';
+        renderLeaderboard(data, $('go-lb-list'), $('go-my-rank'));
+    } catch (error) {
+        console.error('結算上傳失敗，可安全重試。', error);
+        scoreSubmitted = false;
+        btn.disabled = false;
+        btn.textContent = '上傳失敗，按此重試';
+    }
 });
 
 $('btn-play-again').addEventListener('click', () => startGame(currentDifficulty));
@@ -258,7 +264,7 @@ async function boot() {
 
     // 背景預載 3D 引擎 + 模型，令首次入場更快
     loadEngine()
-        .then(() => import('./assets.js?v=39'))
+        .then(() => import('./assets.js?v=40'))
         .then(m => m.loadAssets())
         .catch(() => {});
 }

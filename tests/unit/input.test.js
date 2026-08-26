@@ -7,7 +7,9 @@ import {
   InputController,
   TouchControlSurface,
   beginMathChallenge,
-  getJoystickState
+  finishGameSessionSafely,
+  getJoystickState,
+  shouldAutoReload
 } from '../../js/input.js';
 
 test('game lifecycle accepts pause, math and resume paths without Pointer Lock knowledge', () => {
@@ -83,6 +85,33 @@ test('math challenge rolls back to resume wait when question construction fails'
     showQuestion: () => { throw new Error('question DOM unavailable'); }
   }), /question DOM unavailable/);
   assert.equal(lifecycle.state, GAME_STATES.RESUME_WAIT);
+});
+
+test('game settlement continues when iPhone Pointer Lock release is unavailable', () => {
+  const order = [];
+  const result = finishGameSessionSafely({
+    controls: {
+      isLocked: true,
+      unlock() {
+        order.push('unlock');
+        throw new TypeError('document.exitPointerLock is not a function');
+      }
+    },
+    onComplete: () => {
+      order.push('settle');
+      return 'complete';
+    }
+  });
+  assert.equal(result, 'complete');
+  assert.deepEqual(order, ['unlock', 'settle']);
+});
+
+test('automatic reload starts only for an empty equipped weapon with reserve ammo', () => {
+  assert.equal(shouldAutoReload({ weaponLevel: 0, isReloading: false, magazine: 0, totalAmmo: 12 }), true);
+  assert.equal(shouldAutoReload({ weaponLevel: -1, isReloading: false, magazine: 0, totalAmmo: 12 }), false);
+  assert.equal(shouldAutoReload({ weaponLevel: 0, isReloading: true, magazine: 0, totalAmmo: 12 }), false);
+  assert.equal(shouldAutoReload({ weaponLevel: 0, isReloading: false, magazine: 1, totalAmmo: 12 }), false);
+  assert.equal(shouldAutoReload({ weaponLevel: 0, isReloading: false, magazine: 0, totalAmmo: 0 }), false);
 });
 
 test('input controller maps keyboard and pointer state and resets stuck controls', () => {
@@ -186,32 +215,27 @@ function pointerEvent(type, { pointerId, clientX = 0, clientY = 0 }) {
   return event;
 }
 
-test('touch surface supports simultaneous move, look, fire and independent action buttons', () => {
+test('touch surface supports simultaneous move, look and fire with the simplified HUD', () => {
   const ids = [
     'touch-move-zone', 'touch-move-base', 'touch-move-knob', 'touch-look-zone',
-    'btn-touch-fire', 'btn-touch-aim', 'btn-touch-reload', 'btn-touch-melee'
+    'btn-touch-fire'
   ];
   const elements = Object.fromEntries(ids.map(id => [id, new FakeTouchElement()]));
   const root = { querySelector: selector => elements[selector.slice(1)] };
-  const actions = [];
   const input = new InputController({ target: new EventTarget(), pointerTarget: new EventTarget() });
-  const surface = new TouchControlSurface({ root, input, onAction: action => actions.push(action) });
+  const surface = new TouchControlSurface({ root, input });
   surface.bind();
 
   elements['touch-move-zone'].dispatchEvent(pointerEvent('pointerdown', { pointerId: 1, clientX: 100, clientY: 40 }));
   elements['touch-look-zone'].dispatchEvent(pointerEvent('pointerdown', { pointerId: 2, clientX: 300, clientY: 200 }));
   elements['touch-look-zone'].dispatchEvent(pointerEvent('pointermove', { pointerId: 2, clientX: 330, clientY: 180 }));
   elements['btn-touch-fire'].dispatchEvent(pointerEvent('pointerdown', { pointerId: 3 }));
-  elements['btn-touch-aim'].dispatchEvent(pointerEvent('pointerdown', { pointerId: 4 }));
-  elements['btn-touch-reload'].dispatchEvent(pointerEvent('pointerdown', { pointerId: 5 }));
-  elements['btn-touch-melee'].dispatchEvent(pointerEvent('pointerdown', { pointerId: 6 }));
 
   assert.equal(input.movement.w, true);
   assert.equal(input.sprint, true);
   assert.equal(input.fire, true);
-  assert.equal(input.aim, true);
+  assert.equal(input.aim, false);
   assert.deepEqual(input.consumeLookDelta(), { x: 30, y: -20 });
-  assert.deepEqual(actions, ['reload', 'melee']);
 
   elements['touch-move-zone'].dispatchEvent(pointerEvent('pointerup', { pointerId: 1 }));
   assert.deepEqual(input.movement, { w: false, a: false, s: false, d: false });
@@ -221,8 +245,5 @@ test('touch surface supports simultaneous move, look, fire and independent actio
 
   surface.reset();
   assert.equal(input.aim, false);
-  assert.equal(elements['btn-touch-aim'].getAttribute('aria-pressed'), 'false');
   surface.dispose();
-  elements['btn-touch-reload'].dispatchEvent(pointerEvent('pointerdown', { pointerId: 7 }));
-  assert.deepEqual(actions, ['reload', 'melee']);
 });

@@ -11,13 +11,13 @@
     <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 
     <!-- 全域工具函數 (題庫依賴，必須先載入) -->
-    <script src="js/helpers.js?v=39"></script>
-    <script src="js/topics/indices.js?v=39"></script>
-    <script src="js/topics/expansion.js?v=39"></script>
-    <script src="js/topics/factorization.js?v=39"></script>
-    <script src="js/topics/rounding.js?v=39"></script>
-    <script src="js/cloud-runtime-config.js?v=39"></script>
-    <script src="js/cloud-core.js?v=39"></script>
+    <script src="js/helpers.js?v=40"></script>
+    <script src="js/topics/indices.js?v=40"></script>
+    <script src="js/topics/expansion.js?v=40"></script>
+    <script src="js/topics/factorization.js?v=40"></script>
+    <script src="js/topics/rounding.js?v=40"></script>
+    <script src="js/cloud-runtime-config.js?v=40"></script>
+    <script src="js/cloud-core.js?v=40"></script>
 
     <script type="importmap">
     {
@@ -279,7 +279,10 @@
         }
         #math-timer-bg { width: 100%; height: 12px; background: #334155; margin-bottom: 20px; border-radius: 6px; overflow: hidden; }
         #math-timer-bar { height: 100%; background: #4ade80; width: 100%; transition: width 0.1s linear, background-color 0.3s; }
+        .math-body { display: block; }
+        .math-question-pane, .math-answer-pane { min-width: 0; }
         #math-question-content { font-size: 20px; margin-bottom: 25px; overflow-x: auto; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px; }
+        #math-hint { display: none; margin-top: 18px; padding: 14px; background: rgba(239,68,68,0.08); border: 2px solid rgba(239,68,68,0.5); border-radius: 10px; text-align: left; }
         .mcq-options { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
         .mcq-btn {
             background: #334155; border: 2px solid #64748b; padding: 15px;
@@ -298,25 +301,36 @@
                     max(10px, env(safe-area-inset-left));
             }
             body.mode-touch .math-container {
-                width: 100%; max-width: 760px; max-height: 100%;
-                padding: 8px 14px; border-width: 2px; border-radius: 8px;
+                width: 100%; max-width: 850px; height: 100%; max-height: 390px;
+                padding: 8px 12px; border-width: 2px; border-radius: 8px; overflow: hidden;
+                display: grid; grid-template-rows: auto auto minmax(0, 1fr);
             }
             body.mode-touch #math-header { margin: 0 0 4px !important; font-size: 18px; }
             body.mode-touch #math-timer-bg { height: 8px; margin-bottom: 5px; }
+            body.mode-touch .math-body {
+                min-height: 0; display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+                gap: 10px; align-items: stretch;
+            }
+            body.mode-touch .math-question-pane,
+            body.mode-touch .math-answer-pane {
+                min-height: 0; border-radius: 8px; background: rgba(15,23,42,0.38);
+            }
+            body.mode-touch .math-question-pane { display: flex; align-items: center; justify-content: center; padding: 8px; }
+            body.mode-touch .math-answer-pane { display: flex; flex-direction: column; justify-content: center; padding: 6px 8px; overflow-y: auto; }
             body.mode-touch #math-question-content {
-                font-size: 16px; line-height: 1.2; margin-bottom: 5px; padding: 4px;
+                width: 100%; font-size: 23px; line-height: 1.3; margin: 0; padding: 10px 6px; background: transparent;
             }
             body.mode-touch #math-options-container { gap: 5px !important; }
             body.mode-touch .math-num-display {
-                width: min(220px, 100%) !important; min-height: 34px !important;
-                padding: 4px !important; font-size: 24px !important;
+                box-sizing: border-box; width: min(300px, 100%) !important; min-height: 38px !important;
+                padding: 3px !important; font-size: 23px !important;
             }
             body.mode-touch .math-numpad {
                 grid-template-columns: repeat(6, 1fr) !important;
-                width: min(600px, 100%) !important; gap: 5px !important; margin-top: 0 !important;
+                width: 100% !important; gap: 5px !important; margin-top: 0 !important;
             }
             body.mode-touch .math-key-btn {
-                min-height: 44px; padding: 4px !important; font-size: 18px !important;
+                min-height: 44px; padding: 3px !important; font-size: 18px !important;
             }
             body.mode-touch .math-submit-btn,
             body.mode-touch .math-continue-btn {
@@ -324,7 +338,8 @@
             }
             body.mode-touch .math-submit-btn { width: min(260px, 100%) !important; margin-top: 0 !important; }
             body.mode-touch .mcq-btn { min-height: 48px; padding: 8px; font-size: 16px; }
-            body.mode-touch #math-hint { margin-top: 6px !important; padding: 8px !important; }
+            body.mode-touch #math-hint { margin: 0 !important; padding: 8px !important; font-size: 14px; overflow-y: auto; }
+            body.mode-touch #math-hint .math-continue-btn { width: 100%; margin-top: 8px !important; }
         }
 
         /* ---------- PUBG 風格 HUD ---------- */
@@ -614,8 +629,7 @@
         #touch-actions {
             position: absolute; right: max(18px, env(safe-area-inset-right));
             bottom: max(22px, env(safe-area-inset-bottom));
-            display: grid; grid-template-columns: 58px 76px; grid-template-rows: 58px 76px;
-            gap: 10px; align-items: center; justify-items: center; z-index: 2;
+            width: 82px; height: 82px; display: flex; align-items: center; justify-content: center; z-index: 2;
         }
         .touch-action-btn {
             pointer-events: auto; touch-action: none; width: 58px; height: 58px; border-radius: 50%;
@@ -625,20 +639,12 @@
         }
         .touch-action-btn.active { background: rgba(14,165,233,0.82); border-color: #bae6fd; }
         #btn-touch-fire {
-            width: 76px; height: 76px; grid-column: 2; grid-row: 1 / span 2;
+            width: 82px; height: 82px;
             background: rgba(220,38,38,0.68); font-size: 15px;
         }
         #btn-touch-fire.active { background: rgba(239,68,68,0.95); transform: scale(0.94); }
-        #btn-touch-aim { grid-column: 1; grid-row: 1; }
-        #btn-touch-reload { grid-column: 1; grid-row: 2; }
-        #btn-touch-melee {
-            position: absolute; right: 98px; bottom: 150px; width: 54px; height: 54px;
-        }
         body.mode-touch #hud-health-wrap { width: min(220px, 34vw); bottom: 168px; }
-        body.mode-touch #hud-bottom-right { bottom: 162px; }
-        body.mode-touch #ammo-panel { padding: 6px 9px; }
-        body.mode-touch #wep-icon { display: none; }
-        body.mode-touch #ammo-big { font-size: 28px; }
+        body.mode-touch #hud-bottom-right { display: none; }
 
         /* iPhone 橫屏 HUD：四角獨立縮放／移位，保留可點擊尺寸但避免互相覆蓋。 */
         @media (orientation: landscape) and (max-height: 500px) {
@@ -678,29 +684,30 @@
             body.mode-touch #touch-actions {
                 right: max(12px, env(safe-area-inset-right));
                 bottom: max(14px, env(safe-area-inset-bottom));
-                grid-template-columns: 52px 68px; grid-template-rows: 52px 68px; gap: 7px;
+                width: 76px; height: 76px;
             }
             body.mode-touch .touch-action-btn { width: 52px; height: 52px; font-size: 11px; }
-            body.mode-touch #btn-touch-fire { width: 68px; height: 68px; font-size: 14px; }
-            body.mode-touch #btn-touch-melee { right: 84px; bottom: 127px; width: 50px; height: 50px; }
+            body.mode-touch #btn-touch-fire { width: 76px; height: 76px; font-size: 14px; }
             body.mode-touch #btn-touch-pause {
                 top: max(5px, env(safe-area-inset-top)); width: 42px; height: 42px; font-size: 18px;
             }
             body.mode-touch #hud-health-wrap {
                 left: max(16px, env(safe-area-inset-left)); bottom: 126px; width: min(168px, 25vw);
             }
-            body.mode-touch #hud-bottom-right {
-                right: max(158px, calc(env(safe-area-inset-right) + 150px));
-                bottom: max(8px, env(safe-area-inset-bottom));
-                transform: scale(0.72); transform-origin: bottom right;
-            }
-            body.mode-touch #hud-wep { max-width: 190px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-            body.mode-touch #ammo-big { font-size: 24px; }
             body.mode-touch #loot-feed {
-                right: max(150px, calc(env(safe-area-inset-right) + 142px)); bottom: 90px;
+                right: max(100px, calc(env(safe-area-inset-right) + 92px)); bottom: 96px;
                 transform: scale(0.78); transform-origin: bottom right;
             }
             body.mode-touch #wep-toast { bottom: 27%; transform: translateX(-50%) scale(0.82); }
+            body.mode-touch #gameover-overlay {
+                justify-content: flex-start; gap: 8px;
+                padding: max(8px, env(safe-area-inset-top)) max(14px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left));
+            }
+            body.mode-touch #go-title { font-size: 32px; letter-spacing: 1px; }
+            body.mode-touch #go-detail { font-size: 15px; line-height: 1.45; }
+            body.mode-touch #go-report { box-sizing: border-box; width: min(620px, 100%); padding: 9px 14px; font-size: 14px; line-height: 1.45; }
+            body.mode-touch #gameover-overlay button { width: min(330px, 100%); padding: 9px; font-size: 15px; }
+            body.mode-touch #go-lb-box { box-sizing: border-box; width: min(520px, 100%) !important; max-height: 42vh; }
         }
 
         #perf-debug {
@@ -921,9 +928,13 @@
         <div id="math-container" class="math-container">
             <h2 id="math-header" style="margin-top: 0;"></h2>
             <div id="math-timer-bg"><div id="math-timer-bar"></div></div>
-            <div id="math-question-content"></div>
-            <div class="mcq-options" id="math-options-container"></div>
-            <div id="math-hint" style="display:none; margin-top: 18px; padding: 14px; background: rgba(239, 68, 68, 0.08); border: 2px solid rgba(239, 68, 68, 0.5); border-radius: 10px; text-align: left;"></div>
+            <div class="math-body">
+                <section class="math-question-pane" aria-label="題目"><div id="math-question-content"></div></section>
+                <section class="math-answer-pane" aria-label="答案及選項">
+                    <div class="mcq-options" id="math-options-container"></div>
+                    <div id="math-hint"></div>
+                </section>
+            </div>
         </div>
     </div>
 
@@ -1023,10 +1034,7 @@
             </div>
             <div id="touch-look-zone" aria-hidden="true"></div>
             <div id="touch-actions">
-                <button id="btn-touch-aim" class="touch-action-btn" type="button" aria-label="切換瞄準" aria-pressed="false">瞄準</button>
-                <button id="btn-touch-reload" class="touch-action-btn" type="button" aria-label="換彈">換彈</button>
                 <button id="btn-touch-fire" class="touch-action-btn" type="button" aria-label="按住開火">開火</button>
-                <button id="btn-touch-melee" class="touch-action-btn" type="button" aria-label="近戰攻擊">近戰</button>
             </div>
         </div>
         <button id="btn-touch-pause" class="touch-only" type="button" aria-label="暫停遊戲">⏸</button>
@@ -1061,7 +1069,7 @@
         <button id="btn-go-menu">🏠 返回主選單</button>
     </div>
 
-    <div id="version-tag">Math Survival FPS V3.9</div>
+    <div id="version-tag">Math Survival FPS V3.10</div>
     <div style="position: absolute; bottom: 5px; left: 10px; color: rgba(255,255,255,0.35); font-size: 11px; z-index: 100; pointer-events: none;">3D 模型: Quaternius (poly.pizza) CC-BY 3.0</div>
 
     <audio id="bgm" src="audio/bgm.mp3" loop></audio>
@@ -1069,7 +1077,7 @@
     <audio id="reloadSfx" src="audio/reloadSfx.m4a"></audio>
     <audio id="emptyAmmoSfx" src="audio/emptyAmmoSfx.m4a"></audio>
 
-    <script type="module" src="js/main.js?v=39"></script>
+    <script type="module" src="js/main.js?v=40"></script>
 
 </body>
 </html>

@@ -2,7 +2,7 @@
 
 > 新 Codex task 應先讀 `AGENTS.md`、`docs/PROJECT_MAP.md` 同 `docs/CURRENT_STATE.md`，再按任務讀相關 feature 文件。
 > 呢份文件只保留近期交接同歷史實作細節；架構、API、資料流同長期規則以 `docs/` 為準，實際行為以程式碼為準。
-> 目前 workspace：`/Users/cwchan/Downloads/Math-Survival-main/Math-Survival-main`。Draft PR #1／#5／#7／#8 組成 Issue #3 stack，尚未合併至 `main`。iPhone 17 Pro 真機驗收因 UI／畫質／效能及拾取答題包卡死失敗；V3.8/V3.9 iPhone P0 修正候選已通過本機自動閘，但同機重測前仍是 blocking。真機 URL／規則見 `docs/testing/DEVICE_ACCEPTANCE.md`，合併次序及回滾見 `docs/runbooks/PR_STACK_RELEASE.md`。Issue #2 的獨立 `Math-Survival-Staging` rollout 已完成，production 仍為 GAS。
+> 目前 workspace：`/Users/cwchan/Downloads/Math-Survival-main/Math-Survival-main`。Draft PR #1／#5／#7／#8 組成 Issue #3 stack，尚未合併至 `main`。V3.10 已完成 iPhone UI／答題／Game Over 及手機效能本機候選，下一步以獨立 public GitHub Pages staging 做同機驗收；舊 Cloudflare preview 不再更新。真機規則見 `docs/testing/DEVICE_ACCEPTANCE.md`，合併次序及回滾見 `docs/runbooks/PR_STACK_RELEASE.md`。Issue #2 的獨立 `Math-Survival-Staging` rollout 已完成，production 仍為 GAS。
 
 ---
 
@@ -14,7 +14,7 @@
 
 **目標用戶**：明愛聖若瑟中學學生（滑鼠鍵盤或 touch 裝置）
 
-**現時版本**：**V3.9**（快取版本號 `?v=39`）　← Issue #3 iPhone P0 畫質／效能／手機 UI／答題包修正候選；production 仍為 GAS
+**現時版本**：**V3.10**（快取版本號 `?v=40`）　← Issue #3 iPhone P0 UI／效能／答題／結算修正候選；production 仍為 GAS
 
 ---
 
@@ -51,7 +51,7 @@ audio/              bgm.mp3 + 3 個槍聲音效
 
 ### 版本快取機制（重要！）
 
-目前已加 cache key 嘅 import 都掛 `?v=39`，例如 `import { x } from './config.js?v=39'`。
+目前已加 cache key 嘅 import 都掛 `?v=40`，例如 `import { x } from './config.js?v=40'`。
 **每次改完代碼必須 bump 版本號**，否則用戶瀏覽器會用舊快取。
 
 ```bash
@@ -65,7 +65,7 @@ for f in ['index.html','js/main.js','js/game.js','js/assets.js','js/math.js','js
         s2 = s.replace('?v='+OLD, '?v='+NEW)
         if s != s2: io.open(f,'w',encoding='utf-8').write(s2)
 h = io.open('index.html', encoding='utf-8').read()
-h = re.sub(r'Math Survival FPS V[0-9.]+', 'Math Survival FPS V3.9', h)  # ← 同步改顯示版本
+h = re.sub(r'Math Survival FPS V[0-9.]+', 'Math Survival FPS V3.10', h)  # ← 同步改顯示版本
 io.open('index.html','w',encoding='utf-8').write(h)
 print('bumped')
 PYEOF
@@ -252,8 +252,16 @@ python3 -m http.server 8000   → http://localhost:8000
 - V3.9 本機結果：static 通過、23 unit tests 通過、Playwright 18 passed／2 hosted-staging skipped；真實 iPhone 仍未重測，因此維持 blocking。
 - V3.9 code commit `dc94bdc` 已發佈到 Cloudflare deployment `275b7e05`；branch preview 的 3D／2D、V3.9/cache 39、874×402 HUD、DPR 1.35、嚴格 404 及 console error 閘通過。只用 `TEST/00`，沒有上傳成績。
 
+### ⏳ Issue #3 V3.10 手機 UI／結算／效能候選
+
+- touch 答題已改成左題右答；HUD 只保留移動、視角、開火和暫停，手機武器卡隱藏。未持槍時開火等同近戰，持槍打空會自動換彈。
+- iPhone Game Over／abort 不再依賴 Pointer Lock API 成功；成績上傳 exception 會恢復按鈕供重試。
+- medium 為 DPR 1.25／最低 1.0、45 FPS、同場敵人 4；low 為 30 FPS／同場 3。答題、暫停及結算期間停止持續 WebGL effects/render，連續低 FPS 再降低 DPR／敵人上限／裝飾雲。
+- `npm test`：static、25 unit、21 browser passed；2 個 hosted-Supabase cases無 secrets 按設計 skipped。Playwright 本機 worker 固定為 2，避免四個 19 MB WebGL clients 同時載入造成非功能性 timeout。
+- 下一步把同一 commit 推上 Draft PR #8，並用獨立 public repository `Math-Survival-Device-Staging` 建立 GitHub Pages；原 repository `main`／production Pages 不變，舊 Cloudflare preview 不更新。
+
 ### ⬜ 待做
 
-- **P2 真機閘** — 先用同一部 iPhone 17 Pro 驗證 V3.9 選單、清晰度、答題包、控制和 10 分鐘 FPS／DPR，再依 `docs/testing/DEVICE_ACCEPTANCE.md` 完成 Android／iPad 的 safe-area、多指、audio/autoplay 及長局記錄。
-- **P3 靚** — 答題彈窗選項掣 ≥48px、填充題 `inputmode="numeric"`；選單單欄及四角 HUD 防重疊已在 V3.8 P0 完成。
+- **P2 真機閘** — 先用同一部 iPhone 17 Pro 驗證 V3.10 選單、雙欄答題、Game Over、控制和 10 分鐘 FPS／DPR／敵人上限，再依 `docs/testing/DEVICE_ACCEPTANCE.md` 完成 Android／iPad 的 safe-area、多指、audio/autoplay 及長局記錄。
+- **P3 靚** — V3.10 已完成雙欄答題及簡化 touch HUD；真機驗收後再按實際截圖微調，避免未量度前加回高負荷效果。
 - **P4 打磨** — 真機測試（iPhone Safari / Android Chrome / iPad）、iOS AudioContext 解鎖時機、19MB 模型考慮壓縮
