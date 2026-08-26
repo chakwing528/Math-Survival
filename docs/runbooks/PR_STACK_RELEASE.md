@@ -9,7 +9,7 @@
 | 1 | #1 | `main` → `codex/project-memory-v3.3` | `c471996474cf1d3961bcd34c763380a60a833968` |
 | 2 | #5 | `codex/project-memory-v3.3` → `codex/input-state-machine-p1` | `0fc30f34a56d1576f26537f10f61a379a96e789a` |
 | 3 | #7 | `codex/input-state-machine-p1` → `codex/touch-controls-p2` | `6fea10b7a850b4d9b478464a1bf17be64bae143e` |
-| 4 | #8 | `codex/touch-controls-p2` → `codex/device-gate-p3` | `aa7107d23f0e9483bdab530643de898ca88de883` |
+| 4 | #8 | `codex/touch-controls-p2` → `codex/device-gate-p3` | `ac9cb5c56c3449eade4bcc27174e86a29dfc1fe7` |
 
 2026-08-26 盤點時四個 PR 都是 open Draft、GitHub 顯示 clean／mergeable。`main` 基準為 `ff2277da21f31dbc03d370b1de6e3803c2214878`；實際合併前必須重新取得最新 SHA、diff、checks 和 mergeability，不能只依賴本表。
 
@@ -57,4 +57,5 @@
 - 本機 Supabase：18 pgTAP tests 通過；`public`、`math_survival_private` lint 無錯誤。
 - 844×390 forced-touch 瀏覽器：3D 戰場和 touch HUD 載入，無 console error；只用 `TEST/00`，沒有上傳成績。
 - LAN server：`/` 和 `?mode=touch` 回應 200，`/.git/HEAD` 回應 404；server 測試後已停止。
-- 結論：自動及本機安全閘通過；三類真機記錄、Pages／branch protection 權限確認仍未完成，因此目前是 **conditional pass，不可合併**。
+- Cloudflare branch preview：3D／2D 載入、五組 touch control、pause／安全退出、自訂 404 及 console error 檢查通過；只用 `TEST/00`，沒有上傳成績。詳見 `docs/runbooks/CLOUDFLARE_DEVICE_PREVIEW.md`。
+- 結論：自動、本機及 Cloudflare preview 安全閘通過；三類真機記錄、GitHub Pages／branch protection 權限確認仍未完成，因此目前是 **conditional pass，不可合併**。

@@ -18,6 +18,7 @@ Math Survival 是一個靜態瀏覽器數學射擊遊戲：學生在 3D 或 2D �
 | Supabase backend | `supabase/` | Postgres migrations、RLS/grants、Edge Function、synthetic seed、pgTAP 及 hosted staging |
 | Staging validation | `scripts/validate-hosted-supabase.mjs`、`tests/smoke/supabase-staging.spec.js` | Hosted HTTP 安全邊界及 3D／2D 無 GAS fallback 驗收 |
 | Device acceptance | `tests/smoke/device-gate.spec.js`、`docs/testing/DEVICE_ACCEPTANCE.md` | iPhone／Android／iPad 自動矩陣及真機完成閘 |
+| Cloudflare device preview | `docs/runbooks/CLOUDFLARE_DEVICE_PREVIEW.md` | 獨立 Direct Upload preview、公開範圍、驗證及清理 |
 | PR stack release | `docs/runbooks/PR_STACK_RELEASE.md` | 疊加 PR 合併前閘、逐層次序、Pages 檢查及回滾 |
 | 裝置/畫質 | `js/device.js` | desktop/touch、全螢幕、橫屏、品質分級 |
 | 輸入/狀態 | `js/input.js` | keyboard/mouse/touch input state、遊戲 lifecycle transition |
@@ -38,12 +39,13 @@ Math Survival 是一個靜態瀏覽器數學射擊遊戲：學生在 3D 或 2D �
 | 改學生資料流程 | `data/DATA_FLOWS_AND_PRIVACY.md` | `js/main.js`、`js/leaderboard.js`、`classic-2d.html` |
 | 改架構 | `architecture/OVERVIEW.md`、`decisions/` | 相關入口及 imports |
 | 規劃或交接工作 | `WORKFLOW.md`、`CURRENT_STATE.md`、`ROADMAP.md` | 相關 feature 文件及程式碼證據 |
-| 合併 Issue #3 PR stack | `testing/DEVICE_ACCEPTANCE.md`、`runbooks/PR_STACK_RELEASE.md` | GitHub PR／checks、Pages 及相關 smoke |
+| 真機 preview／合併 Issue #3 PR stack | `testing/DEVICE_ACCEPTANCE.md`、`runbooks/CLOUDFLARE_DEVICE_PREVIEW.md`、`runbooks/PR_STACK_RELEASE.md` | Cloudflare preview、GitHub PR／checks、Pages 及相關 smoke |
 
 ## Routes 和外部介面
 
 - `/` 或 `/index.html`：3D 主頁；`/` 是否映射到 `index.html` 由靜態 host 決定。
 - `/classic-2d.html`：2D 經典版。
+- Issue #3 真機 preview：`https://device-gate-p3.math-survival-device-staging.pages.dev/?mode=touch`；它是獨立 Cloudflare Pages preview，不是 production。
 - `supabase/` 可啟動隔離本機 backend，亦已連接獨立 `Math-Survival-Staging`；正式 static site仍保持 GAS。
 - 外部 GAS actions：`getGameData`、`getLeaderboard`、`addScore`；詳見 `api/API_MAP.md`。
 - Supabase v1 endpoints：詳見 `api/SUPABASE_CONTRACT_V1.md`。

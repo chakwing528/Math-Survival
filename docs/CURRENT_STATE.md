@@ -29,6 +29,7 @@
 - Pointer Lock 只負責 desktop control acquisition；`pause()`/`resume()`、數學題回復及 visibility pause 已與它解耦。
 - touch 暫停、visibility loss、resume 及 dispose 會清除 movement/fire/aim/look，避免殘留 listener 或卡住輸入。
 - Playwright 已加入 iPhone 13 WebKit、Pixel 7 Chromium 及 iPad WebKit 裝置閘；真機完成規則及可信任 Wi-Fi 測試方法見 `docs/testing/DEVICE_ACCEPTANCE.md`。
+- Issue #3 已有獨立 Cloudflare Pages Direct Upload preview；只有前端 allowlist，沒有 GitHub integration、production deployment、環境檔或 backend secrets。使用及重建方法見 `docs/runbooks/CLOUDFLARE_DEVICE_PREVIEW.md`。
 - 學校場景沒有樓梯重力/探地及跨樓層喪屍尋路。
 - 19 MB 模型未壓縮。
 - 已有靜態驗證、Playwright browser smoke tests 及非部署 GitHub Actions CI；仍沒有 lint、type check 或正式 build。
@@ -42,12 +43,14 @@
 - `.claude/launch.json` 已改為本機可用的 `python3` 和相對工作目錄，但仍需由實際 launcher 驗證。
 - 模型授權不是全部 CC-BY 3.0；個別授權以 `assets/models/credits.txt` 為準。
 - Hosted staging 已選用另一帳戶的獨立 Free project `Math-Survival-Staging`（ref `mtwhanvpaqgdlhbxzyhu`，Tokyo）；未使用 `School Platform Production`。真實資料 owner、retention、匯入批准及 production cutover 仍待確認。
+- Cloudflare Pages project `math-survival-device-staging` 只用作 Issue #3 公開 preview；production branch 設為 `main` 但未部署，亦沒有自動連接 GitHub。preview 仍使用程式碼內預設 GAS runtime，不是 Supabase staging。
 - Legacy `addScore` 仍以 GET 傳送班別/學號；POST v2 只完成本機 contract/遷移設計，未改 production。
 
 ## 驗證狀態
 
 - 2026-08-26：PR #1／#5／#7／#8 都顯示 clean／mergeable；`npm test` 重跑為 12 passed、2 hosted-staging skipped，20 unit tests 及 static 全通過。本機 Supabase 18 pgTAP tests 與兩個 schema lint 亦通過。
 - 2026-08-26：844×390 forced-touch 本機瀏覽器成功載入 3D HUD且無 console error；LAN 首頁／touch URL 200、dotfile 404。三類實際裝置仍未驗收，所以 PR stack gate 只屬 conditional pass，詳細次序及回滾見 `docs/runbooks/PR_STACK_RELEASE.md`。
+- 2026-08-26：Cloudflare branch preview 已載入 3D／2D；forced-touch 3D 可進場、顯示移動／瞄準／換彈／開火／近戰及暫停控制，並可放棄本局安全返回。自訂 `404.html` 阻止 `package.json` 及 `.git/HEAD` soft fallback，瀏覽器 console 無 error，測試沒有上傳成績。
 - 2026-08-25：V3.7 static、20 個 unit tests、6 個 desktop Chromium smoke，以及 iPhone／Android／iPad 6 個裝置閘案例通過（`npm test` 共 12 passed、2 個 hosted staging cases 無 secrets 時按設計 skipped）；實際 touch 3D/WebGL HUD、戰鬥鍵、pause/reset/resume 亦已驗證。
 - Node unit tests：20 tests passed；cloud/Supabase 13 個，input/lifecycle/touch 7 個。
 - Supabase pgTAP：18 tests passed；database lint 0 errors；local HTTP 驗證 read 200、direct submit 401、Edge accepted/duplicate 200、bad origin 403。
@@ -59,6 +62,6 @@
 
 ## 下一批建議工作
 
-1. 完成 `docs/testing/DEVICE_ACCEPTANCE.md` 三類真機記錄，再依 `docs/runbooks/PR_STACK_RELEASE.md` 逐層合併；未完成必要人工測試前不要合併。
+1. 用獨立 Cloudflare preview 完成 `docs/testing/DEVICE_ACCEPTANCE.md` 三類真機記錄，再依 `docs/runbooks/PR_STACK_RELEASE.md` 逐層合併；未完成必要人工測試前不要合併。
 2. 按 Supabase migration runbook 完成資料 owner/retention/import approval；先以現有獨立 staging 驗收真實流程，再決定 production cutover，唔好套用 `School Platform Production`。
 3. 依 `docs/testing/DEVICE_ACCEPTANCE.md` 完成 Issue #3 實機記錄：iPhone Safari、Android Chrome、iPad 的 safe-area、多指、audio/autoplay 及 10 分鐘核心玩法；全部通過後才關 Issue。

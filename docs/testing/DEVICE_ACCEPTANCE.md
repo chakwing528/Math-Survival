@@ -6,6 +6,7 @@ Issue #3 只有在目標真機完成本清單後才可關閉。Playwright 裝置
 
 - `npm test` 重跑通過：12 passed、2 個 hosted-staging cases 在沒有 secrets 時按設計 skipped；三個裝置 profile 的自動閘全綠。
 - 844×390 forced-touch 本機瀏覽器成功載入 3D touch HUD，無 console error；這項只證明入口和基本 UI，不取代下方真機記錄。
+- 獨立 Cloudflare Pages branch preview 已上線：`https://device-gate-p3.math-survival-device-staging.pages.dev/?mode=touch`。3D／2D、觸控控制、暫停／返回及嚴格 404 已驗證，但仍未在用戶的實際裝置完成下方清單。
 - LAN 預覽已驗證首頁／touch URL 200、dotfile 404；測試後 server 已停止。下次執行 `npm run serve:device` 並重新取得 LAN IP，不能假設舊 IP 不變。
 - iPhone、Android phone、iPad 的實際型號／版本尚未提供，三行仍是 blocking gate。
 
@@ -22,7 +23,17 @@ Issue #3 只有在目標真機完成本清單後才可關閉。Playwright 裝置
 
 自動閘會 mock GAS read、阻止 `addScore` 並封鎖其他外部 host；不得移除這層 production 隔離。Playwright 的 safe-area inset 通常是 0，瀏海／圓角遮擋仍必須用真機確認。
 
-## 同一 Wi-Fi 真機預覽
+## Cloudflare 真機 preview（建議）
+
+1. 真機開啟 `https://device-gate-p3.math-survival-device-staging.pages.dev/?mode=touch`；不需要與 Mac 同一 Wi-Fi。
+2. 這是公開但不影響 production 的 branch preview。`noindex` 不是存取控制，切勿把真實班別、學號、姓名或成績放進測試。
+3. 班別／學號只用 `TEST`／`00`。
+4. 在勝負／結算前按暫停，再選「放棄本局，返回主選單」。如意外到達結算畫面，不要按「上傳成績」。
+5. 依下方清單逐部記錄；不應把排行榜內容放入 screenshot 或 Issue。
+
+preview 的部署邊界、固定／版本 URL 及重建方法見 `docs/runbooks/CLOUDFLARE_DEVICE_PREVIEW.md`。
+
+## 同一 Wi-Fi 本機後備
 
 1. Mac 與測試裝置連接同一個可信任 Wi-Fi；在 repository 執行 `npm run serve:device`。
 2. 執行 `ipconfig getifaddr en0` 取得 Mac LAN IP；如沒有輸出，再試 `ipconfig getifaddr en1`。

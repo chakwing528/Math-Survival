@@ -2,7 +2,7 @@
 
 > 新 Codex task 應先讀 `AGENTS.md`、`docs/PROJECT_MAP.md` 同 `docs/CURRENT_STATE.md`，再按任務讀相關 feature 文件。
 > 呢份文件只保留近期交接同歷史實作細節；架構、API、資料流同長期規則以 `docs/` 為準，實際行為以程式碼為準。
-> 目前 workspace：`/Users/cwchan/Downloads/Math-Survival-main/Math-Survival-main`。Draft PR #1／#5／#7／#8 組成 Issue #3 stack，尚未合併至 `main`。2026-08-26 自動、本機 Supabase、LAN 及 forced-touch 瀏覽器閘已通過，但 iPhone／Android／iPad 真機記錄仍未完成；合併次序及回滾見 `docs/runbooks/PR_STACK_RELEASE.md`。Issue #2 的獨立 `Math-Survival-Staging` rollout 已完成，production 仍為 GAS。
+> 目前 workspace：`/Users/cwchan/Downloads/Math-Survival-main/Math-Survival-main`。Draft PR #1／#5／#7／#8 組成 Issue #3 stack，尚未合併至 `main`。2026-08-26 自動、本機 Supabase、LAN、forced-touch 及獨立 Cloudflare Pages preview 閘已通過，但 iPhone／Android／iPad 真機記錄仍未完成；真機 URL／規則見 `docs/testing/DEVICE_ACCEPTANCE.md`，合併次序及回滾見 `docs/runbooks/PR_STACK_RELEASE.md`。Issue #2 的獨立 `Math-Survival-Staging` rollout 已完成，production 仍為 GAS。
 
 ---
 
@@ -243,7 +243,7 @@ python3 -m http.server 8000   → http://localhost:8000
 
 ### ⬜ 待做
 
-- **P2 真機閘** — 自動 iPhone WebKit、Android Chromium、iPad WebKit matrix 已完成；依 `docs/testing/DEVICE_ACCEPTANCE.md` 填寫三類實機 safe-area、多指、audio/autoplay 及 10 分鐘核心玩法記錄後才可關 Issue #3。
+- **P2 真機閘** — 自動 iPhone WebKit、Android Chromium、iPad WebKit matrix 及獨立 Cloudflare preview 已完成；依 `docs/testing/DEVICE_ACCEPTANCE.md` 填寫三類實機 safe-area、多指、audio/autoplay 及 10 分鐘核心玩法記錄後才可關 Issue #3。
 - **P3 靚** — 四角 HUD wrapper 各自 `transform: scale(var(--hud-s))`（唔好成個 HUD 一次過 scale，錨點會飛）、
   選單 `flex-direction` 手機改 column、答題彈窗選項掣 ≥48px、填充題 `inputmode="numeric"`
 - **P4 打磨** — 真機測試（iPhone Safari / Android Chrome / iPad）、iOS AudioContext 解鎖時機、19MB 模型考慮壓縮
