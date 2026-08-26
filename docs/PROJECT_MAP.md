@@ -17,6 +17,10 @@ Math Survival 是一個靜態瀏覽器數學射擊遊戲：學生在 3D 或 2D �
 | Cloud boundary | `js/cloud-runtime-config.js`、`js/cloud-core.js` | GAS/Supabase feature flag、adapter、validation、安全排行榜 DOM |
 | Supabase backend | `supabase/` | Postgres migrations、RLS/grants、Edge Function、synthetic seed、pgTAP 及 hosted staging |
 | Staging validation | `scripts/validate-hosted-supabase.mjs`、`tests/smoke/supabase-staging.spec.js` | Hosted HTTP 安全邊界及 3D／2D 無 GAS fallback 驗收 |
+| Device acceptance | `tests/smoke/device-gate.spec.js`、`docs/testing/DEVICE_ACCEPTANCE.md` | iPhone／Android／iPad 自動矩陣及真機完成閘 |
+| Cloudflare device preview | `docs/runbooks/CLOUDFLARE_DEVICE_PREVIEW.md` | 獨立 Direct Upload preview、公開範圍、驗證及清理 |
+| GitHub Pages device staging | `docs/runbooks/GITHUB_PAGES_DEVICE_STAGING.md` | V3.10 獨立公開 staging repository、發佈邊界、驗證及回滾 |
+| PR stack release | `docs/runbooks/PR_STACK_RELEASE.md` | 疊加 PR 合併前閘、逐層次序、Pages 檢查及回滾 |
 | 裝置/畫質 | `js/device.js` | desktop/touch、全螢幕、橫屏、品質分級 |
 | 輸入/狀態 | `js/input.js` | keyboard/mouse/touch input state、遊戲 lifecycle transition |
 | 3D 資產 | `js/assets.js`、`assets/models/` | GLB manifest、載入、clone、動畫映射 |
@@ -36,11 +40,14 @@ Math Survival 是一個靜態瀏覽器數學射擊遊戲：學生在 3D 或 2D �
 | 改學生資料流程 | `data/DATA_FLOWS_AND_PRIVACY.md` | `js/main.js`、`js/leaderboard.js`、`classic-2d.html` |
 | 改架構 | `architecture/OVERVIEW.md`、`decisions/` | 相關入口及 imports |
 | 規劃或交接工作 | `WORKFLOW.md`、`CURRENT_STATE.md`、`ROADMAP.md` | 相關 feature 文件及程式碼證據 |
+| 真機 preview／合併 Issue #3 PR stack | `testing/DEVICE_ACCEPTANCE.md`、`runbooks/GITHUB_PAGES_DEVICE_STAGING.md`、`runbooks/PR_STACK_RELEASE.md` | 獨立 GitHub Pages staging、GitHub PR／checks及相關 smoke |
 
 ## Routes 和外部介面
 
 - `/` 或 `/index.html`：3D 主頁；`/` 是否映射到 `index.html` 由靜態 host 決定。
 - `/classic-2d.html`：2D 經典版。
+- Issue #3 真機 preview：`https://device-gate-p3.math-survival-device-staging.pages.dev/?mode=touch`；它是獨立 Cloudflare Pages preview，不是 production。
+- V3.10 起首選真機入口：`https://chakwing528.github.io/Math-Survival-Device-Staging/?mode=touch&debug=perf`；獨立 public repository，不改 production Pages。
 - `supabase/` 可啟動隔離本機 backend，亦已連接獨立 `Math-Survival-Staging`；正式 static site仍保持 GAS。
 - 外部 GAS actions：`getGameData`、`getLeaderboard`、`addScore`；詳見 `api/API_MAP.md`。
 - Supabase v1 endpoints：詳見 `api/SUPABASE_CONTRACT_V1.md`。
@@ -70,4 +77,4 @@ classic-2d.html ─────────────┘
 - 2D/3D 有重複雲端、題目及排行榜邏輯，容易只修正其中一版。
 - GAS/Supabase 回傳資料一律視為不可信；排行榜現經 validation＋`textContent`，不可恢復 `innerHTML`。
 - 班別和學號經 GET query string 提交；更改前要先確認遠端 handler 及資料政策。
-- 3D touch Batch 2 已接通虛擬移動、視角及戰鬥控制；iPhone／Android／iPad 真機、audio/autoplay 及完整長局驗收仍未完成。
+- 3D touch 已接通虛擬移動、視角及戰鬥控制；iPhone WebKit、Android Chromium、iPad WebKit 自動裝置閘已加入，實際手機／平板的 safe-area、audio/autoplay 及 10 分鐘長局仍待按 `docs/testing/DEVICE_ACCEPTANCE.md` 驗收。

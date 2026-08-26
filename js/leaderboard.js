@@ -2,7 +2,7 @@
 // 排行榜：讀取 / 安全渲染 / 上傳成績（保留現有 GAS GET contract）
 // ==============================================================================
 
-import { GAS_URL } from './config.js?v=37';
+import { GAS_URL } from './config.js?v=40';
 
 const Cloud = globalThis.MathSurvivalCloud;
 if (!Cloud) throw new Error('MathSurvivalCloud must load before leaderboard.js');

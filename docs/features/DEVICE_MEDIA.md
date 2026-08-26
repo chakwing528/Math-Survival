@@ -9,9 +9,11 @@
 - 真實 touch、mouse movement 或實體 keyboard 事件可在 runtime 切換模式。
 - `<body>` 使用 `mode-touch`/`mode-desktop` class 作 UI hook。
 
-`js/input.js` 統一保存 keyboard/mouse/touch control state；`TouchControlSurface` 以獨立 pointerId 接駁左下虛擬搖桿、右半屏 touch look、按住開火、toggle 瞄準、換彈及近戰。搖桿推盡向前會自動疾跑，多指移動／視角／開火互不搶 state。
+`js/input.js` 統一保存 keyboard/mouse/touch control state；`TouchControlSurface` 以獨立 pointerId 接駁左下虛擬搖桿、右半屏 touch look及按住開火。搖桿推盡向前會自動疾跑，多指移動／視角／開火互不搶 state；未持槍時開火鍵執行近戰，持槍後彈匣清空會自動換彈。
 
 Pointer Lock 只負責 desktop 取得滑鼠控制；`Game.pause()`／`resume()`、數學題回復及 `visibilitychange` 已使用共用 lifecycle。touch HUD 現有獨立暫停鍵，回復不要求 Pointer Lock。
+
+iPhone Safari 沒有完整 Pointer Lock API；答題流程只會在 controls 確實 locked 時嘗試 unlock，並吞掉 API failure。數學題 overlay 會在這個可選步驟之前同步顯示。
 
 touch controls 在 pause、visibility loss、resume 及 dispose 時 reset；透明 look zone 位於戰鬥鍵下層，避免攔截按鈕。
 
@@ -25,14 +27,23 @@ touch controls 在 pause、visibility loss、resume 及 dispose 時 reset；透�
 
 | Tier | 主要差異 |
 |---|---|
-| high | desktop baseline、antialias、較多草/樹/碎片、較遠 fog |
-| medium | 較低 pixel ratio、無 antialias、中等場景密度 |
-| low | 0.75 pixel ratio、最低場景密度和碎片量 |
+| high | DPR 上限 1.5／最低 1.0、antialias、草 700／場外樹 40／碎片 150·500、fog 60–150；desktop 不設 frame cap |
+| medium | DPR 上限 1.25／最低 1.0、無 antialias、草 120／場外樹 8／碎片 30·80、fog 40–88；45 FPS、同場敵人 4 |
+| low | DPR 上限 1.0／最低 0.85、無 antialias、草 60／場外樹 4／碎片 15·40、fog 35–72；30 FPS、同場敵人 3 |
 
 - `?quality=` 可強制 tier。
 - 否則讀 localStorage；touch 再按 CPU cores/device memory 猜測。
-- `game.js` 每三秒監察 FPS；低於門檻可即時降低 pixel ratio，並把下一局 tier 降一級。
+- `game.js` 每五秒取樣 FPS；連續兩段低於 tier 目標才降低 0.2 DPR，最多兩次且不可低於最低值。降載亦會收緊同場敵人上限；第二級會隱藏裝飾雲。
 - 自動降級刻意不寫 localStorage。
+- `?debug=perf` 顯示每秒更新的 FPS、實際／裝置 DPR、tier、viewport、draw calls 及同場敵人／上限，供真機驗收；不包含學生資料。
+
+## 手機 UI 與執行期節流
+
+- touch 開始畫面使用單欄，桌面操作說明和排行榜側欄隱藏；字級、輸入框及按鈕按實際 CSS viewport 收窄，並套用 safe-area inset。
+- 高度不超過 500px 的橫屏 HUD 會獨立縮放／移位羅盤、四角資訊、搖桿和戰鬥鍵，避免 iPhone 874×402 viewport 重疊。
+- 同一高度範圍的答題 overlay 使用左題右答雙欄、safe-area padding、viewport 內容器、六欄 numpad 及至少 44px 操作鍵。
+- touch HUD、雷達和羅盤以 15Hz 更新，準星和威脅提示以 20Hz 更新；第三身相機碰撞 raycast 以 20Hz 更新並重用結果陣列及向量，減少每幀 DOM/canvas 工作與垃圾回收壓力。
+- 手機 gameplay 按 tier 限制 render FPS；`MATH`、`PAUSED`、`OVER` 只在狀態轉換時補畫一格，不在 DOM overlay 背後持續跑 WebGL effects。
 
 ## 3D assets
 
@@ -51,6 +62,8 @@ touch controls 在 pause、visibility loss、resume 及 dispose 時 reset；透�
 - BGM/SFX 音量保存 localStorage。
 
 ## 修改驗證
+
+完整自動矩陣、同一 Wi-Fi 預覽方法及真機記錄表見 `../testing/DEVICE_ACCEPTANCE.md`。自動 WebKit／Chromium profile 只作合併前 regression gate，不能取代實際 iPhone／Android／iPad 驗收。
 
 - Device：desktop mouse/keyboard、touch device、hybrid device、forced query modes；切頁後輸入狀態不可殘留。
 - Orientation：iOS Safari、Android Chrome、iPad landscape/portrait。

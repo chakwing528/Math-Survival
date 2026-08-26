@@ -49,12 +49,15 @@
 ## UI 和 resolve
 
 - 同一時間只允許一個 active keydown handler 和 timer。
+- 進入 `MATH` 後必須先同步顯示題目，最後才安全處理可選的 desktop Pointer Lock；iOS 沒有 `document.exitPointerLock()` 不得阻止 overlay。
 - 題目限時 10 秒；超時 resolve 為錯誤。
 - 輸入題支援畫面 numpad、鍵盤數字、負號、Backspace 和 Enter。
 - 選擇題按 option 的 `isCorrect` 判斷。
 - 答錯顯示 `explain`/`hint`，由學生按「明白了」後才繼續。
 - `onResolve(isCorrect, topic)` 只應呼叫一次。
-- MathJax 只負責排版；gameplay 不應因 MathJax promise rejection 停止。
+- MathJax 只負責排版；同步 throw 或 promise rejection 都不應令 gameplay 停止。
+- 重複出題及 `Game.dispose()` 必須清除 keydown、timer、延遲 resolve，並同步更新 overlay 的 `aria-hidden`。
+- 高度不超過 500px 的 touch 橫屏使用左題右答雙欄及六欄 numpad；選擇題／輸入答案位於右欄，答錯解釋取代右欄 controls，容器必須留在 safe-area／viewport 內。
 
 ## 學習報告
 
@@ -71,5 +74,5 @@
 
 - 題目和 hint 使用 `innerHTML`；目前內容來自本機題庫。若日後接受遠端題目，必須先加 sanitization。
 - 不要只測 generator 不 throw；應驗證每題只有一個正確 option、答案可解析、hint 存在和難度範圍合理。
-- 目前沒有 unit tests。優先測試題庫 contract、fallback、timer single-resolve 和 topic statistics。
-
+- input/lifecycle unit tests 覆蓋 iPhone 無 Pointer Lock、locked unlock throw 及題目建立失敗回復；Playwright 裝置閘覆蓋三種 touch profile 的升級題顯示、輸入、答錯解釋、返回 gameplay 及 viewport 邊界。
+- 題庫 contract、fallback、timer single-resolve 和 topic statistics 仍需要更完整的 unit coverage。

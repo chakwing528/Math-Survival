@@ -4,13 +4,13 @@
 
 import * as THREE from 'three';
 import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
-import { WEAPONS, MONSTER_BASE, SETTINGS, DIFF_MULT, DIFF_LABELS } from './config.js?v=37';
-import { playSfx, sfxZombieGrowl, sfxZombieAttack, sfxZombieDeath, sfxBossRoar, sfxCorrect, sfxWrong, sfxLevelUp, sfxHeartbeat, sfxVictory, sfxPanSwing, sfxPanClang } from './audio.js?v=37';
-import { showMathQuestion } from './math.js?v=37';
-import { ASSETS, GUN_BY_LEVEL, cloneCharacter, cloneProp, cloneGun, tintModel } from './assets.js?v=37';
-import { buildSchool, COURT_HX, COURT_HZ, BUILD_HX, BUILD_HZ } from './school.js?v=37';
-import { getQuality, downgradeQuality, isTouchMode } from './device.js?v=37';
-import { GAME_STATES, GameStateMachine, InputController, TouchControlSurface } from './input.js?v=37';
+import { WEAPONS, MONSTER_BASE, SETTINGS, DIFF_MULT, DIFF_LABELS } from './config.js?v=40';
+import { playSfx, sfxZombieGrowl, sfxZombieAttack, sfxZombieDeath, sfxBossRoar, sfxCorrect, sfxWrong, sfxLevelUp, sfxHeartbeat, sfxVictory, sfxPanSwing, sfxPanClang } from './audio.js?v=40';
+import { dismissMathQuestion, showMathQuestion } from './math.js?v=40';
+import { ASSETS, GUN_BY_LEVEL, cloneCharacter, cloneProp, cloneGun, tintModel } from './assets.js?v=40';
+import { buildSchool, COURT_HX, COURT_HZ, BUILD_HX, BUILD_HZ } from './school.js?v=40';
+import { getQuality, getQualityTier, downgradeQuality, isTouchMode } from './device.js?v=40';
+import { beginMathChallenge, finishGameSessionSafely, GAME_STATES, GameStateMachine, InputController, shouldAutoReload, TouchControlSurface } from './input.js?v=40';
 
 // 喪屍等級 → 模型
 const ZOMBIE_BY_TIER = { 1: 'zombie_b', 2: 'zombie_a', 3: 'zombie_c', 4: 'zombie_anim', 5: 'zombie_anim' };
@@ -226,7 +226,28 @@ export class Game {
         this.enemies = []; this.pickups = []; this.bursts = []; this.tracers = []; this.shatters = [];
 
         this.viewMode = 'TPP'; // 預設第三人稱 (V 鍵切換)
-        this._tppOffsetVec = null;   // 每幀渲染時記低 TPP 相機偏移，射擊用同一偏移 (修正準星視差)
+        this._tppOffsetVec = new THREE.Vector3(); // 重用，避免每幀製造 GC 壓力
+        this._hasTppOffset = false;
+        this._aimPivot = new THREE.Vector3();
+        this._tppPivot = new THREE.Vector3();
+        this._tppDir = new THREE.Vector3();
+        this._tppBack = new THREE.Vector3();
+        this._tppRight = new THREE.Vector3();
+        this._tppUp = new THREE.Vector3(0, 1, 0);
+        this._minimapDir = new THREE.Vector3();
+        this._compassDir = new THREE.Vector3();
+        this._threatDir = new THREE.Vector3();
+        this._threatIntensity = { top: 0, bottom: 0, left: 0, right: 0 };
+        this._tppRaycastTimer = 0;
+        this._tppRaycastDistance = 4.3;
+        this._tppRaycastDesired = 0;
+        this._tppRaycastHits = [];
+        this._hudTick = 0;
+        this._crosshairTick = 0;
+        this._threatTick = 0;
+        this._perfDebugTick = 0;
+        this._lastFrameAt = 0;
+        this._lastRenderedState = null;
         this.recoilAccum = 0;        // 累積後座上抬，鬆手自動回復
         this.panSwing = 0;           // 平底鑊揮擊動畫進度
         this.bloom = 0;              // 準星擴散量 (開槍增加)
@@ -240,6 +261,7 @@ export class Game {
         this._bindEvents();
         this._updateHUD(true);
         this._setDiffLabel();
+        this._updatePerfDebug();
 
         // 開場先送一個空投
         this._spawnPickup('UPGRADE');
@@ -271,7 +293,8 @@ export class Game {
             minimap: g('minimap'), compass: g('compass'),
             resumeOverlay: g('resume-overlay'),
             pauseMenu: g('pause-menu'),
-            freezeTag: g('freeze-tag')
+            freezeTag: g('freeze-tag'),
+            perfDebug: g('perf-debug')
         };
         this.minimapCtx = this.ui.minimap.getContext('2d');
         this.compassCtx = this.ui.compass.getContext('2d');
@@ -296,6 +319,8 @@ export class Game {
     // -------------------------------------------------------------- 場景建立
     _initScene() {
         const Q = this.quality = getQuality();     // 畫質分級 (桌面 high / 手機 medium-low)
+        this._qualityTierAtStart = getQualityTier();
+        this._activeEnemyLimit = Q.maxActiveEnemies || 4;
 
         this.scene = new THREE.Scene();
         this.scene.background = new THREE.Color(0x8ec9ed);
@@ -306,6 +331,7 @@ export class Game {
 
         this.renderer = new THREE.WebGLRenderer({ antialias: Q.antialias, powerPreference: 'high-performance' });
         this._pixelRatio = Math.min(window.devicePixelRatio, Q.pixelRatio);
+        this._minPixelRatio = Math.min(this._pixelRatio, Q.minPixelRatio || 1);
         this.renderer.setPixelRatio(this._pixelRatio);
         this.renderer.setSize(window.innerWidth, window.innerHeight);
         this.container.appendChild(this.renderer.domElement);
@@ -1434,6 +1460,7 @@ export class Game {
         this.input.reset();
         this.ui.pauseMenu.style.display = 'none';
         this.ui.resumeOverlay.style.display = 'none';
+        this._lastFrameAt = 0;
         this.clock.getDelta();
         return true;
     }
@@ -1447,8 +1474,8 @@ export class Game {
     // -------------------------------------------------------------- 瞄準/射擊輔助
     // 設定瞄準射線：TPP 時臨時套用渲染相機偏移，確保準星指邊打邊
     _setAimRay(ndcX, ndcY) {
-        if (this.viewMode === 'TPP' && this._tppOffsetVec) {
-            const pivot = this.camera.position.clone();
+        if (this.viewMode === 'TPP' && this._hasTppOffset) {
+            const pivot = this._aimPivot.copy(this.camera.position);
             this.camera.position.add(this._tppOffsetVec);
             this.camera.updateMatrixWorld();
             this.raycaster.setFromCamera({ x: ndcX, y: ndcY }, this.camera);
@@ -1935,17 +1962,29 @@ export class Game {
 
     // -------------------------------------------------------------- 數學題流程
     _triggerMath(type) {
-        this.lifecycle.transition(GAME_STATES.MATH);
-        this.input.reset();
-        this.controls.unlock();
-
-        showMathQuestion({
-            type,
-            difficulty: this.difficulty,
-            questionsSolved: this.questionsSolved,
-            weaponLevel: this.weaponLevel,
-            onResolve: (correct, topic) => this._onMathResolved(type, correct, topic)
-        });
+        try {
+            beginMathChallenge({
+                lifecycle: this.lifecycle,
+                controls: this.controls,
+                resetInput: () => {
+                    this.touchControls.reset();
+                    this.input.reset();
+                },
+                showQuestion: () => showMathQuestion({
+                    type,
+                    difficulty: this.difficulty,
+                    questionsSolved: this.questionsSolved,
+                    weaponLevel: this.weaponLevel,
+                    onResolve: (correct, topic) => this._onMathResolved(type, correct, topic)
+                })
+            });
+        } catch (error) {
+            console.error('數學題顯示失敗，已安全恢復遊戲。', error);
+            this._addMsg('⚠️ 題目暫時無法顯示，補給已重新投放。', '#fbbf24');
+            this._spawnPickup(type);
+            if (isTouchMode() || this.controls.isLocked) this.resume('math-display-error');
+            else this.ui.resumeOverlay.style.display = 'flex';
+        }
     }
 
     _onMathResolved(type, correct, topic) {
@@ -2145,8 +2184,10 @@ export class Game {
         const weaponName = this.weaponLevel >= 0 ? WEAPONS[this.weaponLevel].name : '無';
         setTimeout(() => {
             if (this.disposed) return;
-            this.controls.unlock();
-            this.onGameOver(victory, this.kills, this.TOTAL_MONSTERS, weaponName, this.mathStats);
+            finishGameSessionSafely({
+                controls: this.controls,
+                onComplete: () => this.onGameOver(victory, this.kills, this.TOTAL_MONSTERS, weaponName, this.mathStats)
+            });
         }, victory ? 1200 : 800);
     }
 
@@ -2154,8 +2195,7 @@ export class Game {
         if (this.state !== GAME_STATES.OVER) this.lifecycle.transition(GAME_STATES.OVER);
         this.input.reset();
         this.ui.pauseMenu.style.display = 'none';
-        this.controls.unlock();
-        this.onAbort();
+        finishGameSessionSafely({ controls: this.controls, onComplete: this.onAbort });
     }
 
     // -------------------------------------------------------------- HUD
@@ -2313,7 +2353,7 @@ export class Game {
         ctx.restore();
 
         // 玩家箭頭 (準確指向公仔面向方向)
-        const dir = new THREE.Vector3();
+        const dir = this._minimapDir;
         this.camera.getWorldDirection(dir);
         const [px, py] = toMap(this.camera.position.x, this.camera.position.z);
         ctx.save();
@@ -2345,7 +2385,7 @@ export class Game {
         ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
         ctx.fillRect(0, 0, w, h);
 
-        const dir = new THREE.Vector3();
+        const dir = this._compassDir;
         this.camera.getWorldDirection(dir);
         // 北 = -Z；順時針角度 0-360
         let headingDeg = Math.atan2(dir.x, -dir.z) * 180 / Math.PI;
@@ -2381,41 +2421,135 @@ export class Game {
     }
 
     // -------------------------------------------------------------- 主迴圈
-    _animate() {
+    _animate(frameNow = 0) {
         if (this.disposed) return;
-        this._raf = requestAnimationFrame(() => this._animate());
-        const dt = Math.min(this.clock.getDelta(), 0.05);
+        this._raf = requestAnimationFrame(now => this._animate(now));
+
+        // 手機用穩定 frame budget，避免 60 Hz 長時間滿載引致 Safari 熱降頻。
+        // 暫停／答題／結算時 DOM 已負責畫面，WebGL 只需在狀態轉換時補畫一格。
+        const targetFps = isTouchMode()
+            ? (this.state === GAME_STATES.PLAYING ? (this.quality.renderFps || 30) : 10)
+            : 0;
+        if (targetFps > 0 && frameNow) {
+            const interval = 1000 / targetFps;
+            if (this._lastFrameAt) {
+                const elapsed = frameNow - this._lastFrameAt;
+                if (elapsed + 0.5 < interval) return;
+                this._lastFrameAt = frameNow - (elapsed % interval);
+            } else {
+                this._lastFrameAt = frameNow;
+            }
+        }
+        const rawDt = this.clock.getDelta();
+        const dt = Math.min(rawDt, 0.05);
 
         if (this.state === GAME_STATES.PLAYING) {
             this.time += dt;
             this._updatePlaying(dt);
+            this._updateEffects(dt);
         }
-        this._updateEffects(dt);
-        this._updateHUD(false);
-        this._drawMinimap();
-        this._drawCompass();
         this._lastDt = dt;
-        this._renderView();
-        this._updateCrosshair();
-        this._updateThreatEdges();
-        this._watchPerf(dt);
+        const uiDt = Math.min(rawDt, 0.25);
+        const hudInterval = isTouchMode() ? 1 / 15 : 1 / 30;
+        const shouldRender = this.state === GAME_STATES.PLAYING || this._lastRenderedState !== this.state;
+        if (shouldRender) {
+            this._hudTick += uiDt;
+            if (this._hudTick >= hudInterval) {
+                this._hudTick %= hudInterval;
+                this._updateHUD(false);
+                this._drawMinimap();
+                this._drawCompass();
+            }
+            this._renderView();
+            this._crosshairTick += uiDt;
+            if (this._crosshairTick >= 1 / 20) {
+                this._crosshairTick %= 1 / 20;
+                this._updateCrosshair();
+            }
+            this._threatTick += uiDt;
+            if (this._threatTick >= 1 / 20) {
+                this._threatTick %= 1 / 20;
+                this._updateThreatEdges();
+            }
+            this._lastRenderedState = this.state;
+        }
+        this._perfDebugTick += uiDt;
+        if (this._perfDebugTick >= 1) {
+            this._perfDebugTick %= 1;
+            this._updatePerfDebug();
+        }
+        this._watchPerf(rawDt);
     }
 
-    // 實測跌幀 → 即時降 pixelRatio (唯一唔使重建場景就見效嘅手段)，並記低下一局降級
+    // 連續兩段低 FPS 才平滑降解像度；避免第 3／6 秒連續重建 framebuffer。
     _watchPerf(dt) {
         if (this.state !== GAME_STATES.PLAYING) return;
-        const p = this._perf || (this._perf = { t: 0, frames: 0, drops: 0 });
+        if (!Number.isFinite(dt) || dt > 0.25) {
+            const drops = this._perf ? this._perf.drops : 0;
+            this._perf = { t: 0, frames: 0, drops, badSamples: 0, fps: 0 };
+            return;
+        }
+        const p = this._perf || (this._perf = { t: 0, frames: 0, drops: 0, badSamples: 0, fps: 0 });
         p.t += dt; p.frames++;
-        if (p.t < 3) return;
+        if (p.t < 5) return;
         const fps = p.frames / p.t;
+        p.fps = fps;
         p.t = 0; p.frames = 0;
-        if (fps >= 40 || p.drops >= 2) return;
+        const targetFps = isTouchMode()
+            ? Math.max(24, (this.quality.renderFps || 30) * 0.72)
+            : 40;
+        if (fps >= targetFps) {
+            p.badSamples = 0;
+            this._updatePerfDebug();
+            return;
+        }
+        p.badSamples++;
+        if (p.badSamples < 2 || p.drops >= 2) {
+            this._updatePerfDebug();
+            return;
+        }
+        p.badSamples = 0;
+        const nextRatio = Math.max(this._minPixelRatio, Number((this._pixelRatio - 0.2).toFixed(2)));
+        if (nextRatio >= this._pixelRatio) {
+            this._updatePerfDebug();
+            return;
+        }
         p.drops++;
-        this._pixelRatio = Math.max(0.6, this._pixelRatio - 0.25);
+        this._pixelRatio = nextRatio;
         this.renderer.setPixelRatio(this._pixelRatio);
-        this.renderer.setSize(window.innerWidth, window.innerHeight);
+        this._activeEnemyLimit = Math.max(3, this._activeEnemyLimit - 1);
+        if (p.drops >= 2 && this.clouds) {
+            for (const cloud of this.clouds) cloud.sprite.visible = false;
+        }
         downgradeQuality();     // 下一局用低一級設定開場
         console.warn(`[perf] ${fps.toFixed(1)} fps → pixelRatio ${this._pixelRatio.toFixed(2)}`);
+        this._updatePerfDebug();
+    }
+
+    getPerformanceSnapshot() {
+        const render = this.renderer && this.renderer.info ? this.renderer.info.render : {};
+        return {
+            fps: Number((this._perf && this._perf.fps || 0).toFixed(1)),
+            quality: this._qualityTierAtStart,
+            pixelRatio: this._pixelRatio,
+            minPixelRatio: this._minPixelRatio,
+            devicePixelRatio: window.devicePixelRatio || 1,
+            viewport: { width: window.innerWidth, height: window.innerHeight },
+            drawCalls: render.calls || 0,
+            triangles: render.triangles || 0,
+            activeEnemies: this.enemies.length,
+            activeEnemyLimit: this._activeEnemyLimit
+        };
+    }
+
+    _updatePerfDebug() {
+        const el = this.ui.perfDebug;
+        let enabled = false;
+        try { enabled = new URLSearchParams(location.search).get('debug') === 'perf'; } catch (e) {}
+        if (!el || !enabled) return;
+        const s = this.getPerformanceSnapshot();
+        el.style.display = 'block';
+        el.textContent = `FPS ${s.fps || '…'} · DPR ${s.pixelRatio}/${s.devicePixelRatio} · ${s.quality} · ${s.viewport.width}×${s.viewport.height} · calls ${s.drawCalls} · enemies ${s.activeEnemies}/${s.activeEnemyLimit}`;
     }
 
     // 近距喪屍：喺畫面對應嗰邊亮紅色警告 (方便學生辨方向)
@@ -2425,14 +2559,15 @@ export class Game {
         const WARN_DIST = 30; // 幾多米內先警告
 
         // 相機面向 (前) 同右方向 (world XZ 平面)
-        const dir = new THREE.Vector3();
+        const dir = this._threatDir;
         this.camera.getWorldDirection(dir);
         const fx = dir.x, fz = dir.z;
         const rx = -fz, rz = fx; // 右 = 前向量順時針轉 90°
         const pos = this.camera.position;
 
         // 四邊各記錄最強威脅 (越近越強)
-        const intensity = { top: 0, bottom: 0, left: 0, right: 0 };
+        const intensity = this._threatIntensity;
+        intensity.top = 0; intensity.bottom = 0; intensity.left = 0; intensity.right = 0;
         if (this.state === GAME_STATES.PLAYING) {
             for (const e of this.enemies) {
                 if (e.dying) continue;
@@ -2472,13 +2607,13 @@ export class Game {
         if (this.viewMode !== 'TPP' || !this.playerModel) {
             if (this.playerModel) this.playerModel.visible = false;
             this.gunGroup.visible = true;
-            this._tppOffsetVec = null;
+            this._hasTppOffset = false;
             this.renderer.render(this.scene, this.camera);
             return;
         }
 
-        const pivot = this.camera.position.clone();
-        const dir = new THREE.Vector3();
+        const pivot = this._tppPivot.copy(this.camera.position);
+        const dir = this._tppDir;
         this.camera.getWorldDirection(dir);
 
         // 更新角色模型位置與朝向
@@ -2498,20 +2633,32 @@ export class Game {
         }
 
         // 相機退後過肩 (右肩 + 升高)，並防止穿牆
-        let dist = this.input.aim ? 2.2 : 4.3;
-        this._tppRaycaster.camera = this.camera; // Sprite 射線判定需要 camera，唔設會 throw
-        this._tppRaycaster.set(pivot, dir.clone().negate());
-        this._tppRaycaster.far = dist + 0.5;
-        const hits = this._tppRaycaster.intersectObjects([this.wallsGroup, this.cratesGroup], true);
-        if (hits.length && hits[0].distance < dist) dist = Math.max(1.0, hits[0].distance - 0.3);
+        const desiredDist = this.input.aim ? 2.2 : 4.3;
+        this._tppRaycastTimer -= this._lastDt || 0.016;
+        if (this._tppRaycastTimer <= 0 || this._tppRaycastDesired !== desiredDist) {
+            this._tppRaycastTimer = 0.05; // 20 Hz 足夠相機防穿牆，避免每幀 recursive GLTF raycast
+            this._tppRaycastDesired = desiredDist;
+            this._tppRaycaster.camera = this.camera;
+            this._tppBack.copy(dir).negate();
+            this._tppRaycaster.set(pivot, this._tppBack);
+            this._tppRaycaster.far = desiredDist + 0.5;
+            this._tppRaycastHits.length = 0;
+            const roots = this._tppCollisionRoots || (this._tppCollisionRoots = [this.wallsGroup, this.cratesGroup]);
+            this._tppRaycaster.intersectObjects(roots, true, this._tppRaycastHits);
+            this._tppRaycastDistance = this._tppRaycastHits.length && this._tppRaycastHits[0].distance < desiredDist
+                ? Math.max(1.0, this._tppRaycastHits[0].distance - 0.3)
+                : desiredDist;
+        }
+        const dist = Math.min(desiredDist, this._tppRaycastDistance);
 
-        const right = new THREE.Vector3().crossVectors(dir, new THREE.Vector3(0, 1, 0)).normalize();
+        const right = this._tppRight.crossVectors(dir, this._tppUp).normalize();
         this.camera.position.addScaledVector(dir, -dist);
         this.camera.position.addScaledVector(right, 0.55);
         this.camera.position.y += 0.5;
 
         // 記低偏移量：射擊射線用同一位置，準星先會指邊打邊 (修正視差)
-        this._tppOffsetVec = this.camera.position.clone().sub(pivot);
+        this._tppOffsetVec.copy(this.camera.position).sub(pivot);
+        this._hasTppOffset = true;
 
         this.renderer.render(this.scene, this.camera);
         this.camera.position.copy(pivot);
@@ -2533,7 +2680,7 @@ export class Game {
         this.lootTimer += dt; this.ammoTimer += dt; this.spawnTimer += dt;
         if (this.lootTimer >= SETTINGS.lootBoxInterval) { this.lootTimer = 0; this._spawnPickup('UPGRADE'); }
         if (this.weaponLevel >= 0 && this.ammoTimer >= SETTINGS.ammoBoxInterval) { this.ammoTimer = 0; this._spawnPickup('AMMO'); }
-        if (this.monsterQueue.length > 0 && (this.enemies.length < 4 ? this.spawnTimer >= 0.6 : this.spawnTimer >= 3)) {
+        if (this.monsterQueue.length > 0 && this.enemies.length < this._activeEnemyLimit && this.spawnTimer >= 0.6) {
             this.spawnTimer = 0;
             this._spawnEnemy();
         }
@@ -2557,6 +2704,9 @@ export class Game {
                 this.totalAmmo -= load;
                 this.isReloading = false;
             }
+        }
+        if (shouldAutoReload(this)) {
+            this._startReload();
         }
 
         // ---- 移動 (Shift 疾跑 / 能量加速 / 開鏡減速)
@@ -2950,6 +3100,8 @@ export class Game {
         this.disposed = true;
         cancelAnimationFrame(this._raf);
 
+        dismissMathQuestion();
+
         this.touchControls.dispose();
         this.input.dispose();
         document.removeEventListener('contextmenu', this._onContextMenu);
@@ -2995,5 +3147,9 @@ export class Game {
         this.ui.killFeed.innerHTML = '';
         this.ui.lootFeed.innerHTML = '';
         this.ui.zoneTimer.textContent = '';
+        if (this.ui.perfDebug) {
+            this.ui.perfDebug.style.display = 'none';
+            this.ui.perfDebug.textContent = '';
+        }
     }
 }

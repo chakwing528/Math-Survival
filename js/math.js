@@ -105,9 +105,32 @@ function generateQuestion(difficulty, questionsSolved, weaponLevel) {
 
 let activeKeydownHandler = null;
 let activeTimerInterval = null;
+let activeResolveTimeout = null;
+
+function clearActiveMathResources() {
+    if (activeKeydownHandler) { window.removeEventListener('keydown', activeKeydownHandler); activeKeydownHandler = null; }
+    if (activeTimerInterval) { clearInterval(activeTimerInterval); activeTimerInterval = null; }
+    if (activeResolveTimeout) { clearTimeout(activeResolveTimeout); activeResolveTimeout = null; }
+}
+
+export function dismissMathQuestion() {
+    clearActiveMathResources();
+    const overlay = document.getElementById('math-overlay');
+    if (overlay) {
+        overlay.style.display = 'none';
+        overlay.setAttribute('aria-hidden', 'true');
+    }
+}
 
 // 顯示數學題彈窗。onResolve(isCorrect) 在答題/超時後 (含 1.2 秒回饋) 被呼叫一次。
-export function showMathQuestion({ type, difficulty, questionsSolved, weaponLevel, onResolve }) {
+export function showMathQuestion({
+    type,
+    difficulty,
+    questionsSolved,
+    weaponLevel,
+    onResolve,
+    timeLimitSeconds = MATH_TIME_LIMIT,
+}) {
     const overlay = document.getElementById('math-overlay');
     const headerEl = document.getElementById('math-header');
     const containerEl = document.getElementById('math-container');
@@ -116,25 +139,25 @@ export function showMathQuestion({ type, difficulty, questionsSolved, weaponLeve
     const timerBar = document.getElementById('math-timer-bar');
 
     // 防止重複觸發時遺留舊計時器 / 鍵盤監聽
-    if (activeKeydownHandler) { window.removeEventListener('keydown', activeKeydownHandler); activeKeydownHandler = null; }
-    if (activeTimerInterval) { clearInterval(activeTimerInterval); activeTimerInterval = null; }
+    clearActiveMathResources();
 
     let resolved = false;
     const hintBox = document.getElementById('math-hint');
     if (hintBox) { hintBox.style.display = 'none'; hintBox.innerHTML = ''; }
 
     function cleanup() {
-        if (activeKeydownHandler) { window.removeEventListener('keydown', activeKeydownHandler); activeKeydownHandler = null; }
-        if (activeTimerInterval) { clearInterval(activeTimerInterval); activeTimerInterval = null; }
+        clearActiveMathResources();
     }
 
     function resolve(isCorrect, delayMs) {
         if (resolved) return;
         resolved = true;
         if (activeTimerInterval) { clearInterval(activeTimerInterval); activeTimerInterval = null; }
-        setTimeout(() => {
+        activeResolveTimeout = setTimeout(() => {
+            activeResolveTimeout = null;
             cleanup();
             overlay.style.display = 'none';
+            overlay.setAttribute('aria-hidden', 'true');
             onResolve(isCorrect, qData.topic);
         }, delayMs);
     }
@@ -145,9 +168,16 @@ export function showMathQuestion({ type, difficulty, questionsSolved, weaponLeve
         resolved = true;
         if (activeTimerInterval) { clearInterval(activeTimerInterval); activeTimerInterval = null; }
         if (!hintBox) {
-            setTimeout(() => { cleanup(); overlay.style.display = 'none'; onResolve(false, qData.topic); }, 1500);
+            activeResolveTimeout = setTimeout(() => {
+                activeResolveTimeout = null;
+                cleanup();
+                overlay.style.display = 'none';
+                overlay.setAttribute('aria-hidden', 'true');
+                onResolve(false, qData.topic);
+            }, 1500);
             return;
         }
+        optsContainer.style.display = 'none';
         hintBox.innerHTML = `<div style="color:#fca5a5; font-weight:bold; font-size:16px; margin-bottom:8px;">📖 解題步驟</div><div style="font-size:17px; line-height:1.7;">${hintHTML}</div>`;
         const contBtn = document.createElement('button');
         contBtn.textContent = '明白了，繼續戰鬥 ▶';
@@ -155,9 +185,11 @@ export function showMathQuestion({ type, difficulty, questionsSolved, weaponLeve
         contBtn.onclick = () => {
             cleanup();
             overlay.style.display = 'none';
+            overlay.setAttribute('aria-hidden', 'true');
             hintBox.style.display = 'none';
             onResolve(false, qData.topic);
         };
+        contBtn.className = 'math-continue-btn';
         hintBox.appendChild(contBtn);
         hintBox.style.display = 'block';
         if (typeof MathJax !== 'undefined' && MathJax.typesetPromise) MathJax.typesetPromise([hintBox]).catch(() => {});
@@ -185,9 +217,11 @@ export function showMathQuestion({ type, difficulty, questionsSolved, weaponLeve
 
         let inputDisplay = document.createElement('div');
         inputDisplay.id = 'math-num-display';
+        inputDisplay.className = 'math-num-display';
         inputDisplay.style = "font-size: 32px; padding: 10px; width: 240px; min-height: 45px; text-align: center; border-radius: 8px; border: 2px solid #94a3b8; background: #334155; color: #fbbf24; font-weight: bold; display: flex; justify-content: center; align-items: center; letter-spacing: 2px;";
 
         let numpad = document.createElement('div');
+        numpad.className = 'math-numpad';
         numpad.style = "display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; width: 260px; margin-top: 5px;";
 
         const buttons = ['7', '8', '9', '4', '5', '6', '1', '2', '3', '-', '0', '⌫'];
@@ -196,6 +230,7 @@ export function showMathQuestion({ type, difficulty, questionsSolved, weaponLeve
         buttons.forEach(btnText => {
             let btn = document.createElement('button');
             btn.textContent = btnText;
+            btn.className = 'math-key-btn';
             btn.style = "background: #475569; color: white; border: 2px solid #64748b; padding: 12px; font-size: 24px; font-weight: bold; border-radius: 8px; cursor: pointer; transition: 0.2s;";
             btn.onmouseover = () => btn.style.background = '#64748b';
             btn.onmouseout = () => btn.style.background = '#475569';
@@ -215,6 +250,7 @@ export function showMathQuestion({ type, difficulty, questionsSolved, weaponLeve
 
         let submitBtn = document.createElement('button');
         submitBtn.textContent = '確定';
+        submitBtn.className = 'math-submit-btn';
         submitBtn.style = "background: #3b82f6; color: white; border: 2px solid #94a3b8; padding: 12px 40px; font-size: 24px; font-weight: bold; border-radius: 8px; cursor: pointer; transition: 0.2s; width: 260px; margin-top: 5px;";
         submitBtn.onmouseover = () => submitBtn.style.background = '#2563eb';
         submitBtn.onmouseout = () => submitBtn.style.background = '#3b82f6';
@@ -296,18 +332,22 @@ export function showMathQuestion({ type, difficulty, questionsSolved, weaponLeve
         });
     }
 
-    // 顯示彈窗 + MathJax 渲染
-    if (typeof MathJax !== 'undefined' && MathJax.typesetPromise) MathJax.typesetPromise([overlay]).catch(e => console.log(e));
+    // 先同步顯示彈窗；MathJax 只屬漸進增強，任何同步／非同步錯誤都不可阻止答題。
     overlay.style.display = 'flex';
+    overlay.setAttribute('aria-hidden', 'false');
+    if (typeof MathJax !== 'undefined' && MathJax.typesetPromise) {
+        try { MathJax.typesetPromise([overlay]).catch(() => {}); } catch (error) {}
+    }
 
     // 倒數計時
-    let timeLeft = MATH_TIME_LIMIT;
+    const timeLimit = Math.max(1, Number(timeLimitSeconds) || MATH_TIME_LIMIT);
+    let timeLeft = timeLimit;
     timerBar.style.width = '100%';
     timerBar.style.backgroundColor = '#4ade80';
     activeTimerInterval = setInterval(() => {
         if (resolved) return;
         timeLeft -= 0.1;
-        let pct = Math.max(0, (timeLeft / MATH_TIME_LIMIT) * 100);
+        let pct = Math.max(0, (timeLeft / timeLimit) * 100);
         timerBar.style.width = pct + '%';
         timerBar.style.backgroundColor = timeLeft < 3 ? '#ef4444' : '#4ade80';
         if (timeLeft <= 0) {

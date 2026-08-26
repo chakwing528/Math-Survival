@@ -22,11 +22,13 @@
 
 `js/input.js` 擁有允許的 lifecycle transition 及共用 input state；Pointer Lock callback 只呼叫 `pause()`／`resume()`。不合法 transition 會立即報錯，pause/resume 會清空輸入避免殘留開火或移動。
 
+數學題進場次序是 lifecycle invariant：`PLAYING → MATH`、清除輸入、同步顯示題目，最後才嘗試可選的 desktop pointer unlock。題目建立失敗會轉到 `RESUME_WAIT`、重新投放補給並提供安全恢復路徑；iPhone 缺少 Pointer Lock API 不得令流程停在 `MATH`。
+
 ## Gameplay systems
 
 - 玩家：HP/boost、WASD／虛擬搖桿、Shift／搖桿疾跑、mouse／touch look、FPP/TPP、瞄準、射擊、換彈、近戰。
-- 武器：9 級；數值來自 `WEAPONS`，模型 mapping 來自 `GUN_BY_LEVEL`。
-- 敵人：5 tiers；數值來自 `MONSTER_BASE`，由 queue 分批生成。
+- 武器：9 級；數值來自 `WEAPONS`，模型 mapping 來自 `GUN_BY_LEVEL`。touch 彈匣清空而 reserve 有彈時自動換彈，desktop R 仍可手動換彈。
+- 敵人：5 tiers；數值來自 `MONSTER_BASE`，由 queue 分批生成。手機 medium／low 同場上限為 4／3，總敵人數和勝利條件不變。
 - 場景：預設 nature；school 可由 `SCENE_MODE` 啟用但不是完整可玩樓層系統。
 - 戰場收縮：nature 使用四面圍牆；school/舊 zone 資料仍保留。
 - 補給：UPGRADE 和 AMMO；接近後自動觸發數學題。
@@ -43,6 +45,8 @@
 6. 共用 geometry/material：可破壞物件使用 cloned material；dispose 時不能釋放仍被其他物件共用的資源。
 7. DOM IDs：HUD references 在 `_initHUDRefs()` 集中取得；改 HTML ID 必須同步。
 8. Dispose：重開遊戲前必須移除 listeners、renderer、scene resources 及動態 DOM 狀態。
+9. 數學題：題目 overlay 必須先於 pointer unlock 顯示；unlock、MathJax 或題目建立失敗都不可留下無 UI 的 `MATH` 狀態。
+10. 結算：`_endGame()`／`abort()` 不得依賴 Pointer Lock API 成功；安全 release 後必須執行 callback，遠端上傳 exception 必須恢復成可重試狀態。
 
 ## 數學獎懲
 

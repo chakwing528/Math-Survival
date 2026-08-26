@@ -51,7 +51,7 @@ test('3D client boots and reaches difficulty selection without production servic
   await page.goto('/');
   await expect(page.locator('#loading-screen')).toBeHidden({ timeout: 10_000 });
   await expect(page.locator('#start-menu')).toBeVisible();
-  await expect(page.locator('#version-tag')).toHaveText('Math Survival FPS V3.7');
+  await expect(page.locator('#version-tag')).toHaveText('Math Survival FPS V3.10');
 
   await page.locator('#login-class').fill('TEST');
   await page.locator('#login-sid').fill('00');
@@ -64,7 +64,7 @@ test('3D client boots and reaches difficulty selection without production servic
   expectSafeRun(observed);
 });
 
-test('3D forced-touch HUD maps simultaneous joystick, look and combat pointers', async ({ page }) => {
+test('3D forced-touch HUD maps simultaneous joystick, look and fire pointers', async ({ page }) => {
   const observed = await isolateExternalServices(page);
   await page.setViewportSize({ width: 844, height: 390 });
   await page.goto('/?mode=touch');
@@ -83,10 +83,9 @@ test('3D forced-touch HUD maps simultaneous joystick, look and combat pointers',
 
   await expect(page.locator('#touch-controls')).toBeVisible();
   await expect(page.locator('#btn-touch-fire')).toBeVisible();
-  const actionBoxes = await Promise.all(
-    ['#btn-touch-aim', '#btn-touch-reload', '#btn-touch-fire', '#btn-touch-melee']
-      .map(selector => page.locator(selector).boundingBox())
-  );
+  await expect(page.locator('#btn-touch-aim, #btn-touch-reload, #btn-touch-melee')).toHaveCount(0);
+  await expect(page.locator('#hud-bottom-right')).toBeHidden();
+  const actionBoxes = await Promise.all(['#btn-touch-fire'].map(selector => page.locator(selector).boundingBox()));
   expect(actionBoxes.every(Boolean)).toBe(true);
   for (let i = 0; i < actionBoxes.length; i++) {
     const a = actionBoxes[i];
@@ -110,9 +109,6 @@ test('3D forced-touch HUD maps simultaneous joystick, look and combat pointers',
   await page.locator('#touch-look-zone').dispatchEvent('pointerdown', { pointerId: 12, clientX: 500, clientY: 220 });
   await page.locator('#touch-look-zone').dispatchEvent('pointermove', { pointerId: 12, clientX: 535, clientY: 195 });
   await page.locator('#btn-touch-fire').dispatchEvent('pointerdown', { pointerId: 13 });
-  await page.locator('#btn-touch-aim').dispatchEvent('pointerdown', { pointerId: 14 });
-  await page.locator('#btn-touch-reload').dispatchEvent('pointerdown', { pointerId: 15 });
-  await page.locator('#btn-touch-melee').dispatchEvent('pointerdown', { pointerId: 16 });
 
   const state = await page.evaluate(() => ({
     movement: globalThis.__touchSmoke.input.movement,
@@ -126,9 +122,9 @@ test('3D forced-touch HUD maps simultaneous joystick, look and combat pointers',
     movement: { w: true, a: false, s: false, d: false },
     sprint: true,
     fire: true,
-    aim: true,
+    aim: false,
     look: { x: 35, y: -25 },
-    actions: ['reload', 'melee']
+    actions: []
   });
 
   await page.locator('#touch-move-zone').dispatchEvent('pointerup', { pointerId: 11, clientX: centerX, clientY: centerY });

@@ -37,6 +37,48 @@ export class GameStateMachine {
     }
 }
 
+// Pointer Lock 唔係 touch gameplay 的必要條件。iPhone Safari 沒有
+// document.exitPointerLock()；只可在確實 locked 時嘗試解鎖，而且失敗
+// 不得阻止數學題 UI 顯示。
+export function releasePointerLockSafely(controls) {
+    if (!controls || !controls.isLocked || typeof controls.unlock !== 'function') return false;
+    try {
+        controls.unlock();
+        return true;
+    } catch (error) {
+        return false;
+    }
+}
+
+// 結算／離場 callback 不可被可選的 Pointer Lock API 阻斷。
+export function finishGameSessionSafely({ controls, onComplete }) {
+    if (typeof onComplete !== 'function') throw new Error('finishGameSessionSafely requires onComplete');
+    releasePointerLockSafely(controls);
+    return onComplete();
+}
+
+export function shouldAutoReload({ weaponLevel, isReloading, magazine, totalAmmo }) {
+    return Number(weaponLevel) >= 0
+        && !Boolean(isReloading)
+        && Number(magazine) <= 0
+        && Number(totalAmmo) > 0;
+}
+
+// 數學題進場次序是 lifecycle invariant：先停止輸入、同步顯示題目，
+// 最後才處理可選的 desktop Pointer Lock。題目建立失敗時回到可恢復狀態。
+export function beginMathChallenge({ lifecycle, resetInput, showQuestion, controls }) {
+    lifecycle.transition(GAME_STATES.MATH);
+    if (typeof resetInput === 'function') resetInput();
+    try {
+        showQuestion();
+    } catch (error) {
+        lifecycle.transition(GAME_STATES.RESUME_WAIT);
+        throw error;
+    }
+    releasePointerLockSafely(controls);
+    return true;
+}
+
 const KEY_CONTROLS = Object.freeze({
     w: 'forward', arrowup: 'forward',
     s: 'backward', arrowdown: 'backward',
@@ -174,7 +216,6 @@ export class TouchControlSurface {
         this.movePointer = null;
         this.lookPointer = null;
         this.firePointer = null;
-        this.aimLatched = false;
         this.listeners = [];
 
         const get = id => root.querySelector(`#${id}`);
@@ -183,11 +224,7 @@ export class TouchControlSurface {
         this.moveKnob = get('touch-move-knob');
         this.lookZone = get('touch-look-zone');
         this.fireButton = get('btn-touch-fire');
-        this.aimButton = get('btn-touch-aim');
-        this.reloadButton = get('btn-touch-reload');
-        this.meleeButton = get('btn-touch-melee');
-        if (![this.moveZone, this.moveBase, this.moveKnob, this.lookZone, this.fireButton,
-            this.aimButton, this.reloadButton, this.meleeButton].every(Boolean)) {
+        if (![this.moveZone, this.moveBase, this.moveKnob, this.lookZone, this.fireButton].every(Boolean)) {
             throw new Error('Touch control DOM is incomplete');
         }
 
@@ -199,15 +236,6 @@ export class TouchControlSurface {
         this._onLookEnd = event => this._endLook(event);
         this._onFireDown = event => this._startFire(event);
         this._onFireEnd = event => this._endFire(event);
-        this._onAim = event => {
-            event.preventDefault();
-            this.aimLatched = !this.aimLatched;
-            this.input.setControl('aim', this.aimLatched);
-            this.aimButton.classList.toggle('active', this.aimLatched);
-            this.aimButton.setAttribute('aria-pressed', String(this.aimLatched));
-        };
-        this._onReload = event => { event.preventDefault(); this.onAction('reload', event); };
-        this._onMelee = event => { event.preventDefault(); this.onAction('melee', event); };
     }
 
     _listen(target, type, handler) {
@@ -229,9 +257,6 @@ export class TouchControlSurface {
         this._listen(this.fireButton, 'pointerdown', this._onFireDown);
         this._listen(this.fireButton, 'pointerup', this._onFireEnd);
         this._listen(this.fireButton, 'pointercancel', this._onFireEnd);
-        this._listen(this.aimButton, 'pointerdown', this._onAim);
-        this._listen(this.reloadButton, 'pointerdown', this._onReload);
-        this._listen(this.meleeButton, 'pointerdown', this._onMelee);
     }
 
     _capture(target, pointerId) {
@@ -324,13 +349,10 @@ export class TouchControlSurface {
         this.lookPointer = null;
         this.firePointer = null;
         this.lastLook = null;
-        this.aimLatched = false;
         this._resetMovement();
         this.input.setControl('fire', false);
         this.input.setControl('aim', false);
         this.fireButton.classList.remove('active');
-        this.aimButton.classList.remove('active');
-        this.aimButton.setAttribute('aria-pressed', 'false');
     }
 
     dispose() {

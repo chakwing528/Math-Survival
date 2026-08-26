@@ -6,8 +6,10 @@
 
 - **3D 主版**：開啟 `index.html`，支援滑鼠鍵盤及完整 touch HUD。
 - **2D 經典版**：開啟 `classic-2d.html`，保留觸控和舊裝置 fallback。
-- 3D touch 支援虛擬搖桿、拖動視角、開火、toggle 瞄準、換彈、近戰及暫停；手機仍可選用 2D fallback。
-- 畫面版本為 V3.7，module cache key 為 `?v=37`。
+- 3D touch 支援虛擬搖桿、拖動視角、開火及暫停；開火鍵在未持槍時自動近戰，彈匣清空後自動換彈。
+- V3.10 將手機答題改為左右雙欄，移除重複戰鬥鍵及手機武器卡，並修正 iPhone Game Over／成績重試流程。
+- 手機 medium 使用 DPR 1.25／最低 1.0、同場最多 4 隻敵人及 45 FPS frame budget；答題、暫停與結算期間停止持續 WebGL render，低 FPS 時再逐級降載。
+- 畫面版本為 V3.10，module cache key 為 `?v=40`。
 
 > 3D 版使用 ES Modules，必須經 HTTP server 開啟。直接雙擊 `index.html` 會因 `file://` 限制而無法載入 modules。
 
@@ -58,7 +60,7 @@ npm run lint:db
 | V | 切換第一／第三人稱 |
 | Esc | 暫停及設定 |
 
-Touch 模式使用左下虛擬搖桿移動（推盡向前會疾跑）、右半屏拖動視角，以及右下開火／瞄準／換彈／近戰按鈕。
+Touch 模式使用左下虛擬搖桿移動（推盡向前會疾跑）、右半屏拖動視角及右下開火鍵；未持槍時開火等同近戰，持槍後彈匣清空會自動換彈。
 
 ## 玩法
 
