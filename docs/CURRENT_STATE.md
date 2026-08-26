@@ -51,6 +51,7 @@
 
 ## 驗證狀態
 
+- 2026-08-26：V3.9 Cloudflare deployment `275b7e05`（code `dc94bdc`）已驗證 3D 200、2D redirect 後 200、敏感路徑 404、V3.9/cache 39、874×402 3D HUD、medium DPR 1.35 及 console 無 error；只用 `TEST/00`，沒有上傳成績。真實 iPhone 答題包重測仍是 blocking。
 - 2026-08-26：V3.9 答題包候選的 static、23 unit tests 及單線完整 Playwright matrix 通過；browser 結果為 18 passed、2 hosted-staging skipped，iPhone WebKit／Android Chromium／iPad WebKit 均驗證「無 Pointer Lock API → 題目可見 → 答錯解釋 → 返回 PLAYING」及答題框不越界。這仍不等於真實 iPhone 通過。
 - 2026-08-26：V3.8 Cloudflare deployment `e9b0d989` 已驗證 3D／2D 200、敏感路徑自訂 404、874×402 單欄選單、完整 touch HUD及效能診斷列；browser console 無 error，測試只用 `TEST/00` 且沒有上傳成績。真實 iPhone 17 Pro 仍待重測。
 - 2026-08-26：iPhone 17 Pro／Safari 真機先發現選單未縮放、3D 像素化、移動約 10 秒後 lag，其後再發現拾取答題包即卡死且題目不彈出；iOS／Safari 版本待補。V3.8/V3.9 自動修正候選仍須在同一部 iPhone 重測，不能當作真機通過。

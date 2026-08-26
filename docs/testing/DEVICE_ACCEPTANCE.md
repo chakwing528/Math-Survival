@@ -6,7 +6,7 @@ Issue #3 只有在目標真機完成本清單後才可關閉。Playwright 裝置
 
 - V3.9 本機閘通過：static、23 unit tests，以及 18 passed／2 個 hosted-staging cases 按設計 skipped；三個裝置 profile 均覆蓋答題包顯示與安全返回。
 - 844×390 forced-touch 本機瀏覽器成功載入 3D touch HUD，無 console error；這項只證明入口和基本 UI，不取代下方真機記錄。
-- V3.8 獨立 Cloudflare Pages branch preview 已上線：`https://device-gate-p3.math-survival-device-staging.pages.dev/?mode=touch&debug=perf`。874×402 單欄選單、3D／2D、觸控 HUD、效能診斷列、安全返回及嚴格 404 已驗證，console 無 error；但仍未在用戶的實際 iPhone 17 Pro 完成下方重測。
+- V3.9 獨立 Cloudflare Pages branch preview 已上線：`https://device-gate-p3.math-survival-device-staging.pages.dev/?mode=touch&debug=perf`。874×402 單欄選單、3D／2D、觸控 HUD、效能診斷列、答題自動閘、安全返回及嚴格 404 已驗證，console 無 error；但仍未在用戶的實際 iPhone 17 Pro 完成下方重測。
 - LAN 預覽已驗證首頁／touch URL 200、dotfile 404；測試後 server 已停止。下次執行 `npm run serve:device` 並重新取得 LAN IP，不能假設舊 IP 不變。
 - 第一部真機 iPhone 17 Pro／Safari 在 2026-08-26 驗收失敗：開始選單沒有手機縮放、3D 畫面明顯像素化、移動約 10 秒後 lag；其後拾取答題包會卡死且題目不彈出。iOS／Safari 版本待填；修正及同機重測前保持 blocking。Android phone、iPad 的實際型號／版本尚未提供。
 - V3.8 本機修正候選已針對 874×402 加入單欄選單、HUD 防重疊、medium DPR 1.35／最低 1.0、場景減量及每幀工作節流；自動 smoke matrix 15 passed、2 hosted-staging skipped。這只代表 regression gate 通過，仍須以同一部 iPhone 17 Pro 重做下方完整流程。

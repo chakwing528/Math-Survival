@@ -7,13 +7,15 @@
 - Project：`math-survival-device-staging`
 - Branch：`device-gate-p3`
 - 固定 branch URL：`https://device-gate-p3.math-survival-device-staging.pages.dev/`
-- 本次版本 URL：`https://e9b0d989.math-survival-device-staging.pages.dev/`
-- 本次程式碼 SHA：`bc703d6ffeb0523009fb720f8b8a6d2bc0556ba9`
+- 本次版本 URL：`https://275b7e05.math-survival-device-staging.pages.dev/`
+- 本次程式碼 SHA：`dc94bdceb9e46566140c08e0cccc6ccf6c1b4444`
 - 真機入口：`https://device-gate-p3.math-survival-device-staging.pages.dev/?mode=touch&debug=perf`
 
 Project 的 production branch 是 `main`，但沒有 production deployment、custom domain 或 GitHub integration。Branch URL 會指向同名 branch 最近一次上傳；版本 URL 則保留本次 deployment。
 
 2026-08-26 的 V3.8 hosted 驗證：branch URL 與 2D fallback 回應 200；`package.json`、`.git/HEAD` 回應自訂 404；874×402 forced-touch 選單使用單欄且所有必需控制在 viewport 內；程度 1 可載入完整 3D HUD及 `?debug=perf` 診斷列，console 無 error。測試只用 `TEST/00`，沒有按上傳成績；真實 iPhone 17 Pro 仍須重測。
+
+同日 V3.9 deployment `275b7e05` 已驗證 branch URL 200、2D canonical redirect 後 200、`package.json`／`.git/HEAD` 404、畫面 V3.9／cache 39、874×402 3D HUD、medium DPR 1.35 及 console 無 error。自動 WebKit／Chromium 裝置閘另已覆蓋無 Pointer Lock API 的答題顯示與返回；真實 iPhone 17 Pro 仍須重測拾取答題包。
 
 ## 公開及資料邊界
 

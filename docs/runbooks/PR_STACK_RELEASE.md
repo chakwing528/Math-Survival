@@ -9,7 +9,7 @@
 | 1 | #1 | `main` → `codex/project-memory-v3.3` | `c471996474cf1d3961bcd34c763380a60a833968` |
 | 2 | #5 | `codex/project-memory-v3.3` → `codex/input-state-machine-p1` | `0fc30f34a56d1576f26537f10f61a379a96e789a` |
 | 3 | #7 | `codex/input-state-machine-p1` → `codex/touch-controls-p2` | `6fea10b7a850b4d9b478464a1bf17be64bae143e` |
-| 4 | #8 | `codex/touch-controls-p2` → `codex/device-gate-p3` | `ac9cb5c56c3449eade4bcc27174e86a29dfc1fe7` |
+| 4 | #8 | `codex/touch-controls-p2` → `codex/device-gate-p3` | `dc94bdceb9e46566140c08e0cccc6ccf6c1b4444` |
 
 2026-08-26 盤點時四個 PR 都是 open Draft、GitHub 顯示 clean／mergeable。`main` 基準為 `ff2277da21f31dbc03d370b1de6e3803c2214878`；實際合併前必須重新取得最新 SHA、diff、checks 和 mergeability，不能只依賴本表。
 
@@ -55,7 +55,7 @@
 
 - iPhone 17 Pro／Safari 的 V3.7 真機驗收發現選單未縮放、像素化及約 10 秒後 lag，因此先前 conditional pass 已被真機結果擋下。iOS／Safari 版本待補。
 - V3.8 iPhone P0 修正候選已通過 15 個 smoke cases（另 2 個 hosted-staging cases 按設計 skipped）；Cloudflare deployment `e9b0d989` 的 3D／2D、874×402 UI、診斷列及嚴格 404 亦通過。仍須同一部 iPhone 17 Pro 完成 10 分鐘重測，才可合併。
-- 同一部 iPhone 其後發現拾取答題包卡死、題目不彈出。V3.9 已修正 iOS 無 Pointer Lock API 的進場次序，並通過 static、23 unit tests、18 browser tests（另 2 個 hosted cases skipped）；仍須 hosted preview 及同機重測。
+- 同一部 iPhone 其後發現拾取答題包卡死、題目不彈出。V3.9 已修正 iOS 無 Pointer Lock API 的進場次序，並通過 static、23 unit tests、18 browser tests（另 2 個 hosted cases skipped）及 Cloudflare deployment `275b7e05` hosted 閘；仍須同機重測。
 - V3.9 本機閘：18 browser tests passed、2 hosted-staging cases 因無 secrets 按設計 skipped；static 及 23 unit tests 通過。
 - 本機 Supabase：18 pgTAP tests 通過；`public`、`math_survival_private` lint 無錯誤。
 - 844×390 forced-touch 瀏覽器：3D 戰場和 touch HUD 載入，無 console error；只用 `TEST/00`，沒有上傳成績。

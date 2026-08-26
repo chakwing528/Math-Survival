@@ -250,6 +250,7 @@ python3 -m http.server 8000   → http://localhost:8000
 - 本機 smoke matrix 為 15 passed、2 hosted-staging skipped；新版 Cloudflare deployment `e9b0d989` 的 3D／2D、874×402 UI、診斷列和嚴格 404 已通過。仍須同一部 iPhone 17 Pro 完成 10 分鐘重測，所以不可合併或關閉 Issue #3。
 - 同機其後發現拾取答題包即卡死、題目不彈出。根因是 iOS 缺少 `document.exitPointerLock()`，舊 `_triggerMath()` 在題目顯示前無條件 unlock。V3.9 改為先顯示題目、再安全 unlock，並補上失敗回復、timer/listener cleanup、橫屏答題 UI 及三裝置自動閘。
 - V3.9 本機結果：static 通過、23 unit tests 通過、Playwright 18 passed／2 hosted-staging skipped；真實 iPhone 仍未重測，因此維持 blocking。
+- V3.9 code commit `dc94bdc` 已發佈到 Cloudflare deployment `275b7e05`；branch preview 的 3D／2D、V3.9/cache 39、874×402 HUD、DPR 1.35、嚴格 404 及 console error 閘通過。只用 `TEST/00`，沒有上傳成績。
 
 ### ⬜ 待做
 
